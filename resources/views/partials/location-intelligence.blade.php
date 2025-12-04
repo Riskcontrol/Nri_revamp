@@ -1,7 +1,7 @@
-     <section class="">
+     <section class="bg-white">
          <div class="container mx-auto px-4 sm:px-6 lg:px-8">
              <div class="pt-8 pb-6 md:pt-10 md:pb-8">
-                 <h1 class="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-[#185451]">
+                 <h1 class="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-primary">
                      Location Intelligence
                  </h1>
              </div>
@@ -129,354 +129,157 @@
 
              </div>
              <div class="md:w-1/2 w-full md:pl-6">
-                 <h2 class="text-2xl font-bold md:py-4">Northern Nigeria</h2>
+                 <h2 class="text-2xl font-bold md:py-4 text-primary">Northern Nigeria</h2>
                  <div class="flex sm:gap-14 gap-8 flex-col sm:flex-row">
+
                      <div class="grid gap-1 content-start w-full">
-                         <h3 class="text-xl text-dark-grey-500 font-bold">
-                             North West
-                         </h3>
+                         <h3 class="text-xl text-dark-grey-500 font-bold text-primary">North West</h3>
                          <ul class="grid gap-1 region-capitals-list">
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Jigawa']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Jigawa">
-                                     Jigawa
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Kaduna']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Kaduna">
-                                     Kaduna
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Kano']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Kano">
-                                     Kano
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Katsina']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Katsina">
-                                     Katsina
-                                 </button>
-                             </form>
-                             <form action="{{ route('locationIntelligence', ['state' => 'Kebbi']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Kebbi">
-                                     Kebbi
-                                 </button>
-                             </form>
-                             <form action="{{ route('locationIntelligence', ['state' => 'Sokoto']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Sokoto">
-                                     Sokoto
-                                 </button>
-                             </form>
-                             <form action="{{ route('locationIntelligence', ['state' => 'Zamfara']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Zamfara">
-                                     Zamfara
-                                 </button>
-                             </form>
-
-
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Jigawa']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Jigawa">Jigawa</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Kaduna']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Kaduna">Kaduna</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Kano']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Kano">Kano</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Katsina']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Katsina">Katsina</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Kebbi']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Kebbi">Kebbi</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Sokoto']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Sokoto">Sokoto</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Zamfara']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Zamfara">Zamfara</a></li>
                          </ul>
                      </div>
+
                      <div class="grid gap-1 content-start w-full">
-                         <h3 class="text-xl text-dark-grey-500 font-bold">
-                             North East
-                         </h3>
+                         <h3 class="text-xl text-dark-grey-500 font-bold text-primary">North East</h3>
                          <ul class="grid gap-1 region-capitals-list">
-                             <form action="{{ route('locationIntelligence', ['state' => 'Adamawa']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Adamawa">
-                                     Adamawa
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Bauchi']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Bauchi">
-                                     Bauchi
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Borno']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Borno">
-                                     Borno
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Gombe']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Gombe">
-                                     Gombe
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Taraba']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Taraba">
-                                     Taraba
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Yobe']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Yobe">
-                                     Yobe
-                                 </button>
-                             </form>
-
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Adamawa']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Adamawa">Adamawa</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Bauchi']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Bauchi">Bauchi</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Borno']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Borno">Borno</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Gombe']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Gombe">Gombe</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Taraba']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Taraba">Taraba</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Yobe']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Yobe">Yobe</a></li>
                          </ul>
                      </div>
+
                      <div class="grid gap-1 content-start w-full">
-                         <h3 class="text-xl text-dark-grey-500 font-bold">
-                             North Central
-                         </h3>
+                         <h3 class="text-xl text-dark-grey-500 font-bold text-primary">North Central</h3>
                          <ul class="grid gap-1 region-capitals-list">
-                             <form
-                                 action="{{ route('locationIntelligence', ['state' => 'Federal Capital Territory']) }}"
-                                 method="POST" class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400"
-                                     data-region="Federal Capital Territory">
-                                     Abuja (FCT)
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Benue']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Benue">
-                                     Benue
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Kogi']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Kogi">
-                                     Kogi
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Kwara']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Kwara">
-                                     Kwara
-                                 </button>
-                             </form>
-                             <form action="{{ route('locationIntelligence', ['state' => 'Nassarawa']) }}"
-                                 method="POST" class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Nassarawa">
-                                     Nassarawa
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Niger']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Niger">
-                                     Niger
-                                 </button>
-                             </form>
-
-
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Plateau']) }}"
-                                 method="POST" class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Plateau">
-                                     Plateau
-                                 </button>
-                             </form>
-
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Federal Capital Territory']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Federal Capital Territory">Abuja (FCT)</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Benue']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Benue">Benue</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Kogi']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Kogi">Kogi</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Kwara']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Kwara">Kwara</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Nassarawa']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Nassarawa">Nassarawa</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Niger']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Niger">Niger</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Plateau']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Plateau">Plateau</a></li>
                          </ul>
                      </div>
                  </div>
-                 <h2 class="text-2xl font-bold md:py-4">Southern Nigeria</h2>
+
+                 <h2 class="text-2xl font-bold md:py-4 mt-6 text-primary">Southern Nigeria</h2>
                  <div class="flex sm:gap-14 gap-8 flex-col sm:flex-row">
+
                      <div class="grid gap-1 content-start w-full">
-                         <h3 class="text-xl text-dark-grey-500 font-bold">
-                             South West
-                         </h3>
+                         <h3 class="text-xl font-bold text-primary">South West</h3>
                          <ul class="grid gap-1 region-capitals-list">
-                             <form action="{{ route('locationIntelligence', ['state' => 'Ekiti']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Ekiti">
-                                     Ekiti
-                                 </button>
-                             </form>
-                             <form action="{{ route('locationIntelligence', ['state' => 'Lagos']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Lagos">
-                                     Lagos
-                                 </button>
-                             </form>
-
-
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Ogun']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Ogun">
-                                     Ogun
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Ondo']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Ondo">
-                                     Ondo
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Osun']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Osun">
-                                     Osun
-                                 </button>
-                             </form>
-                             <form action="{{ route('locationIntelligence', ['state' => 'Oyo']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Oyo">
-                                     Oyo
-                                 </button>
-                             </form>
-
-
-
-
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Ekiti']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Ekiti">Ekiti</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Lagos']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Lagos">Lagos</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Ogun']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Ogun">Ogun</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Ondo']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Ondo">Ondo</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Osun']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Osun">Osun</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Oyo']) }}"
+                                     class="region-name text-gray-800 hover:underline block" data-region="Oyo">Oyo</a>
+                             </li>
                          </ul>
                      </div>
+
                      <div class="grid gap-1 content-start w-full">
-                         <h3 class="text-xl text-dark-grey-500 font-bold">
-                             South East
-                         </h3>
+                         <h3 class="text-xl font-bold text-primary">South East</h3>
                          <ul class="grid gap-1 region-capitals-list">
-                             <form action="{{ route('locationIntelligence', ['state' => 'Abia']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Abia">
-                                     Abia
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Anambra']) }}"
-                                 method="POST" class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Anambra">
-                                     Anambra
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Ebonyi']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Ebonyi">
-                                     Ebonyi
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Enugu']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Enugu">
-                                     Enugu
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Imo']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Imo">
-                                     Imo
-                                 </button>
-                             </form>
-
-
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Abia']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Abia">Abia</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Anambra']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Anambra">Anambra</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Ebonyi']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Ebonyi">Ebonyi</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Enugu']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Enugu">Enugu</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Imo']) }}"
+                                     class="region-name text-gray-800 hover:underline block" data-region="Imo">Imo</a>
+                             </li>
                          </ul>
                      </div>
+
                      <div class="grid gap-1 content-start w-full">
-                         <h3 class="text-xl text-dark-grey-500 font-bold">
-                             South South
-                         </h3>
+                         <h3 class="text-xl font-bold text-primary">South South</h3>
                          <ul class="grid gap-1 region-capitals-list">
-                             <form action="{{ route('locationIntelligence', ['state' => 'Akwa Ibom']) }}"
-                                 method="POST" class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Akwa Ibom">
-                                     Akwa Ibom
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Bayelsa']) }}"
-                                 method="POST" class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Bayelsa">
-                                     Bayelsa
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Cross River']) }}"
-                                 method="POST" class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Cross River">
-                                     Cross River
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Delta']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Delta">
-                                     Delta
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Edo']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Edo">
-                                     Edo
-                                 </button>
-                             </form>
-
-                             <form action="{{ route('locationIntelligence', ['state' => 'Rivers']) }}" method="POST"
-                                 class="w-full my-0">
-                                 @csrf
-                                 <button type="submit" class="region-name text-blue-400" data-region="Rivers">
-                                     Rivers
-                                 </button>
-                             </form>
-
-
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Akwa Ibom']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Akwa Ibom">Akwa Ibom</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Bayelsa']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Bayelsa">Bayelsa</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Cross River']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Cross River">Cross River</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Delta']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Delta">Delta</a></li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Edo']) }}"
+                                     class="region-name text-gray-800 hover:underline block" data-region="Edo">Edo</a>
+                             </li>
+                             <li><a href="{{ route('locationIntelligence', ['state' => 'Rivers']) }}"
+                                     class="region-name text-gray-800 hover:underline block"
+                                     data-region="Rivers">Rivers</a></li>
                          </ul>
                      </div>
                  </div>

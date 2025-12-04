@@ -11,24 +11,28 @@
         "Noto Color Emoji";
 }
 
+@theme {
+    --color-card: #1e2d3d;
+    --color-primary: #0a1628;
+}
 /* --- CSS for Leaflet Info Box --- */
 .info {
     padding: 6px 8px;
     font: 14px/16px Arial, Helvetica, sans-serif;
-    background: white;
-    background: rgba(255, 255, 255, 0.8);
+    background: #1e2d3d;
+    /* background: rgba(255, 255, 255, 0.8); */
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
     border-radius: 5px;
 }
 .info h4 {
     margin: 0 0 5px;
-    color: #777;
+    color: #ffffff;
 }
 
 /* --- CSS for Leaflet Legend --- */
 .legend {
     line-height: 18px;
-    color: #555;
+    color: #ffffff;
 }
 .legend i {
     width: 18px;

@@ -53,7 +53,7 @@
 
 </head>
 
-<body class="font-sans">
+<body class="font-sans bg-[#0A1628] text-white">
 
     <x-header />
 

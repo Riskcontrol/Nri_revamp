@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 use App\Models\tbldataentry;
-use App\Models\CorrectionFactorForStates; // <-- You will need to import this model
+use App\Models\CorrectionFactorForStates;
 use Illuminate\Http\Request;
-use Carbon\Carbon; // <-- You may need this if not already imported
+use Carbon\Carbon;
+use App\Http\Controllers\Traits\CalculatesRisk;
+use Illuminate\Support\Facades\DB;
+
 
 class SecurityIntelligenceController extends Controller
 {
+
+    use CalculatesRisk;
 
         private $geopoliticalZones = [
         'North West' => ['Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Sokoto', 'Zamfara'],
@@ -50,7 +55,7 @@ class SecurityIntelligenceController extends Controller
             ->get();
         $prominentRisks = $trendingRiskFactors->pluck('riskindicators')->implode(', ');
 
-        // 6. Active Regions (Card) & Bar Chart Data
+
         $zoneData = [];
         foreach ($stateData as $state) {
             $zone = $this->getGeopoliticalZone($state->location);
@@ -64,10 +69,9 @@ class SecurityIntelligenceController extends Controller
         }
 
         $sortedZones = collect($zoneData)->sortByDesc('total_incidents');
-        $topActiveRegionsData = $sortedZones->take(2); // For the card
+        $topActiveRegionsData = $sortedZones->take(6); // For the card
 
         $activeRegions = $topActiveRegionsData->map(function ($regionData) use ($year) {
-            // ... (your existing logic for finding top risk)
             $statesInZone = $this->getStatesForZone($regionData['zone']);
             $topRisk = 'N/A';
             if (!empty($statesInZone)) {
@@ -112,11 +116,6 @@ class SecurityIntelligenceController extends Controller
         $pieChartLabels = $top6Indicators->pluck('riskindicators');
         $pieChartData = $top6Indicators->pluck('frequency');
 
-        // Add the 'Others' slice if there are any left
-        if ($otherCount > 0) {
-            $pieChartLabels->push('Others');
-            $pieChartData->push($otherCount);
-        }
 
 
         // 10. Return all data
@@ -136,96 +135,7 @@ class SecurityIntelligenceController extends Controller
     }
 
 
-    public function calculateStateRisk($data, $stateName = null)
-    {
-        $reports = [];
 
-        // Fetch the correction factors
-        $correctionFactors = CorrectionFactorForStates::all()->keyBy('state');
-
-        // Calculate the overall totals for all states (these are the national totals)
-        $AllIncidentCount = $data->sum('total_incidents');
-        $AllvictimCount = $data->sum('total_victims');
-        $AlldeathThreatsCount = $data->sum('total_deaths');
-
-        // Initialize total ratios sum for normalization
-        $totalRatiosSum = 0;
-
-        // First pass: calculate the ratios and accumulate the total ratios for normalization
-        foreach ($data as &$item) {
-            // Get the correction factors for the state
-            $state = $item->location;
-            $correction = $correctionFactors->get($state);
-
-            $incidentCorrection = $correction ? $correction->incident_correction : 1;
-            $victimCorrection = $correction ? $correction->victim_correction : 1;
-            $casualtyCorrection = $correction ? $correction->casualty_correction : 1;
-
-            $incidentCount = $item->total_incidents;
-            $victimCount = $item->total_victims;
-            $deathThreatsCount = $item->total_deaths;
-
-            $incidentRatio = $AllIncidentCount != 0 ? ($incidentCount / $AllIncidentCount) * 25 * $incidentCorrection : 0;
-            $victimRatio = $AllvictimCount != 0 ? ($victimCount / $AllvictimCount) * 35 * $victimCorrection : 0;
-            $deathThreatsRatio = $AlldeathThreatsCount != 0 ? ($deathThreatsCount / $AlldeathThreatsCount) * 40 * $casualtyCorrection : 0;
-
-            // Calculate the total ratio for each state
-            $totalRatio = $incidentRatio + $victimRatio + $deathThreatsRatio;
-
-            // Accumulate the total ratios sum
-            $totalRatiosSum += $totalRatio;
-
-            $reports[$item->location] = [
-                'location' => $item->location,
-                'incident_count' => $incidentCount,
-                'sum_victims' => $victimCount,
-                'sum_casualties' => $deathThreatsCount,
-                'total_ratio' => $totalRatio,
-                'year' => $item->yy, // <-- This is why we added MAX(yy)
-            ];
-        }
-
-        // Second pass: now normalize the ratios for each state
-        foreach ($reports as &$report) {
-            $totalRatio = $report['total_ratio'];
-            $normalizedRatio = $totalRatiosSum != 0 ? ($totalRatio / $totalRatiosSum) * 100 : 0;
-            $report['normalized_ratio'] = $normalizedRatio;
-
-            // Assign risk level based on the normalized ratio
-            // You will need to make sure the determineBusinessRiskLevel function
-            // is also available in this controller.
-            // $report['risk_level'] = $this->determineBusinessRiskLevel($normalizedRatio);
-
-            // For now, I'll add a placeholder if that function doesn't exist yet
-            // You should replace this with your actual function call
-            if (method_exists($this, 'determineBusinessRiskLevel')) {
-                 $report['risk_level'] = $this->determineBusinessRiskLevel($normalizedRatio);
-            } else {
-                // Placeholder logic if function is missing
-                if ($normalizedRatio > 7) $report['risk_level'] = 4;
-                elseif ($normalizedRatio > 5) $report['risk_level'] = 3;
-                elseif ($normalizedRatio > 2) $report['risk_level'] = 2;
-                else $report['risk_level'] = 1;
-            }
-        }
-
-        // Sort the reports by location name (state) and return them
-        $reports = collect($reports)->sortBy('location')->values()->all();
-
-        return $reports;
-    }
-
-  public function determineBusinessRiskLevel($totalRatio) {
-        if ($totalRatio >=0 AND $totalRatio <= 1.7) {
-            return 1;
-        } elseif ($totalRatio  > 1.7 AND $totalRatio <= 2.8) {
-            return 2;
-        } elseif ($totalRatio > 2.8 AND $totalRatio <= 7) {
-            return 3;
-        } else {
-            return 4;
-        }
-    }
 private function getGeopoliticalZone(string $state): string
     {
         $normalizedState = trim(ucwords(strtolower($state)));
@@ -246,4 +156,184 @@ private function getGeopoliticalZone(string $state): string
         return $this->geopoliticalZones[$zone] ?? [];
     }
 
+
+    private $riskMapping = [
+        'Terrorism Index' => 'Terrorism',
+        'Kidnapping Index' => 'Kidnapping',
+        'Composite Risk Index' => 'All'
+    ];
+
+public function getRiskData(Request $request)
+{
+    // === 1. GET DATA FOR CURRENT YEAR ===
+    $selectedYear = $request->input('year', now()->year);
+    $selectedIndex = $request->input('index_type', 'Composite Risk Index'); // Default to all
+    $riskIndicator = $this->riskMapping[$selectedIndex] ?? 'All';
+
+    $baseQueryCurrent = tbldataentry::where('yy', $selectedYear)
+                        ->whereNotNull('location')
+                        ->where('location', '!=', '');
+
+    if ($riskIndicator !== 'All') {
+        $baseQueryCurrent->where('riskindicators', $riskIndicator);
+    }
+
+    $stateDataCurrent = $baseQueryCurrent
+        ->selectRaw('location, COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims, MAX(yy) as yy')
+        ->groupBy('location')
+        ->get();
+
+    $stateRiskReportsCurrent = $this->calculateStateRisk($stateDataCurrent);
+
+    // === 2. GET DATA FOR PREVIOUS YEAR (FOR COMPARISON) ===
+    $previousYear = $selectedYear - 1;
+
+    $baseQueryPrev = tbldataentry::where('yy', $previousYear)
+                        ->whereNotNull('location')
+                        ->where('location', '!=', '');
+
+    if ($riskIndicator !== 'All') {
+        $baseQueryPrev->where('riskindicators', $riskIndicator);
+    }
+
+    $stateDataPrev = $baseQueryPrev
+        ->selectRaw('location, COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims, MAX(yy) as yy')
+        ->groupBy('location')
+        ->get();
+
+    $stateRiskReportsPrev = $this->calculateStateRisk($stateDataPrev);
+
+
+    // === 3. FORMAT DATA AND CALCULATE RANKS ===
+
+    $prevYearRanks = collect($stateRiskReportsPrev)
+        ->sortByDesc('normalized_ratio')
+        ->values()
+        ->map(function ($report, $index) {
+            return [
+                'rank' => $index + 1,
+                'score' => $report['normalized_ratio'],
+                'location' => $report['location']
+            ];
+        })
+        ->keyBy('location');
+
+    $currentYearStates = collect($stateRiskReportsCurrent)->pluck('location')->sort()->values();
+    $prevYearStates = $prevYearRanks->keys()->sort()->values();
+
+// --- ⬇️ START: MODIFIED CARD DATA LOGIC (Section 3.5) ⬇️ ---
+
+        $sortedReports = collect($stateRiskReportsCurrent)->sortByDesc('normalized_ratio');
+
+        // Card 1: Get the National Threat Level
+        $highestRiskReport = $sortedReports->first();
+        $nationalThreatLevel = $highestRiskReport ? $this->getRiskCategoryFromLevel($highestRiskReport['risk_level']) : 'Low';
+
+        // Card 2: Get the Total Incidents AND Trend
+        $totalTrackedIncidents = $sortedReports->sum('incident_count');
+
+        // --- NEW TREND CALCULATION ---
+        $previousYearTotalIncidents = collect($stateRiskReportsPrev)->sum('incident_count');
+        $incidentTrendDifference = $totalTrackedIncidents - $previousYearTotalIncidents;
+
+        $incidentTrendStatus = 'Stable';
+        if ($incidentTrendDifference > 0) {
+            $incidentTrendStatus = 'Escalating';
+        } elseif ($incidentTrendDifference < 0) {
+            $incidentTrendStatus = 'Improving';
+        }
+        // --- END OF NEW CALCULATION ---
+
+        // Card 3: Get the Top 5 "Active Threat Groups"
+        try {
+            $topThreatGroupsQuery = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id') // <-- CHECK THIS JOIN COLUMN
+                ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
+                ->where('tbldataentry.yy', $selectedYear)
+                ->whereRaw('LOWER(attack_group.name) != ?', ['others'])
+                ->groupBy('attack_group.name')
+                ->orderByDesc('occurrences')
+                ->take(5);
+
+            if ($riskIndicator !== 'All') {
+                $topThreatGroupsQuery->where('tbldataentry.riskindicators', $riskIndicator);
+            }
+
+            $topThreatGroups = $topThreatGroupsQuery->get()->pluck('name')->implode(', ');
+        } catch (\Exception $e) {
+            Log::error("Failed to get Top Threat Groups: " . $e->getMessage());
+            $topThreatGroups = "Error: Check join column";
+        }
+
+        // --- ⬆️ END: MODIFIED CARD DATA LOGIC ⬆️ ---
+
+
+    $treemapData = [];
+    $tableData = collect($stateRiskReportsCurrent)
+        ->sortByDesc('normalized_ratio')
+        ->values() // Reset keys
+        ->map(function ($report, $index) use ($prevYearRanks, $selectedYear, $previousYear, &$treemapData) {
+            $stateName = $report['location'];
+            $currentRank = $index + 1;
+            $prevData = $prevYearRanks->get($stateName);
+
+            // Get previous rank, default to a high number (e.g., 50) if no data
+            $previousRank = $prevData['rank'] ?? 50;
+
+            // Determine status
+            $status = 'Stable';
+            if ($currentRank < $previousRank) {
+                $status = 'Escalating'; // Rank 1 is worse than Rank 10
+            } elseif ($currentRank > $previousRank) {
+                $status = 'Improving';
+            }
+
+            // A. Data for the Treemap
+            $treemapData[] = [
+                'x' => $stateName,
+                'y' => $report['normalized_ratio'] // Use the normalized score
+            ];
+
+            // B. Data for the Table
+            return [
+                'state' => $stateName,
+                'risk_score' => round($report['normalized_ratio'], 2),
+                'risk_level' => $this->getRiskCategoryFromLevel($report['risk_level']), // Helper function
+                'rank_current' => $currentRank,
+                'rank_previous' => $prevData ? $previousRank : 'N/A', // Show N/A if no data
+                'status' => $status,
+                'incidents' => $report['incident_count']
+            ];
+        });
+
+    // ---
+
+    // === 4. RETURN COMPREHENSIVE JSON ===
+    return response()->json([
+        // This is for your Apex Treemap
+        'treemapSeries' => [
+            ['data' => $treemapData]
+        ],
+        // This is for your new table
+        'tableData' => $tableData,
+
+        'cardData' => [
+                'nationalThreatLevel' => $nationalThreatLevel,
+                'totalTrackedIncidents' => $totalTrackedIncidents,
+                'topThreatGroups' => $topThreatGroups ?: 'N/A' ,
+                'incidentTrendDifference' => $incidentTrendDifference,
+            'incidentTrendStatus' => $incidentTrendStatus
+            ]
+    ]);
+}
+
+    private function getRiskCategoryFromLevel($level)
+    {
+        switch ($level) {
+            case 1: return 'Low';
+            case 2: return 'Medium';
+            case 3: return 'High';
+            case 4: return 'Critical';
+            default: return 'N/A';
+        }
+    }
 }

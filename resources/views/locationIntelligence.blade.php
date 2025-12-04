@@ -4,17 +4,16 @@
     our expert intelligence for businesses, expatriates, and travelers to make informed decisions and enhance safety.">
     <div class="container mx-auto p-6">
         <!-- Main Header with state name -->
-        <h1 class="text-center text-3xl font-bold text-black mb-8">
+        <h1 class="text-center text-3xl font-bold text-white mb-8">
             Location Intelligence for <span id="state-name">{{ $state }}</span> in <span
                 id="current-year">{{ $year }}</span>
         </h1>
 
-        <div class="flex justify-center items-center space-x-4 text-center mb-6">
+        <div class="flex justify-center items-center space-x-8 text-center mb-12">
             <div>
-                <label for="state-select" class="text-lg font-medium text-gray-700">Select State:</label>
-                <select id="state-select" class="py-2 px-4 border border-gray-300 rounded-md">
+                <label for="state-select" class="text-lg font-medium text-white">Select State:</label>
+                <select id="state-select" class="bg-[#1E2D3D] text-white py-2 px-4 border border-gray-600 rounded-md">
                     @foreach ($getStates as $s)
-                        {{-- Set the current state as selected --}}
                         <option value="{{ $s }}" {{ $s == $state ? 'selected' : '' }}>{{ $s }}
                         </option>
                     @endforeach
@@ -22,8 +21,8 @@
             </div>
             {{-- NEW YEAR FILTER DROPDOWN --}}
             <div>
-                <label for="year-select" class="text-lg font-medium text-gray-700">Select Year:</label>
-                <select id="year-select" class="py-2 px-4 border border-gray-300 rounded-md">
+                <label for="year-select" class="text-lg font-medium text-white">Select Year:</label>
+                <select id="year-select" class="bg-[#1E2D3D] text-white py-2 px-4 border border-gray-600 rounded-md">
                     @foreach ($availableYears as $y)
                         <option value="{{ $y }}" {{ $y == $year ? 'selected' : '' }}>{{ $y }}
                         </option>
@@ -35,24 +34,24 @@
         <!-- Cards Section: Total Incidents, Risk Indicator, Affected LGA -->
         <div class="flex justify-between space-x-4 mb-8">
             <!-- Card 1: Total Incidents -->
-            <div id="total-incidents" class="bg-white p-6 rounded-lg shadow-lg w-1/3 text-center">
-                <h3 id="total-incidents-title" class="text-xl font-semibold text-[#185451] mb-3">Total Incidents
+            <div id="total-incidents" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg w-1/3 text-center">
+                <h3 id="total-incidents-title" class="text-xl font-semibold text-white mb-3">Total Incidents
                     ({{ $year }})</h3>
-                <p class="text-2xl font-medium text-gray-800 mt-2">{{ $total_incidents }}</p>
+                <p class="text-2xl font-medium text-white mt-2">{{ $total_incidents }}</p>
             </div>
 
             <!-- Card 2: Most Prevalent Risk Indicator -->
-            <div id="most-frequent-risk" class="bg-white p-6 rounded-lg shadow-lg w-1/3 text-center">
-                <h3 class="text-xl font-semibold text-[#185451] mb-3">Most Prevalent Risk</h3>
-                <div id="most-frequent-risk-content" class="text-lg text-gray-700 mt-2">
+            <div id="most-frequent-risk" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg w-1/3 text-center">
+                <h3 class="text-xl font-semibold text-white mb-3">Most Prevalent Risk</h3>
+                <div id="most-frequent-risk-content" class="text-lg text-white mt-2">
                     <p>{{ $mostFrequentRisk->pluck('riskindicators')->implode(', ') ?: 'No data available' }}</p>
                 </div>
             </div>
 
             <!-- Card 3: Most Affected LGA -->
-            <div id="most-affected-lga" class="bg-white p-6 rounded-lg shadow-lg w-1/3 text-center">
-                <h3 class="text-xl font-semibold text-[#185451] mb-3">Most Affected LGA</h3>
-                <p class="text-lg text-gray-700 mt-2">
+            <div id="most-affected-lga" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg w-1/3 text-center">
+                <h3 class="text-xl font-semibold text-white mb-3">Most Affected LGA</h3>
+                <p class="text-lg text-white mt-2">
                     @if ($mostAffectedLGA)
                         {{ $mostAffectedLGA->lga }}
                         {{-- ({{ $mostAffectedLGA->occurrences }} incidents) --}}
@@ -66,14 +65,14 @@
         <!-- Charts Section: Side-by-Side for Incident Table and Motive Chart -->
         <div class="flex justify-between space-x-6 mb-8">
             <!-- Chart 1: Bar Chart for Incidents Over the Last 12 Months -->
-            <div class="w-1/2 bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-xl font-semibold text-[#185451] mb-4">Incidents Over the Past 12 Months</h3>
+            <div class="w-1/2 bg-[#1E2D3D] p-6 rounded-lg shadow-md">
+                <h3 class="text-center text-xl font-semibold text-white mb-4">Incidents Over the Past 12 Months</h3>
                 <canvas id="myChart"></canvas>
             </div>
 
             <!-- Chart 2: Horizontal Bar Chart for Prevalent Risk Indicators -->
-            <div class="w-1/2 bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-xl font-semibold text-[#185451] mb-4">Prevalent Risk</h3>
+            <div class="w-1/2 bg-[#1E2D3D] p-6 rounded-lg shadow-md">
+                <h3 class="text-center text-xl font-semibold text-white mb-4">Prevalent Risk</h3>
                 <canvas id="myChart2"></canvas>
             </div>
         </div>
@@ -81,57 +80,161 @@
         <!-- Charts Section: Side-by-Side for Yearly Incidents and Motive Types -->
         <div class="flex justify-between space-x-6 mb-8">
 
-            <div class="w-1/2 bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-xl font-semibold text-[#185451] mb-4" id="map-title">
+            <div class="w-1/2 bg-[#1E2D3D] p-6 rounded-lg shadow-md">
+                <h3 class="text-center text-xl font-semibold text-white mb-4" id="map-title">
                     High Impact Incidents in {{ $state }} ({{ $year }})
                 </h3>
                 <div id="map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
             </div>
 
             <!-- Motive Types by Occurrence Bar Chart -->
-            <div class="w-1/2 bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-xl font-semibold text-[#185451] mb-4">Incidents by Motive</h3>
-                <canvas id="motiveChart"></canvas>
+            <div class="w-1/2 bg-[#1E2D3D] p-6 rounded-lg shadow-md">
+                <h3 class="text-center text-xl font-semibold text-white mb-4">Incidents by Actors</h3>
+                <canvas id="attackChart"></canvas>
             </div>
         </div>
 
-        <!-- Recent Incidents Table -->
-        <div class="bg-white mb-8" id="recent-incidents">
-            <h3 class="text-xl font-semibold text-[#185451] mb-4">Most Recent Incidents </h3>
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-white mb-4">Insights</h3>
 
-            <table class="min-w-full bg-white border border-gray-200">
-                <thead class="bg-gray-100 text-gray-700">
+            <div id="insights-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                @forelse ($automatedInsights as $insight)
+                    <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
+
+                        @php
+                            $titleColor = 'text-gray-400';
+                            if ($insight['type'] == 'Velocity') {
+                                $titleColor = 'text-blue-400';
+                            }
+                            if ($insight['type'] == 'Emerging Threat') {
+                                $titleColor = 'text-red-400';
+                            }
+                            if ($insight['type'] == 'Lethality') {
+                                $titleColor = 'text-orange-400';
+                            }
+                            if ($insight['type'] == 'Forecast') {
+                                $titleColor = 'text-green-400';
+                            }
+                        @endphp
+
+                        <h4 class="text-xs font-bold {{ $titleColor }} uppercase mb-1 tracking-wider">
+                            {{ $insight['type'] }}
+                        </h4>
+                        <p class="text-white text-md">
+                            {{ $insight['text'] }}
+                        </p>
+                    </div>
+                @empty
+                    <div class="col-span-2 text-center text-gray-500 italic py-4">
+                        Insufficient data pattern to generate strategic insights for this period.
+                    </div>
+                @endforelse
+
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h4 class="text-sm font-medium text-gray-400 mb-1">Crime Index Score</h4>
+
+            <p id="crime-index-score" class="text-4xl font-bold text-white">{{ $stateCrimeIndexScore }}</p>
+
+            <p class="text-xs text-gray-500">(State's weighted contribution to national crime)</p>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-6 mb-12">
+            <h4 class="text-lg font-semibold text-white mb-4">Crime Indicator Breakdown</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="border-b border-gray-700 text-left text-xs text-gray-400 uppercase">
+                            <th class="py-3 px-4">Indicator</th>
+                            <th class="py-3 px-4">Incidents (Current Year)</th>
+                            <th class="py-3 px-4">Incidents (Previous Year)</th>
+                            <th class="py-3 px-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="crime-table-body" class="text-gray-200">
+
+                        @forelse ($crimeTable as $item)
+                            <tr class="border-b border-gray-700">
+                                <td class="py-4 px-4 font-medium">{{ $item['indicator_name'] }}</td>
+                                <td class="py-4 px-4">{{ $item['incident_count'] }}</td>
+                                <td class="py-4 px-4">{{ $item['previous_year_count'] }}</td>
+
+                                @php
+                                    $statusColorClass = 'text-blue-400'; // Stable
+                                    if ($item['status'] === 'Escalating') {
+                                        $statusColorClass = 'text-red-500';
+                                    } elseif ($item['status'] === 'Improving') {
+                                        $statusColorClass = 'text-green-500';
+                                    }
+                                @endphp
+
+                                <td class="py-4 px-4 font-semibold {{ $statusColorClass }}">
+                                    {{ $item['status'] }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-6 px-4 text-center text-gray-500">
+                                    No crime index data found for this period.
+                                </td>
+                            </tr>
+                        @endforelse
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- <!-- Recent Incidents Table -->
+        <div class="bg-[#1E2D3D] mb-8" id="recent-incidents">
+            <h3 class="text-xl font-semibold text-white p-2">Most Recent Incidents </h3>
+
+            <table class="min-w-full bg-[#1E2D3D] border border-gray-700">
+                <thead class="bg-[#131C27] text-slate-300">
                     <tr>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">LGA</th>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">Incident</th>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">Risk </th>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">Impact</th>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">Date</th>
+                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">
+                            LGA</th>
+                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">
+                            Incident</th>
+                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">
+                            Risk </th>
+                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">
+                            Impact</th>
+                        <th class="text-left py-3 px-4 font-semibold">Date</th>
                     </tr>
                 </thead>
-                <tbody class="text-gray-600">
+                <tbody class="text-white">
                     @foreach ($recentIncidents as $incident)
-                        <tr class="border-b border-gray-200">
-                            <td class="py-2 px-4 border-r border-gray-200">{{ $incident->lga }}</td>
-                            <td class="py-2 px-4 border-r border-gray-200">{{ $incident->add_notes }}</td>
-                            <td class="py-2 px-4 border-r border-gray-200">{{ $incident->riskindicators }}</td>
-                            <td class="py-2 px-4 border-r border-gray-200">{{ $incident->impact }}</td>
-                            <td class="py-2 px-4">{{ \Carbon\Carbon::parse($incident->datecreated)->format('M d, Y') }}
+                        <tr class="border-b border-gray-700">
+                            <td class="py-2 px-4 border-r border-gray-700">
+                                {{ $incident->lga }}</td>
+                            <td class="py-2 px-4 border-r border-gray-700">
+                                {{ $incident->add_notes }}</td>
+                            <td class="py-2 px-4 border-r border-gray-700">
+                                {{ $incident->riskindicators }}</td>
+                            <td class="py-2 px-4 border-r border-gray-700">
+                                {{ $incident->impact }}</td>
+                            <td class="py-2 px-4">
+                                {{ \Carbon\Carbon::parse($incident->datecreated)->format('M d, Y') }}
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
-        </div>
+        </div> --}}
 
-        <hr class="my-10 border-gray-300">
 
         <div class="mb-8">
 
             <div class="text-center mb-4">
-                <label for="compare-state-select" class="text-lg font-medium text-gray-700">Compare Total Incidents
+                <label for="compare-state-select" class="text-lg font-medium text-white">Compare <span
+                        id="compare-state-name-label">{{ $state }}</span> Top Security Risks with
                     With:</label>
-                <select id="compare-state-select" class="py-2 px-4 border border-gray-300 rounded-md">
+                <select id="compare-state-select"
+                    class="bg-[#1E2D3D] text-white py-2 px-4 border border-gray-600 rounded-md">
                     <option value="" disabled selected>Select a State</option>
                     @foreach ($getStates as $s)
                         <option value="{{ $s }}">{{ $s }}</option>
@@ -140,8 +243,8 @@
             </div>
 
             <div class="flex justify-center mb-8">
-                <div class="w-full bg-white p-6 rounded-lg shadow-md **max-w-lg**">
-                    <h3 class="text-center text-xl font-semibold text-[#185451] mb-4" id="comparison-chart-title">
+                <div class="w-full bg-[#1E2D3D] p-6 rounded-lg shadow-md **max-w-lg**">
+                    <h3 class="text-center text-xl font-semibold text-white mb-4" id="comparison-chart-title">
                         Risk Indicator Comparison
                     </h3>
                     <div class="**h-80**">
@@ -171,13 +274,13 @@
 
     <script>
         // 1. Global Variables for all five charts
-        let myChart, myChart2, motiveChart, incidentCompareChart;
+        let myChart, myChart2, attackChart, incidentCompareChart;
         let map;
-        // let markerClusterGroup;
-        let geojsonLayer; // <-- NEW: This will hold our LGA shapes
-        let lgaGeoJsonData; // <-- NEW: This will store the loaded JSON file
-        let lgaIncidentData = {}; // <-- NEW: This will store the incident counts
-        let info; // <-- NEW: This will be our hover info-box
+
+        let geojsonLayer;
+        let lgaGeoJsonData;
+        let lgaIncidentData = {};
+        let info;
 
 
         const formatDate = (dateString) => {
@@ -190,7 +293,6 @@
                 month: 'short',
                 day: '2-digit'
             };
-            // Format to "Oct 23 2025"
             return date.toLocaleDateString('en-US', options).replace(/,/, '');
         };
 
@@ -223,16 +325,39 @@
                         tension: 0.3,
                         borderWidth: 2,
                         pointRadius: 4,
-
-                        borderColor: 'rgba(27, 158, 133, 1)', // Solid purple line
-                        backgroundColor: 'rgba(27, 158, 133, 0.2)', // Light purple fill
+                        borderColor: '#10b981', // Solid purple line
+                        backgroundColor: '#10b981', // Light purple fill
                     }]
                 },
                 options: {
                     responsive: true,
                     scales: {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            // --- ADDED ---
+                            ticks: {
+                                color: 'white' // Y-axis text color
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
+                            }
+                        },
+                        // --- ADDED ---
+                        x: {
+                            ticks: {
+                                color: 'white' // X-axis text color
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
+                            }
+                        }
+                    },
+                    // --- ADDED ---
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white' // Legend text color
+                            }
                         }
                     }
                 }
@@ -264,24 +389,45 @@
                     responsive: true,
                     scales: {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'white'
+                            }, // Y-axis text
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: 'white'
+                            }, // X-axis text
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            } // Legend text
                         }
                     }
                 }
             });
 
 
-            // Chart 4: Incidents by Motive (motiveChart)
-            const motiveCtx = document.getElementById('motiveChart').getContext('2d');
-            const motiveLabels = @json($motiveLabels);
-            const motiveCounts = @json($motiveCounts);
-            motiveChart = new Chart(motiveCtx, {
+            // Chart 4: Incidents by Actors (attack)
+            const attackCtx = document.getElementById('attackChart').getContext('2d');
+            const attackLabels = @json($attackLabels);
+            const attackCounts = @json($attackCounts);
+            attackChart = new Chart(attackCtx, {
                 type: 'pie',
                 data: {
-                    labels: motiveLabels,
+                    labels: attackLabels,
                     datasets: [{
-                        label: 'Motive Occurrences',
-                        data: motiveCounts,
+                        label: 'Attack Occurrences',
+                        data: attackCounts,
                         backgroundColor: [
                             'rgba(27, 158, 133, 0.7)',
                             'rgba(54, 162, 235, 0.7)',
@@ -300,6 +446,9 @@
                     plugins: {
                         legend: {
                             position: 'top',
+                            labels: {
+                                color: 'white'
+                            }
                         }
                     }
                 }
@@ -327,13 +476,13 @@
                         {
                             label: defaultState,
                             data: initialRiskCounts, // Use Risk Counts
-                            backgroundColor: 'rgba(27, 158, 133, 0.7)',
+                            backgroundColor: '#10b981',
                         },
                         // Comparison State Data (Starts empty)
                         {
                             label: 'Comparison State',
                             data: initialCompareCounts, // Use empty array
-                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            backgroundColor: '#2196f3',
                         }
                     ]
                 },
@@ -490,7 +639,7 @@
 
             // Step 2: Clear old markers
             const stateFeatures = lgaGeoJsonData.features.filter(feature =>
-                feature.properties.NAME_1 === state
+                feature.properties.NAME_1.toLowerCase().trim() === state.toLowerCase().trim()
             );
 
             if (stateFeatures.length === 0) {
@@ -515,19 +664,17 @@
         }
 
 
-        // --- 5. NEW: Helper function for map coloring ---
-        function getColor(count) {
-            // These colors are from colorbrewer2.org (YlOrRd)
-            return count > 500 ? '#800026' :
-                count > 200 ? '#BD0026' :
-                count > 100 ? '#E31A1C' :
-                count > 50 ? '#FC4E2A' :
-                count > 20 ? '#FD8D3C' :
-                count > 10 ? '#FEB24C' :
-                count > 0 ? '#FED976' :
-                '#FFEDA0'; // Default for 0 or no data
-        }
 
+        function getColor(count) {
+            return count > 500 ? '#7F1D1D' :
+                count > 200 ? '#991B1B' :
+                count > 100 ? '#B91C1C' :
+                count > 50 ? '#DC2626' :
+                count > 20 ? '#EF4444' :
+                count > 10 ? '#F87171' :
+                count > 0 ? '#FCA5A5' :
+                '#FCA5A5';
+        }
         // --- 6. NEW: Helper function for styling each LGA ---
         function styleFeature(feature) {
             // !!! IMPORTANT: CHECK YOUR GEOJSON PROPERTIES !!!
@@ -579,6 +726,15 @@
             // --- NEW: Update the map ---
             updateMap(primaryState, selectedYear);
 
+            document.getElementById('total-incidents').querySelector('p').textContent = '...';
+            document.getElementById('most-frequent-risk-content').innerHTML = '<p>Loading...</p>';
+            document.getElementById('most-affected-lga').querySelector('p').textContent = '...';
+            document.getElementById('insights-container').innerHTML =
+                '<p class="text-gray-400 p-4">Analyzing data patterns...</p>';
+            document.getElementById('crime-index-score').textContent = '...';
+            document.getElementById('crime-table-body').innerHTML =
+                `<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">Loading...</td></tr>`;
+
             fetch(`/get-state-data/${primaryState}/${selectedYear}`)
                 .then(response => response.json())
                 .then(data => {
@@ -601,30 +757,31 @@
                         data.mostAffectedLGA.lga : 'None';
 
                     // Update TABLE
+
                     let tableHTML = `
-                    <h3 class="text-xl font-semibold text-[#185451] mb-4">Most Recent Incidents</h3>
-                    <table class="min-w-full bg-white border border-gray-200">
-                        <thead class="bg-gray-100 text-gray-700">
-                            <tr>
-                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">LGA</th>
-                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">Incident</th>
-                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">Risk</th>
-                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">Impact</th>
-                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-200">Date</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-gray-600">
-                `;
+                    <h3 class="text-xl font-semibold text-white mb-4">Most Recent Incidents</h3>
+                    <table class="min-w-full bg-[#1E2D3D] border border-gray-700">
+                   <thead class="bg-[#131C27] text-slate-300">
+                            <tr>
+                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">LGA</th>
+                         <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Incident</th>
+                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Risk</th>
+                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Impact</th>
+                                <th class="text-left py-3 px-4 font-semibold">Date</th>
+                            </tr>
+                        </thead>
+                  <tbody class="text-white">
+                `;
                     data.recentIncidents.forEach(incident => {
                         tableHTML += `
-                        <tr class="border-b border-gray-200">
-                            <td class="py-2 px-4 border-r border-gray-200">${incident.lga}</td>
-                            <td class="py-2 px-4 border-r border-gray-200">${incident.add_notes}</td>
-                            <td class="py-2 px-4 border-r border-gray-200">${incident.riskindicators}</td>
-                            <td class="py-2 px-4 border-r border-gray-200">${incident.impact}</td>
-                            <td class="py-2 px-4">${formatDate(incident.datecreated)}</td>
-                        </tr>
-                    `;
+                        <tr class="border-b border-gray-700">
+                            <td class="py-2 px-4 border-r border-gray-700">${incident.lga}</td>
+                           <td class="py-2 px-4 border-r border-gray-700">${incident.add_notes}</td>
+                          <td class="py-2 px-4 border-r border-gray-700">${incident.riskindicators}</td>
+                            <td class="py-2 px-4 border-r border-gray-700">${incident.impact}</td>
+                     <td class="py-2 px-4">${formatDate(incident.datecreated)}</td>
+                        </tr>
+                    `;
                     });
                     tableHTML += '</tbody></table>';
                     document.getElementById('recent-incidents').innerHTML = tableHTML;
@@ -638,9 +795,45 @@
                     myChart2.data.datasets[0].data = data.topRiskCounts;
                     myChart2.update();
 
-                    motiveChart.data.labels = data.motiveLabels;
-                    motiveChart.data.datasets[0].data = data.motiveCounts;
-                    motiveChart.update();
+                    attackChart.data.labels = data.attackLabels;
+                    attackChart.data.datasets[0].data = data.attackCounts;
+                    attackChart.update();
+
+                    // Update CRIME INDEX SCORE
+                    document.getElementById('crime-index-score').textContent = data.stateCrimeIndexScore;
+
+                    // Update CRIME INDEX TABLE
+                    const crimeTableBody = document.getElementById('crime-table-body');
+                    let crimeTableHtml = '';
+
+                    if (data.crimeTable && data.crimeTable.length > 0) {
+                        data.crimeTable.forEach(item => {
+                            let statusColorClass = 'text-blue-400'; // Stable
+                            if (item.status === 'Escalating') {
+                                statusColorClass = 'text-red-500';
+                            } else if (item.status === 'Improving') {
+                                statusColorClass = 'text-green-500';
+                            }
+
+                            crimeTableHtml += `
+                         <tr class="border-b border-gray-700">
+                                <td class="py-4 px-4 font-medium">${item.indicator_name}</td>
+                                <td class="py-4 px-4">${item.incident_count}</td>
+                                <td class="py-4 px-4">${item.previous_year_count}</td>
+                                <td class="py-4 px-4 font-semibold ${statusColorClass}">
+                             ${item.status}
+                                </td>
+                            </tr>
+                        `;
+                        });
+                    } else {
+                        crimeTableHtml =
+                            `<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">No crime index data found for this period.</td></tr>`;
+                        ind
+                    }
+                    crimeTableBody.innerHTML = crimeTableHtml;
+
+                    renderInsights(data.automatedInsights);
 
                     // CRITICAL STEP: After the main dashboard updates, update the comparison chart
                     updateComparisonChart();
@@ -673,6 +866,40 @@
         document.getElementById('compare-state-select').addEventListener('change', function() {
             updateComparisonChart();
         });
+
+        function renderInsights(insights) {
+            const container = document.getElementById('insights-container');
+            container.innerHTML = ''; // Clear old content
+
+            if (!insights || insights.length === 0) {
+                container.innerHTML =
+                    '<div class="col-span-2 text-center text-gray-500 italic py-4">Insufficient data pattern to generate strategic insights for this period.</div>';
+                return;
+            }
+
+            insights.forEach(insight => {
+                // We removed the border variables.
+                // We just change the TITLE color for subtle distinction.
+                let titleColor = 'text-gray-400';
+
+                if (insight.type === 'Velocity') titleColor = 'text-blue-400';
+                if (insight.type === 'Emerging Threat') titleColor = 'text-red-400';
+                if (insight.type === 'Lethality') titleColor = 'text-orange-400';
+                if (insight.type === 'Forecast') titleColor = 'text-green-400';
+
+                const html = `
+            <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
+                <h4 class="text-xs font-bold ${titleColor} uppercase mb-1 tracking-wider">
+                    ${insight.type}
+                </h4>
+                <p class="text-white text-md">
+                    ${insight.text}
+                </p>
+            </div>
+        `;
+                container.innerHTML += html;
+            });
+        }
     </script>
 
 </x-layout>
