@@ -723,122 +723,153 @@
         function updateMainDashboard(primaryState, selectedYear) {
             if (!primaryState || !selectedYear) return;
 
-            // --- NEW: Update the map ---
-            updateMap(primaryState, selectedYear);
+            // 1. Update the map
+            if (typeof updateMap === "function") {
+                updateMap(primaryState, selectedYear);
+            }
 
-            document.getElementById('total-incidents').querySelector('p').textContent = '...';
-            document.getElementById('most-frequent-risk-content').innerHTML = '<p>Loading...</p>';
-            document.getElementById('most-affected-lga').querySelector('p').textContent = '...';
-            document.getElementById('insights-container').innerHTML =
-                '<p class="text-gray-400 p-4">Analyzing data patterns...</p>';
-            document.getElementById('crime-index-score').textContent = '...';
-            document.getElementById('crime-table-body').innerHTML =
-                `<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">Loading...</td></tr>`;
+            // Helper function to safely update text
+            const safeSetText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.querySelector('p') ? el.querySelector('p').textContent = text : el.textContent = text;
+            };
 
+            // Helper function to safely update HTML
+            const safeSetHTML = (id, html) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = html;
+            };
+
+            // 2. Set "Loading..." States
+            safeSetText('total-incidents', '...');
+            safeSetHTML('most-frequent-risk-content', '<p>Loading...</p>');
+            safeSetText('most-affected-lga', '...');
+            safeSetHTML('insights-container', '<p class="text-gray-400 p-4">Analyzing data patterns...</p>');
+            safeSetText('crime-index-score', '...');
+            safeSetHTML('crime-table-body',
+                '<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">Loading...</td></tr>');
+
+            // 3. Fetch New Data
             fetch(`/get-state-data/${primaryState}/${selectedYear}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Update CARDS
-                    document.getElementById('total-incidents').querySelector('p').textContent = data.total_incidents;
-                    document.getElementById('total-incidents-title').textContent = `Total Incidents (${selectedYear})`;
+                    console.log("API Response:", data);
+
+                    // --- A. Update Basic Cards ---
+                    safeSetText('total-incidents', data.total_incidents);
+
+                    const totalTitle = document.getElementById('total-incidents-title');
+                    if (totalTitle) totalTitle.textContent = `Total Incidents (${selectedYear})`;
 
                     const riskContent = document.getElementById('most-frequent-risk-content');
-                    let riskText = 'No data available'; // Default text
-
-                    if (data.mostFrequentRisk && data.mostFrequentRisk.length > 0) {
-                        // Map the array of objects to an array of names, then join with a comma
-                        riskText = data.mostFrequentRisk.map(risk => risk.riskindicators).join(', ');
+                    if (riskContent) {
+                        let riskText = 'No data available';
+                        if (data.mostFrequentRisk && data.mostFrequentRisk.length > 0) {
+                            riskText = data.mostFrequentRisk.map(risk => risk.riskindicators).join(', ');
+                        }
+                        riskContent.innerHTML = `<p>${riskText}</p>`;
                     }
 
-                    // Set the text content inside a single <p> tag
-                    riskContent.innerHTML = `<p>${riskText}</p>`;
-                    document.getElementById('most-affected-lga').querySelector('p').textContent = data.mostAffectedLGA ?
-                        // data.mostAffectedLGA.lga + ' (' + data.mostAffectedLGA.occurrences + ' incidents)' : 'None';
-                        data.mostAffectedLGA.lga : 'None';
+                    safeSetText('most-affected-lga', data.mostAffectedLGA ? data.mostAffectedLGA.lga : 'None');
 
-                    // Update TABLE
+                    // --- B. Update Recent Incidents Table (SAFE CHECK ADDED) ---
+                    const recentContainer = document.getElementById('recent-incidents');
+                    if (recentContainer) {
+                        let tableHTML = `
+                <h3 class="text-xl font-semibold text-white mb-4">Most Recent Incidents</h3>
+                <table class="min-w-full bg-[#1E2D3D] border border-gray-700">
+                    <thead class="bg-[#131C27] text-slate-300">
+                        <tr>
+                            <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">LGA</th>
+                            <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Incident</th>
+                            <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Risk</th>
+                            <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Impact</th>
+                            <th class="text-left py-3 px-4 font-semibold">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-white">
+                `;
+                        if (data.recentIncidents) {
+                            data.recentIncidents.forEach(incident => {
+                                tableHTML += `
+                        <tr class="border-b border-gray-700">
+                            <td class="py-2 px-4 border-r border-gray-700">${incident.lga}</td>
+                            <td class="py-2 px-4 border-r border-gray-700">${incident.add_notes}</td>
+                            <td class="py-2 px-4 border-r border-gray-700">${incident.riskindicators}</td>
+                            <td class="py-2 px-4 border-r border-gray-700">${incident.impact}</td>
+                            <td class="py-2 px-4">${formatDate(incident.datecreated)}</td>
+                        </tr>`;
+                            });
+                        }
+                        tableHTML += '</tbody></table>';
+                        recentContainer.innerHTML = tableHTML;
+                    }
 
-                    let tableHTML = `
-                    <h3 class="text-xl font-semibold text-white mb-4">Most Recent Incidents</h3>
-                    <table class="min-w-full bg-[#1E2D3D] border border-gray-700">
-                   <thead class="bg-[#131C27] text-slate-300">
-                            <tr>
-                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">LGA</th>
-                         <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Incident</th>
-                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Risk</th>
-                                <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Impact</th>
-                                <th class="text-left py-3 px-4 font-semibold">Date</th>
-                            </tr>
-                        </thead>
-                  <tbody class="text-white">
-                `;
-                    data.recentIncidents.forEach(incident => {
-                        tableHTML += `
-                        <tr class="border-b border-gray-700">
-                            <td class="py-2 px-4 border-r border-gray-700">${incident.lga}</td>
-                           <td class="py-2 px-4 border-r border-gray-700">${incident.add_notes}</td>
-                          <td class="py-2 px-4 border-r border-gray-700">${incident.riskindicators}</td>
-                            <td class="py-2 px-4 border-r border-gray-700">${incident.impact}</td>
-                     <td class="py-2 px-4">${formatDate(incident.datecreated)}</td>
-                        </tr>
-                    `;
-                    });
-                    tableHTML += '</tbody></table>';
-                    document.getElementById('recent-incidents').innerHTML = tableHTML;
+                    // --- C. Update Charts ---
+                    if (typeof myChart !== 'undefined') {
+                        myChart.data.labels = data.chartLabels;
+                        myChart.data.datasets[0].data = data.incidentCounts;
+                        myChart.update();
+                    }
 
-                    // Update the four main CHARTS
-                    myChart.data.labels = data.chartLabels;
-                    myChart.data.datasets[0].data = data.incidentCounts;
-                    myChart.update();
+                    if (typeof myChart2 !== 'undefined') {
+                        myChart2.data.labels = data.topRiskLabels;
+                        myChart2.data.datasets[0].data = data.topRiskCounts;
+                        myChart2.update();
+                    }
 
-                    myChart2.data.labels = data.topRiskLabels;
-                    myChart2.data.datasets[0].data = data.topRiskCounts;
-                    myChart2.update();
+                    if (typeof attackChart !== 'undefined') {
+                        attackChart.data.labels = data.attackLabels;
+                        attackChart.data.datasets[0].data = data.attackCounts;
+                        attackChart.update();
+                    }
 
-                    attackChart.data.labels = data.attackLabels;
-                    attackChart.data.datasets[0].data = data.attackCounts;
-                    attackChart.update();
+                    // --- D. Update Crime Index Score ---
+                    safeSetText('crime-index-score', data.stateCrimeIndexScore);
 
-                    // Update CRIME INDEX SCORE
-                    document.getElementById('crime-index-score').textContent = data.stateCrimeIndexScore;
-
-                    // Update CRIME INDEX TABLE
+                    // --- E. Update Crime Index Table ---
                     const crimeTableBody = document.getElementById('crime-table-body');
-                    let crimeTableHtml = '';
+                    if (crimeTableBody) {
+                        let crimeTableHtml = '';
+                        if (data.crimeTable && data.crimeTable.length > 0) {
+                            data.crimeTable.forEach(item => {
+                                let statusColorClass = 'text-blue-400';
+                                if (item.status === 'Escalating') statusColorClass = 'text-red-500';
+                                else if (item.status === 'Improving') statusColorClass = 'text-green-500';
 
-                    if (data.crimeTable && data.crimeTable.length > 0) {
-                        data.crimeTable.forEach(item => {
-                            let statusColorClass = 'text-blue-400'; // Stable
-                            if (item.status === 'Escalating') {
-                                statusColorClass = 'text-red-500';
-                            } else if (item.status === 'Improving') {
-                                statusColorClass = 'text-green-500';
-                            }
-
-                            crimeTableHtml += `
-                         <tr class="border-b border-gray-700">
-                                <td class="py-4 px-4 font-medium">${item.indicator_name}</td>
-                                <td class="py-4 px-4">${item.incident_count}</td>
-                                <td class="py-4 px-4">${item.previous_year_count}</td>
-                                <td class="py-4 px-4 font-semibold ${statusColorClass}">
-                             ${item.status}
-                                </td>
-                            </tr>
-                        `;
-                        });
-                    } else {
-                        crimeTableHtml =
-                            `<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">No crime index data found for this period.</td></tr>`;
-                        ind
+                                crimeTableHtml += `
+                        <tr class="border-b border-gray-700">
+                            <td class="py-4 px-4 font-medium">${item.indicator_name}</td>
+                            <td class="py-4 px-4">${item.incident_count}</td>
+                            <td class="py-4 px-4">${item.previous_year_count}</td>
+                            <td class="py-4 px-4 font-semibold ${statusColorClass}">
+                                ${item.status}
+                            </td>
+                        </tr>`;
+                            });
+                        } else {
+                            crimeTableHtml =
+                                `<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">No crime index data found.</td></tr>`;
+                        }
+                        crimeTableBody.innerHTML = crimeTableHtml;
                     }
-                    crimeTableBody.innerHTML = crimeTableHtml;
 
-                    renderInsights(data.automatedInsights);
+                    // --- F. Update Insights ---
+                    if (typeof renderInsights === "function") {
+                        renderInsights(data.automatedInsights);
+                    }
 
-                    // CRITICAL STEP: After the main dashboard updates, update the comparison chart
-                    updateComparisonChart();
+                    // --- G. Update Comparison Chart ---
+                    if (typeof updateComparisonChart === "function") {
+                        updateComparisonChart();
+                    }
                 })
-                .catch(error => console.error('Error fetching primary data:', error));
+                .catch(error => {
+                    console.error('Error fetching primary data:', error);
+                    // Only try to set error text if the container actually exists
+                    const errContainer = document.getElementById('insights-container');
+                    if (errContainer) errContainer.innerHTML = '<p class="text-red-400 p-4">Error loading data.</p>';
+                });
         }
 
 

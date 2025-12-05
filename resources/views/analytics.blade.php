@@ -2,7 +2,6 @@
     <script src="//unpkg.com/alpinejs" defer></script>
 
     <div class="flex flex-col md:flex-row min-h-screen bg-gray-900 text-gray-100 font-sans">
-
         <aside
             class="w-full md:w-80 bg-[#1E2D3D] shadow-2xl p-6 border-r border-gray-800 overflow-y-auto h-screen sticky top-0 custom-scrollbar z-20">
             <div class="mb-8">
@@ -11,7 +10,6 @@
             </div>
 
             <form id="analytics-filters" onsubmit="event.preventDefault(); updateDashboard();" class="space-y-5">
-
                 <div class="grid grid-cols-2 gap-2">
                     <div class="flex flex-col">
                         <label class="text-xs font-bold uppercase text-gray-400 mb-1.5">Start Year</label>
@@ -43,12 +41,13 @@
 
                     <div x-data="multiSelect()" x-init="init()" @click.away="open = false"
                         class="relative flex flex-col">
-                        <label class="text-xs font-bold uppercase text-gray-400 mb-1.5"><span
-                                x-text="mode === 'state' ? 'Select States' : 'Select Regions'"></span></label>
+                        <label class="text-xs font-bold uppercase text-gray-400 mb-1.5">
+                            <span x-text="mode === 'state' ? 'Select States' : 'Select Regions'"></span>
+                        </label>
                         <input type="hidden" id="selection" :value="selected.join(',')">
                         <button type="button" @click="open = !open"
                             class="w-full p-2.5 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 focus:border-emerald-500 outline-none text-left flex justify-between items-center hover:bg-gray-750 transition-colors">
-                            <span x-text="selected.length ? selected.length + ' Selected' : 'Choose...'"></span>
+                            <span x-text="selected.length ? selected.length + ' Selected' : 'All Nigeria'"></span>
                             <svg class="w-4 h-4 text-gray-500 transition-transform duration-200"
                                 :class="{ 'rotate-180': open }" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
@@ -111,25 +110,22 @@
             <div class="mb-6 flex flex-wrap items-center gap-2 min-h-[32px]" id="active-filters-container"></div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
+                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border-t-4 border-blue-500">
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Total Incidents</p>
+                    <h3 class="text-5xl font-black text-white" id="stat-incidents">0</h3>
+                </div>
+                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border-t-4 border-red-600">
                     <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Total Deaths</p>
                     <h3 class="text-5xl font-black text-white" id="stat-deaths">0</h3>
                 </div>
-                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
-                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Victims</p>
-                    <h3 class="text-5xl font-black text-white" id="stat-victims">0</h3>
-                </div>
-                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
-                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Injuries</p>
-                    <h3 class="text-5xl font-black text-white" id="stat-injuries">0</h3>
+                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border-t-4 border-emerald-500">
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Trend Status</p>
+                    <h3 class="text-4xl font-black text-white" id="stat-status">Stable</h3>
+                    <p class="text-xs text-gray-500 mt-1">vs Previous Period</p>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg col-span-1 lg:col-span-2">
-                    <h4 class="font-bold text-white text-lg mb-4">Comparison Timeline</h4>
-                    <div id="chart-timeline" class="h-96 w-full"></div>
-                </div>
 
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg col-span-1 lg:col-span-2">
                     <div class="flex justify-between items-center mb-4">
@@ -191,7 +187,7 @@
         };
         let charts = {};
 
-        // ALPINE
+        // Alpine MultiSelect
         function multiSelect() {
             return {
                 open: false,
@@ -202,9 +198,8 @@
                     if (rawData.states.length > 0) this.populateOptions('state');
                 },
                 populateOptions(mode) {
-                    this.selected = [];
+                    this.selected = []; // Empty = All Nigeria
                     this.options = (mode === 'state') ? rawData.states : rawData.regions;
-                    if (this.options.length) this.selected = [this.options[0]];
                 },
                 toggle(option) {
                     if (this.selected.includes(option)) this.selected = this.selected.filter(i => i !== option);
@@ -227,7 +222,7 @@
             if (window.multiSelectComponent) window.multiSelectComponent.populateOptions(mode);
         }
 
-        // CHART SETUP
+        // --- CHART CONFIG ---
         function initCharts() {
             const common = {
                 chart: {
@@ -269,35 +264,7 @@
             };
             const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E'];
 
-            // Timeline
-            charts.timeline = new ApexCharts(document.querySelector("#chart-timeline"), {
-                ...common,
-                chart: {
-                    type: 'line',
-                    height: 380,
-                    background: 'transparent',
-                    toolbar: {
-                        show: false
-                    }
-                },
-                colors: colors,
-                series: [],
-                stroke: {
-                    curve: 'smooth',
-                    width: 3
-                },
-                xaxis: {
-                    categories: [],
-                    labels: {
-                        style: {
-                            colors: '#9CA3AF'
-                        }
-                    }
-                }
-            });
-            charts.timeline.render();
-
-            // Stacked Bar Inits
+            // 1. Factors (Stacked Bar)
             charts.factors = new ApexCharts(document.querySelector("#chart-factors"), {
                 ...common,
                 chart: {
@@ -315,12 +282,13 @@
                     bar: {
                         horizontal: false,
                         columnWidth: '50%',
-                        borderRadius: 4
+                        borderRadius: 2
                     }
                 }
             });
             charts.factors.render();
 
+            // 2. Risks (Stacked Horizontal Bar)
             charts.risks = new ApexCharts(document.querySelector("#chart-risks"), {
                 ...common,
                 chart: {
@@ -338,19 +306,29 @@
                     bar: {
                         horizontal: true,
                         barHeight: '60%',
-                        borderRadius: 4
+                        borderRadius: 2
                     }
                 }
             });
             charts.risks.render();
 
-            // Donut Inits
-            const donutConfig = {
+            // 3. Motives (Now Stacked Bar instead of Donut)
+            charts.motives = new ApexCharts(document.querySelector("#chart-motives"), {
                 ...common,
                 chart: {
-                    type: 'donut',
+                    type: 'bar',
                     height: 280,
-                    background: 'transparent'
+                    background: 'transparent',
+                    stacked: true
+                },
+                colors: ['#F59E0B', '#EF4444', '#10B981', '#6366F1', '#8B5CF6'],
+                series: [],
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '60%',
+                        borderRadius: 2
+                    }
                 },
                 legend: {
                     position: 'bottom',
@@ -358,24 +336,37 @@
                         colors: '#D1D5DB'
                     }
                 }
-            };
-            charts.motives = new ApexCharts(document.querySelector("#chart-motives"), {
-                ...donutConfig,
-                colors: ['#F59E0B', '#EF4444', '#10B981', '#6366F1', '#8B5CF6'],
-                series: [],
-                labels: []
             });
             charts.motives.render();
+
+            // 4. Weapons (Now Stacked Bar instead of Donut)
             charts.weapons = new ApexCharts(document.querySelector("#chart-weapons"), {
-                ...donutConfig,
+                ...common,
+                chart: {
+                    type: 'bar',
+                    height: 280,
+                    background: 'transparent',
+                    stacked: true
+                },
                 colors: ['#EC4899', '#8B5CF6', '#64748B', '#06B6D4'],
                 series: [],
-                labels: []
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '60%',
+                        borderRadius: 2
+                    }
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        colors: '#D1D5DB'
+                    }
+                }
             });
             charts.weapons.render();
         }
 
-        // UTILS
         function toggleLoading(show) {
             document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
         }
@@ -403,7 +394,6 @@
             container.appendChild(div);
         }
 
-        // INIT
         async function loadFilters() {
             toggleLoading(true);
             try {
@@ -425,7 +415,9 @@
                 fillObj('motive_id', data.motives);
                 fillObj('attack_group_id', data.attack_groups);
                 fillObj('weapon_id', data.weapons);
+
                 if (window.multiSelectComponent) window.multiSelectComponent.populateOptions('state');
+
                 setTimeout(updateDashboard, 500);
             } catch (err) {
                 console.error(err);
@@ -436,20 +428,23 @@
         // UPDATE DASHBOARD
         async function updateDashboard() {
             toggleLoading(true);
-            // Inputs
+
             const ids = ['risk_factor', 'risk_indicator', 'attack_group_id', 'weapon_id', 'motive_id'];
             const vals = {};
-            ids.forEach(id => vals[id] = document.getElementById(id)); // Store elements
+            ids.forEach(id => vals[id] = document.getElementById(id));
 
-            // Tags
             const container = document.getElementById('active-filters-container');
             container.innerHTML = '';
             addFilterTag(container,
                 `${document.getElementById('start_year').value} - ${document.getElementById('end_year').value}`,
                 'bg-gray-800 text-gray-300', null);
-            if (window.multiSelectComponent && window.multiSelectComponent.selected.length > 0)
+
+            if (window.multiSelectComponent && window.multiSelectComponent.selected.length > 0) {
                 window.multiSelectComponent.selected.forEach(loc => addFilterTag(container, loc,
                     'bg-gray-800 text-emerald-400', () => window.multiSelectComponent.remove(loc)));
+            } else {
+                addFilterTag(container, "All Nigeria", 'bg-gray-800 text-emerald-400', null);
+            }
 
             ids.forEach(id => {
                 const el = vals[id];
@@ -462,7 +457,6 @@
                 }
             });
 
-            // Fetch
             const filters = {
                 start_year: document.getElementById('start_year').value,
                 end_year: document.getElementById('end_year').value,
@@ -483,142 +477,68 @@
                 });
                 const data = await res.json();
 
-                // Timeline
-                charts.timeline.updateOptions({
-                    xaxis: {
-                        categories: data.timeline.categories
-                    }
-                });
-                charts.timeline.updateSeries(data.timeline.series);
-
-                // --- SMART CHART UPDATES ---
-                // Helper to switch chart modes (Stacked vs Simple)
-                const updateSmartChart = (chartObj, titleId, dataObj, filterVal, titleBase) => {
+                // --- UNIFIED CHART UPDATE LOGIC ---
+                // Helper to switch between Stacked Overview and Simple Drilldown
+                const updateSmartChart = (chartObj, titleId, dataObj, filterVal, titleBase, isHorizontal = false) => {
                     const titleEl = document.getElementById(titleId);
-                    const isDonut = chartObj.w.config.chart.type === 'donut';
 
                     if (dataObj.is_drilldown) {
-                        // DRILLDOWN
+                        // DRILLDOWN: Single category (e.g. "Distribution of Kidnapping")
                         titleEl.innerText = `Distribution of Selected ${titleBase}`;
-                        if (isDonut) {
-                            // Donut -> Bar
-                            chartObj.updateOptions({
-                                chart: {
-                                    type: 'bar'
-                                },
-                                plotOptions: {
-                                    bar: {
-                                        horizontal: false,
-                                        columnWidth: '40%'
-                                    }
-                                },
-                                xaxis: {
-                                    categories: dataObj.categories
+                        chartObj.updateOptions({
+                            chart: {
+                                stacked: false
+                            },
+                            plotOptions: {
+                                bar: {
+                                    horizontal: isHorizontal,
+                                    columnWidth: '40%',
+                                    barHeight: '40%'
                                 }
-                            });
-                        } else {
-                            // Stacked Bar -> Simple Bar
-                            chartObj.updateOptions({
-                                chart: {
-                                    stacked: false
-                                },
-                                plotOptions: {
-                                    bar: {
-                                        horizontal: false,
-                                        columnWidth: '40%'
-                                    }
-                                },
-                                xaxis: {
-                                    categories: dataObj.categories
-                                }
-                            });
-                        }
+                            },
+                            xaxis: {
+                                categories: dataObj.categories
+                            }
+                        });
                     } else {
-                        // OVERVIEW
+                        // OVERVIEW: Comparison (e.g. "Risk Factor Overview")
                         titleEl.innerText = `${titleBase} Overview`;
-                        if (isDonut) {
-                            // Bar -> Donut (Revert)
-                            // Note: We need sum logic for donut here, but for simplicity we kept stacked bars in controller logic.
-                            // If we want donut overview, we usually just sum.
-                            // Reverting to Donut type:
-                            chartObj.updateOptions({
-                                chart: {
-                                    type: 'donut'
-                                },
-                                labels: dataObj.categories
-                            });
-                            // Donut needs 1D array. Flatten series data.
-                            let totals = new Array(dataObj.categories.length).fill(0);
-                            dataObj.series.forEach(s => s.data.forEach((v, i) => totals[i] += v));
-                            chartObj.updateSeries(totals);
-                            return; // Exit special handling for donut
-                        } else {
-                            // Simple Bar -> Stacked Bar
-                            chartObj.updateOptions({
-                                chart: {
-                                    stacked: true
-                                },
-                                plotOptions: {
-                                    bar: {
-                                        horizontal: false,
-                                        columnWidth: '50%'
-                                    }
-                                },
-                                xaxis: {
-                                    categories: dataObj.categories
+                        chartObj.updateOptions({
+                            chart: {
+                                stacked: true
+                            },
+                            plotOptions: {
+                                bar: {
+                                    horizontal: isHorizontal,
+                                    columnWidth: '50%',
+                                    barHeight: '60%'
                                 }
-                            });
-                        }
+                            },
+                            xaxis: {
+                                categories: dataObj.categories
+                            }
+                        });
                     }
                     chartObj.updateSeries(dataObj.series);
                 };
 
+                // 1. Factors
                 updateSmartChart(charts.factors, 'title-factors', data.factors, vals.risk_factor.value, 'Risk Factor');
 
-                // Indicators: Keep horizontal orientation
-                if (data.risks.is_drilldown) {
-                    document.getElementById('title-risks').innerText = "Distribution of Selected Indicator";
-                    charts.risks.updateOptions({
-                        chart: {
-                            stacked: false
-                        },
-                        plotOptions: {
-                            bar: {
-                                horizontal: true,
-                                barHeight: '40%'
-                            }
-                        },
-                        xaxis: {
-                            categories: data.risks.categories
-                        }
-                    });
-                } else {
-                    document.getElementById('title-risks').innerText = "Top Indicators";
-                    charts.risks.updateOptions({
-                        chart: {
-                            stacked: true
-                        },
-                        plotOptions: {
-                            bar: {
-                                horizontal: true,
-                                barHeight: '60%'
-                            }
-                        },
-                        xaxis: {
-                            categories: data.risks.categories
-                        }
-                    });
-                }
-                charts.risks.updateSeries(data.risks.series);
+                // 2. Risks (Horizontal)
+                updateSmartChart(charts.risks, 'title-risks', data.risks, vals.risk_indicator.value, 'Indicator', true);
 
+                // 3. Motives & Weapons (Converted to Bars)
                 updateSmartChart(charts.motives, 'title-motives', data.motives, vals.motive_id.value, 'Motive');
                 updateSmartChart(charts.weapons, 'title-weapons', data.weapons, vals.weapon_id.value, 'Weapon');
 
                 // Cards
                 const fmt = (n) => n ? n.toLocaleString() : '0';
+                document.getElementById('stat-incidents').innerText = fmt(data.impact.incidents);
                 document.getElementById('stat-deaths').innerText = fmt(data.impact.deaths);
-                document.getElementById('stat-victims').innerText = fmt(data.impact.victims);
-                document.getElementById('stat-injuries').innerText = fmt(data.impact.injuries);
+                const statusEl = document.getElementById('stat-status');
+                statusEl.innerText = data.impact.status;
+                statusEl.className = `text-4xl font-black ${data.impact.status_color}`;
 
             } catch (err) {
                 console.error(err);
