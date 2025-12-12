@@ -4,7 +4,7 @@
             {{-- Logo --}}
             <a href="{{ url('/') }}" class="flex items-center gap-2">
                 <img src="{{ asset('images/nri-logo-white.png') }}" alt="Nigeria Risk Index Logo"
-                    class="h-12 w-auto object-contain">
+                    class="h-20 w-auto object-contain">
                 <span class="sr-only">Nigeria Risk Index</span>
             </a>
 
@@ -13,16 +13,17 @@
                 {{-- Primary links --}}
                 <a href="{{ url('/') }}"
                     class="text-sm font-medium text-gray-300 hover:text-white transition-colors">Home</a>
-                <a href="#" class="text-sm font-medium text-gray-300 hover:text-white transition-colors">About</a>
-                <a href="#"
-                    class="text-sm font-medium text-gray-300 hover:text-white transition-colors">Insights</a>
+                <a href="#" class="text-sm font-medium text-gray-300 hover:text-white transition-colors">Our
+                    Story</a>
+                <a href="#" class="text-sm font-medium text-gray-300 hover:text-white transition-colors">News &
+                    Insights</a>
 
                 {{-- Use Cases dropdown (desktop) --}}
                 <div class="relative group">
                     <button id="ucases-toggle-desktop"
                         class="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-colors focus:outline-none"
                         type="button" aria-haspopup="true" aria-expanded="false" aria-controls="ucases-menu-desktop">
-                        Use Cases
+                        Threat Insights
                         <svg class="h-4 w-4 text-gray-400 group-hover:text-white transition-colors" viewBox="0 0 20 20"
                             fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd"

@@ -1,28 +1,30 @@
 <x-layout title="Location Intelligence"
-    description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk
-    analysis in Nigeria. Access up-to-date insights on terrorism, crime rates, and safety across Nigeria’s regions. Leverage
-    our expert intelligence for businesses, expatriates, and travelers to make informed decisions and enhance safety.">
-    <div class="container mx-auto p-6">
-        <!-- Main Header with state name -->
-        <h1 class="text-center text-3xl font-bold text-white mb-8">
+    description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk analysis in Nigeria.">
+
+    <div class="container mx-auto px-4 py-10">
+        <h1 class="text-center text-2xl md:text-3xl font-bold text-white mb-8">
             Location Intelligence for <span id="state-name">{{ $state }}</span> in <span
                 id="current-year">{{ $year }}</span>
         </h1>
 
-        <div class="flex justify-center items-center space-x-8 text-center mb-12">
-            <div>
-                <label for="state-select" class="text-lg font-medium text-white">Select State:</label>
-                <select id="state-select" class="bg-[#1E2D3D] text-white py-2 px-4 border border-gray-600 rounded-md">
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 text-center mb-10">
+            {{-- State Select --}}
+            <div class="flex items-center space-x-2">
+                <label for="state-select" class="text-sm font-medium text-gray-400">State:</label>
+                <select id="state-select"
+                    class="bg-[#131C27] text-white text-sm py-2 px-4 border border-gray-600 rounded-md focus:outline-none focus:border-emerald-500 hover:border-gray-500 transition-colors cursor-pointer">
                     @foreach ($getStates as $s)
                         <option value="{{ $s }}" {{ $s == $state ? 'selected' : '' }}>{{ $s }}
                         </option>
                     @endforeach
                 </select>
             </div>
-            {{-- NEW YEAR FILTER DROPDOWN --}}
-            <div>
-                <label for="year-select" class="text-lg font-medium text-white">Select Year:</label>
-                <select id="year-select" class="bg-[#1E2D3D] text-white py-2 px-4 border border-gray-600 rounded-md">
+
+            {{-- Year Select --}}
+            <div class="flex items-center space-x-2">
+                <label for="year-select" class="text-sm font-medium text-gray-400">Year:</label>
+                <select id="year-select"
+                    class="bg-[#131C27] text-white text-sm py-2 px-4 border border-gray-600 rounded-md focus:outline-none focus:border-emerald-500 hover:border-gray-500 transition-colors cursor-pointer">
                     @foreach ($availableYears as $y)
                         <option value="{{ $y }}" {{ $y == $year ? 'selected' : '' }}>{{ $y }}
                         </option>
@@ -31,30 +33,26 @@
             </div>
         </div>
 
-        <!-- Cards Section: Total Incidents, Risk Indicator, Affected LGA -->
-        <div class="flex justify-between space-x-4 mb-8">
-            <!-- Card 1: Total Incidents -->
-            <div id="total-incidents" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg w-1/3 text-center">
-                <h3 id="total-incidents-title" class="text-xl font-semibold text-white mb-3">Total Incidents
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div id="total-incidents" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
+                <h3 id="total-incidents-title" class="text-lg md:text-xl font-semibold text-white mb-3">Tracked
+                    Incidents
                     ({{ $year }})</h3>
-                <p class="text-2xl font-medium text-white mt-2">{{ $total_incidents }}</p>
+                <p class="text-2xl md:text-3xl font-medium text-white mt-2">{{ $total_incidents }}</p>
             </div>
 
-            <!-- Card 2: Most Prevalent Risk Indicator -->
-            <div id="most-frequent-risk" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg w-1/3 text-center">
-                <h3 class="text-xl font-semibold text-white mb-3">Most Prevalent Risk</h3>
-                <div id="most-frequent-risk-content" class="text-lg text-white mt-2">
+            <div id="most-frequent-risk" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
+                <h3 class="text-lg md:text-xl font-semibold text-white mb-3">Most Prevalent Risk</h3>
+                <div id="most-frequent-risk-content" class="text-base md:text-lg text-white mt-2">
                     <p>{{ $mostFrequentRisk->pluck('riskindicators')->implode(', ') ?: 'No data available' }}</p>
                 </div>
             </div>
 
-            <!-- Card 3: Most Affected LGA -->
-            <div id="most-affected-lga" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg w-1/3 text-center">
-                <h3 class="text-xl font-semibold text-white mb-3">Most Affected LGA</h3>
-                <p class="text-lg text-white mt-2">
+            <div id="most-affected-lga" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
+                <h3 class="text-lg md:text-xl font-semibold text-white mb-3">Most Affected LGA</h3>
+                <p class="text-base md:text-lg text-white mt-2">
                     @if ($mostAffectedLGA)
                         {{ $mostAffectedLGA->lga }}
-                        {{-- ({{ $mostAffectedLGA->occurrences }} incidents) --}}
                     @else
                         No data available
                     @endif
@@ -62,46 +60,11 @@
             </div>
         </div>
 
-        <!-- Charts Section: Side-by-Side for Incident Table and Motive Chart -->
-        <div class="flex justify-between space-x-6 mb-8">
-            <!-- Chart 1: Bar Chart for Incidents Over the Last 12 Months -->
-            <div class="w-1/2 bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-xl font-semibold text-white mb-4">Incidents Over the Past 12 Months</h3>
-                <canvas id="myChart"></canvas>
-            </div>
-
-            <!-- Chart 2: Horizontal Bar Chart for Prevalent Risk Indicators -->
-            <div class="w-1/2 bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-xl font-semibold text-white mb-4">Prevalent Risk</h3>
-                <canvas id="myChart2"></canvas>
-            </div>
-        </div>
-
-        <!-- Charts Section: Side-by-Side for Yearly Incidents and Motive Types -->
-        <div class="flex justify-between space-x-6 mb-8">
-
-            <div class="w-1/2 bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-xl font-semibold text-white mb-4" id="map-title">
-                    High Impact Incidents in {{ $state }} ({{ $year }})
-                </h3>
-                <div id="map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
-            </div>
-
-            <!-- Motive Types by Occurrence Bar Chart -->
-            <div class="w-1/2 bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-xl font-semibold text-white mb-4">Incidents by Actors</h3>
-                <canvas id="attackChart"></canvas>
-            </div>
-        </div>
-
         <div class="mb-8">
             <h3 class="text-xl font-semibold text-white mb-4">Insights</h3>
-
             <div id="insights-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
                 @forelse ($automatedInsights as $insight)
                     <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
-
                         @php
                             $titleColor = 'text-gray-400';
                             if ($insight['type'] == 'Velocity') {
@@ -117,7 +80,6 @@
                                 $titleColor = 'text-green-400';
                             }
                         @endphp
-
                         <h4 class="text-xs font-bold {{ $titleColor }} uppercase mb-1 tracking-wider">
                             {{ $insight['type'] }}
                         </h4>
@@ -126,52 +88,88 @@
                         </p>
                     </div>
                 @empty
-                    <div class="col-span-2 text-center text-gray-500 italic py-4">
+                    <div class="col-span-1 md:col-span-2 text-center text-gray-500 italic py-4">
                         Insufficient data pattern to generate strategic insights for this period.
                     </div>
                 @endforelse
+            </div>
+        </div>
 
+        <div class="flex flex-col lg:flex-row gap-6 mb-8">
+            <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
+                <h3 class="text-center text-lg md:text-xl font-semibold text-white mb-4">Incidents Over the Past 12
+                    Months</h3>
+                <div class="relative h-64 md:h-80">
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
+
+            <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+                    <h3 class="text-center sm:text-left text-lg md:text-xl font-semibold text-white">Prevalent Risk</h3>
+                    <select id="prevalent-compare-select"
+                        class="bg-[#131C27] text-white text-xs py-1 px-3 border border-gray-600 rounded hover:border-gray-400 focus:outline-none focus:border-emerald-500 transition-colors w-full sm:w-auto">
+                        <option value="" selected>Compare...</option>
+                        @foreach ($getStates as $s)
+                            <option value="{{ $s }}">{{ $s }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="relative h-64 md:h-80">
+                    <canvas id="myChart2"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6 mb-8">
+            <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
+                <h3 class="text-center text-lg md:text-xl font-semibold text-white mb-4" id="map-title">
+                    High Impact Incidents in {{ $state }} ({{ $year }})
+                </h3>
+                <div id="map" style="height: 300px; width: 100%; border-radius: 8px;" class="md:h-[400px]"></div>
+            </div>
+
+            <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
+                <h3 class="text-center text-lg md:text-xl font-semibold text-white mb-4">Incidents by Actors</h3>
+                <div class="relative h-64 md:h-80">
+                    <canvas id="attackChart"></canvas>
+                </div>
             </div>
         </div>
 
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
             <h4 class="text-sm font-medium text-gray-400 mb-1">Crime Index Score</h4>
-
-            <p id="crime-index-score" class="text-4xl font-bold text-white">{{ $stateCrimeIndexScore }}</p>
-
+            <p id="crime-index-score" class="text-3xl md:text-4xl font-bold text-white">{{ $stateCrimeIndexScore }}</p>
             <p class="text-xs text-gray-500">(State's weighted contribution to national crime)</p>
         </div>
 
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-6 mb-12">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-6 mb-12 overflow-hidden">
             <h4 class="text-lg font-semibold text-white mb-4">Crime Indicator Breakdown</h4>
             <div class="overflow-x-auto">
                 <table class="min-w-full">
                     <thead>
                         <tr class="border-b border-gray-700 text-left text-xs text-gray-400 uppercase">
-                            <th class="py-3 px-4">Indicator</th>
-                            <th class="py-3 px-4">Incidents (Current Year)</th>
-                            <th class="py-3 px-4">Incidents (Previous Year)</th>
-                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Indicator</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Incidents (Current)</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Incidents (Prev)</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Status</th>
                         </tr>
                     </thead>
                     <tbody id="crime-table-body" class="text-gray-200">
-
                         @forelse ($crimeTable as $item)
                             <tr class="border-b border-gray-700">
-                                <td class="py-4 px-4 font-medium">{{ $item['indicator_name'] }}</td>
-                                <td class="py-4 px-4">{{ $item['incident_count'] }}</td>
-                                <td class="py-4 px-4">{{ $item['previous_year_count'] }}</td>
-
+                                <td class="py-4 px-4 font-medium whitespace-nowrap">{{ $item['indicator_name'] }}</td>
+                                <td class="py-4 px-4 whitespace-nowrap">{{ $item['incident_count'] }}</td>
+                                <td class="py-4 px-4 whitespace-nowrap">{{ $item['previous_year_count'] }}</td>
                                 @php
-                                    $statusColorClass = 'text-blue-400'; // Stable
+                                    $statusColorClass = 'text-blue-400';
                                     if ($item['status'] === 'Escalating') {
                                         $statusColorClass = 'text-red-500';
                                     } elseif ($item['status'] === 'Improving') {
                                         $statusColorClass = 'text-green-500';
                                     }
                                 @endphp
-
-                                <td class="py-4 px-4 font-semibold {{ $statusColorClass }}">
+                                <td class="py-4 px-4 font-semibold {{ $statusColorClass }} whitespace-nowrap">
                                     {{ $item['status'] }}
                                 </td>
                             </tr>
@@ -182,112 +180,27 @@
                                 </td>
                             </tr>
                         @endforelse
-
                     </tbody>
                 </table>
             </div>
         </div>
-
-        {{-- <!-- Recent Incidents Table -->
-        <div class="bg-[#1E2D3D] mb-8" id="recent-incidents">
-            <h3 class="text-xl font-semibold text-white p-2">Most Recent Incidents </h3>
-
-            <table class="min-w-full bg-[#1E2D3D] border border-gray-700">
-                <thead class="bg-[#131C27] text-slate-300">
-                    <tr>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">
-                            LGA</th>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">
-                            Incident</th>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">
-                            Risk </th>
-                        <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">
-                            Impact</th>
-                        <th class="text-left py-3 px-4 font-semibold">Date</th>
-                    </tr>
-                </thead>
-                <tbody class="text-white">
-                    @foreach ($recentIncidents as $incident)
-                        <tr class="border-b border-gray-700">
-                            <td class="py-2 px-4 border-r border-gray-700">
-                                {{ $incident->lga }}</td>
-                            <td class="py-2 px-4 border-r border-gray-700">
-                                {{ $incident->add_notes }}</td>
-                            <td class="py-2 px-4 border-r border-gray-700">
-                                {{ $incident->riskindicators }}</td>
-                            <td class="py-2 px-4 border-r border-gray-700">
-                                {{ $incident->impact }}</td>
-                            <td class="py-2 px-4">
-                                {{ \Carbon\Carbon::parse($incident->datecreated)->format('M d, Y') }}
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div> --}}
-
-
-        <div class="mb-8">
-
-            <div class="text-center mb-4">
-                <label for="compare-state-select" class="text-lg font-medium text-white">Compare <span
-                        id="compare-state-name-label">{{ $state }}</span> Top Security Risks with
-                    With:</label>
-                <select id="compare-state-select"
-                    class="bg-[#1E2D3D] text-white py-2 px-4 border border-gray-600 rounded-md">
-                    <option value="" disabled selected>Select a State</option>
-                    @foreach ($getStates as $s)
-                        <option value="{{ $s }}">{{ $s }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="flex justify-center mb-8">
-                <div class="w-full bg-[#1E2D3D] p-6 rounded-lg shadow-md **max-w-lg**">
-                    <h3 class="text-center text-xl font-semibold text-white mb-4" id="comparison-chart-title">
-                        Risk Indicator Comparison
-                    </h3>
-                    <div class="**h-80**">
-                        <canvas id="incidentCompareChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-
-
     </div>
 
-
-
-
-
-    {{-- Chart.js Script --}}
+    {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-
-
-
     <script>
-        // 1. Global Variables for all five charts
-        let myChart, myChart2, attackChart, incidentCompareChart;
-        let map;
-
-        let geojsonLayer;
+        // 1. Global Variables
+        let myChart, myChart2, attackChart;
+        let map, geojsonLayer, info;
         let lgaGeoJsonData;
         let lgaIncidentData = {};
-        let info;
-
 
         const formatDate = (dateString) => {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return dateString;
-            }
+            if (isNaN(date.getTime())) return dateString;
             const options = {
                 year: 'numeric',
                 month: 'short',
@@ -296,89 +209,83 @@
             return date.toLocaleDateString('en-US', options).replace(/,/, '');
         };
 
-        // 2. Function to Initialize all Charts on Page Load
+        // 2. Initialize Charts
         async function initializeCharts() {
-            // --- Existing Chart Initializations (Ensure they assign to the global variables) ---
             try {
-                const response = await fetch('/nigeria-lga.json'); // Assumes file is in /public
+                const response = await fetch('/nigeria-lga.json');
                 lgaGeoJsonData = await response.json();
                 console.log("GeoJSON loaded successfully.");
             } catch (e) {
                 console.error("CRITICAL: Could not load nigeria-lga.json.", e);
-                // If the map shapes fail to load, we can't continue.
-                document.getElementById('map-title').textContent =
-                    "Map failed to load. Could not find nigeria-lga.json";
+                document.getElementById('map-title').textContent = "Map failed to load.";
                 return;
             }
-            // Chart 1: Incidents Over Past Months (myChart)
+
+            // --- Get Default State Name from DOM ---
+            const defaultState = document.getElementById('state-name').textContent || 'Primary State';
+            const defaultYear = document.getElementById('current-year').textContent;
+
+            // Chart 1: Incidents Over Past Months
             const ctx1 = document.getElementById('myChart').getContext('2d');
-            const labels1 = @json($chartLabels);
-            const dataValues1 = @json($incidentCounts);
             myChart = new Chart(ctx1, {
                 type: 'line',
                 data: {
-                    labels: labels1,
+                    labels: @json($chartLabels),
                     datasets: [{
                         label: 'Incidents occurred in a month',
-                        data: dataValues1,
+                        data: @json($incidentCounts),
                         fill: true,
                         tension: 0.3,
                         borderWidth: 2,
                         pointRadius: 4,
-                        borderColor: '#10b981', // Solid purple line
-                        backgroundColor: '#10b981', // Light purple fill
+                        borderColor: '#10b981',
+                        backgroundColor: '#10b981',
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
-                            // --- ADDED ---
                             ticks: {
-                                color: 'white' // Y-axis text color
+                                color: 'white'
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
+                                color: 'rgba(255, 255, 255, 0.1)'
                             }
                         },
-                        // --- ADDED ---
                         x: {
                             ticks: {
-                                color: 'white' // X-axis text color
+                                color: 'white'
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
+                                color: 'rgba(255, 255, 255, 0.1)'
                             }
                         }
                     },
-                    // --- ADDED ---
                     plugins: {
                         legend: {
                             labels: {
-                                color: 'white' // Legend text color
+                                color: 'white'
                             }
                         }
                     }
                 }
             });
 
-            // Chart 2: Prevalent Risk Indicators (myChart2)
+            // Chart 2: Prevalent Risk Indicators
             const ctx2 = document.getElementById('myChart2').getContext('2d');
-            const labels2 = @json($topRiskLabels);
-            const dataValues2 = @json($topRiskCounts);
             myChart2 = new Chart(ctx2, {
                 type: 'bar',
                 data: {
-                    labels: labels2,
+                    labels: @json($topRiskLabels),
                     datasets: [{
-                        label: 'Top 5 Risk Indicators',
-                        data: dataValues2,
+                        label: defaultState, // Uses State Name instead of "Top 5 Risk..."
+                        data: @json($topRiskCounts),
                         backgroundColor: [
-                            'rgba(27, 158, 133, 0.7)',
-                            'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)',
-                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(27, 158, 133, 0.7)', 'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)',
                             'rgba(153, 102, 255, 0.7)'
                         ],
                         borderWidth: 1
@@ -387,12 +294,13 @@
                 options: {
                     indexAxis: 'y',
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
                             ticks: {
                                 color: 'white'
-                            }, // Y-axis text
+                            },
                             grid: {
                                 color: 'rgba(255, 255, 255, 0.1)'
                             }
@@ -400,7 +308,7 @@
                         x: {
                             ticks: {
                                 color: 'white'
-                            }, // X-axis text
+                            },
                             grid: {
                                 color: 'rgba(255, 255, 255, 0.1)'
                             }
@@ -410,31 +318,25 @@
                         legend: {
                             labels: {
                                 color: 'white'
-                            } // Legend text
+                            }
                         }
                     }
                 }
             });
 
-
-            // Chart 4: Incidents by Actors (attack)
+            // Chart 3: Incidents by Actors
             const attackCtx = document.getElementById('attackChart').getContext('2d');
-            const attackLabels = @json($attackLabels);
-            const attackCounts = @json($attackCounts);
             attackChart = new Chart(attackCtx, {
                 type: 'pie',
                 data: {
-                    labels: attackLabels,
+                    labels: @json($attackLabels),
                     datasets: [{
                         label: 'Attack Occurrences',
-                        data: attackCounts,
+                        data: @json($attackCounts),
                         backgroundColor: [
-                            'rgba(27, 158, 133, 0.7)',
-                            'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)',
-                            'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)',
-                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(27, 158, 133, 0.7)', 'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)', 'rgba(255, 99, 132, 0.7)',
                             'rgba(255, 159, 64, 0.7)'
                         ],
                         borderWidth: 1
@@ -442,7 +344,7 @@
                 },
                 options: {
                     responsive: true,
-                    aspectRatio: 2,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             position: 'top',
@@ -454,235 +356,128 @@
                 }
             });
 
-
-            // --- NEW: Comparison Chart Initialization (incidentCompareChart) ---
-            const compareCtx = document.getElementById('incidentCompareChart').getContext('2d');
-            const defaultState = document.getElementById('state-name').textContent || 'Primary State';
-            const defaultYear = document.getElementById('current-year').textContent;
-
-            // Get the initial top 5 risk data (which is already loaded for myChart2)
-            const initialRiskLabels = @json($topRiskLabels);
-            const initialRiskCounts = @json($topRiskCounts);
-
-            // Create an empty array of zeros for the comparison data
-            const initialCompareCounts = new Array(initialRiskCounts.length).fill(0);
-
-            incidentCompareChart = new Chart(compareCtx, {
-                type: 'bar', // This is already 'bar', which is correct
-                data: {
-                    labels: initialRiskLabels, // Use Risk Labels for the X-axis
-                    datasets: [
-                        // Primary State Data
-                        {
-                            label: defaultState,
-                            data: initialRiskCounts, // Use Risk Counts
-                            backgroundColor: '#10b981',
-                        },
-                        // Comparison State Data (Starts empty)
-                        {
-                            label: 'Comparison State',
-                            data: initialCompareCounts, // Use empty array
-                            backgroundColor: '#2196f3',
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Incident Count'
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                display: true // <-- IMPORTANT: We NOW want to see the x-axis labels
-                            }
-                        }
-                    },
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-
-
-            // Set the initial comparison title
-            document.getElementById('comparison-chart-title').textContent =
-                `Top 5 Risk Indicators(${defaultYear}): ${defaultState} vs None`;
-
-            // --- NEW: Initialize the Map ---
-            map = L.map('map').setView([9.0820, 8.6753], 6); // Center on Nigeria
-
+            // Initialize Map
+            map = L.map('map').setView([9.0820, 8.6753], 6);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
-            // Initialize the GeoJSON layer (it's empty for now)
-            // We add styling and interactivity logic here
             geojsonLayer = L.geoJson(null, {
                 style: styleFeature,
                 onEachFeature: onEachFeature
             }).addTo(map);
 
-            // --- NEW: Add info control (hover box) ---
             info = L.control();
             info.onAdd = function(map) {
-                this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+                this._div = L.DomUtil.create('div', 'info');
                 this.update();
                 return this._div;
             };
             info.update = function(props) {
-                // Get the count from our stored data
                 const count = props ? (lgaIncidentData[props.NAME_2] || 0) : null;
-
-                this._div.innerHTML = '<h4>Incident Count by LGA</h4>' + (props ?
-                    '<b>' + props.NAME_2 + '</b><br />' + (count !== null ? count : 0) + ' Incidents' :
-                    'Hover over an LGA');
+                this._div.innerHTML = '<h4>Incident Count by LGA</h4>' + (props ? '<b>' + props.NAME_2 +
+                    '</b><br />' + (count !== null ? count : 0) + ' Incidents' : 'Hover over an LGA');
             };
             info.addTo(map);
 
-            // --- NEW: Add a legend ---
             const legend = L.control({
                 position: 'bottomright'
             });
             legend.onAdd = function(map) {
                 const div = L.DomUtil.create('div', 'info legend');
-                const grades = [0, 10, 20, 50, 100, 200, 500]; // Our color steps
-                let labels = [];
-
-                // loop through our density intervals and generate a label with a colored square for each interval
+                const grades = [0, 10, 20, 50, 100, 200, 500];
                 for (let i = 0; i < grades.length; i++) {
-                    div.innerHTML +=
-                        '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
-                        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+                    div.innerHTML += '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' + grades[i] + (
+                        grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
                 }
                 return div;
             };
             legend.addTo(map);
 
-
             updateMap(defaultState, defaultYear);
         }
 
-        // 3. Function to update the Comparison Chart
-        function updateComparisonChart() {
-            const primaryState = document.getElementById('state-name').textContent;
-            const compareState = document.getElementById('compare-state-select').value;
-            const selectedYear = document.getElementById('year-select').value;
-            // const primaryIncidents = parseInt(document.getElementById('total-incidents').querySelector('p').textContent) ||
-            //     0;
+        // Prevalent Risk Comparison Logic
+        function updatePrevalentComparison() {
+            const compareState = document.getElementById('prevalent-compare-select').value;
+            const year = document.getElementById('year-select').value;
 
-            const primaryLabels = myChart2.data.labels;
-            const primaryCounts = myChart2.data.datasets[0].data;
-
-            // Update Primary State dataset label and data
-            incidentCompareChart.data.datasets[0].label = primaryState;
-            incidentCompareChart.data.datasets[0].data = primaryCounts;
-
-            // Update Chart Title
-            const titleElement = document.getElementById('comparison-chart-title');
-            titleElement.textContent =
-                `Top 5 Risk Indicators (${selectedYear}): ${primaryState} vs ${compareState || 'None'}`;
-
-            if (compareState && compareState !== primaryState) {
-                fetch(`/get-top-5-risks/${compareState}/${selectedYear}`)
-                    .then(response => response.json())
-                    .then(compareData => {
-
-                        const alignedCompareCounts = primaryLabels.map(primaryLabel => {
-                            // Find the index of this label in the comparison data
-                            const indexInCompare = compareData.labels.indexOf(primaryLabel);
-
-                            if (indexInCompare !== -1) {
-                                // If found, use its count
-                                return compareData.counts[indexInCompare];
-                            } else {
-                                // If not found, this risk isn't in the comparison's top 5, so count is 0
-                                return 0;
-                            }
-                        });
-
-                        incidentCompareChart.data.datasets[1].label = compareState;
-                        incidentCompareChart.data.datasets[1].data = alignedCompareCounts;
-                        incidentCompareChart.update();
-                    })
-                    .catch(error => console.error('Error fetching comparison data:', error));
-            } else {
-                // Clear comparison data if state is cleared or is the same as primary
-                incidentCompareChart.data.datasets[1].label = 'Comparison State';
-                // Create an array of zeros matching the length of the primary labels
-                incidentCompareChart.data.datasets[1].data = new Array(primaryLabels.length).fill(0);
-                incidentCompareChart.update();
+            if (!compareState) {
+                if (myChart2.data.datasets.length > 1) {
+                    myChart2.data.datasets.pop();
+                    myChart2.update();
+                }
+                return;
             }
+
+            fetch(`/get-top-5-risks/${compareState}/${year}`)
+                .then(response => response.json())
+                .then(data => {
+                    const primaryLabels = myChart2.data.labels;
+                    const alignedCounts = primaryLabels.map(label => {
+                        const index = data.labels.indexOf(label);
+                        return index !== -1 ? data.counts[index] : 0;
+                    });
+
+                    const comparisonDataset = {
+                        label: compareState,
+                        data: alignedCounts,
+                        backgroundColor: '#3b82f6',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1
+                    };
+
+                    if (myChart2.data.datasets.length > 1) {
+                        myChart2.data.datasets[1] = comparisonDataset;
+                    } else {
+                        myChart2.data.datasets.push(comparisonDataset);
+                    }
+
+                    myChart2.update();
+                })
+                .catch(error => console.error('Error fetching prevalent risk comparison:', error));
         }
 
-        // --- 4. NEW: Function to Update the Map ---
         async function updateMap(state, year) {
-            // Update map title
             document.getElementById('map-title').textContent = `Incident Density in ${state} (${year})`;
-
-            // Step 1: Fetch your incident location data
             try {
                 const response = await fetch(`/get-lga-incident-counts/${state}/${year}`);
-                lgaIncidentData = await response.json(); // Store it globally
-                console.log("LGA counts loaded:", lgaIncidentData);
+                lgaIncidentData = await response.json();
             } catch (e) {
                 console.error("Could not fetch LGA incident data", e);
-                lgaIncidentData = {}; // Clear old data on failure
+                lgaIncidentData = {};
             }
 
-            // Step 2: Clear old markers
             const stateFeatures = lgaGeoJsonData.features.filter(feature =>
                 feature.properties.NAME_1.toLowerCase().trim() === state.toLowerCase().trim()
             );
 
             if (stateFeatures.length === 0) {
-                console.warn(`No GeoJSON features found for state: ${state}. Check 'state_name' property.`);
-                geojsonLayer.clearLayers(); // Clear the map
-                map.setView([9.0820, 8.6753], 6); // Re-center on Nigeria
+                console.warn(`No GeoJSON features found for state: ${state}`);
+                geojsonLayer.clearLayers();
+                map.setView([9.0820, 8.6753], 6);
                 return;
             }
 
-            const stateGeoJson = {
+            geojsonLayer.clearLayers();
+            geojsonLayer.addData({
                 type: "FeatureCollection",
                 features: stateFeatures
-            };
-            // Step 3: Clear the old shapes and add the new ones
-            geojsonLayer.clearLayers();
-            geojsonLayer.addData(stateGeoJson);
-
-            // Step 4: Zoom the map to fit the new state shapes
+            });
             map.fitBounds(geojsonLayer.getBounds(), {
                 padding: [20, 20]
             });
         }
 
-
-
         function getColor(count) {
-            return count > 500 ? '#7F1D1D' :
-                count > 200 ? '#991B1B' :
-                count > 100 ? '#B91C1C' :
-                count > 50 ? '#DC2626' :
-                count > 20 ? '#EF4444' :
-                count > 10 ? '#F87171' :
-                count > 0 ? '#FCA5A5' :
+            return count > 500 ? '#7F1D1D' : count > 200 ? '#991B1B' : count > 100 ? '#B91C1C' :
+                count > 50 ? '#DC2626' : count > 20 ? '#EF4444' : count > 10 ? '#F87171' : count > 0 ? '#FCA5A5' :
                 '#FCA5A5';
         }
-        // --- 6. NEW: Helper function for styling each LGA ---
-        function styleFeature(feature) {
-            // !!! IMPORTANT: CHECK YOUR GEOJSON PROPERTIES !!!
-            // I am ASSUMING your GeoJSON has a property 'lga_name'
-            // Open nigeria-lga.json to verify. It might be 'LGA_NAME', 'lga', etc.
-            const lgaName = feature.properties.NAME_2;
-            const count = lgaIncidentData[lgaName] || 0; // Get count from our fetched data
 
+        function styleFeature(feature) {
+            const lgaName = feature.properties.NAME_2;
+            const count = lgaIncidentData[lgaName] || 0;
             return {
                 fillColor: getColor(count),
                 weight: 2,
@@ -693,9 +488,7 @@
             };
         }
 
-        // --- 7. NEW: Helper function for interactivity ---
         function onEachFeature(feature, layer) {
-            // Highlight feature on hover
             layer.on({
                 mouseover: function(e) {
                     const layer = e.target;
@@ -705,42 +498,42 @@
                         dashArray: '',
                         fillOpacity: 0.9
                     });
-                    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                        layer.bringToFront();
-                    }
-                    info.update(layer.feature.properties); // Update info box
+                    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) layer.bringToFront();
+                    info.update(layer.feature.properties);
                 },
                 mouseout: function(e) {
-                    geojsonLayer.resetStyle(e.target); // Reset to default style
-                    info.update(); // Clear info box
+                    geojsonLayer.resetStyle(e.target);
+                    info.update();
                 },
                 click: function(e) {
-                    map.fitBounds(e.target.getBounds()); // Zoom to feature on click
+                    map.fitBounds(e.target.getBounds());
                 }
             });
         }
 
         function updateMainDashboard(primaryState, selectedYear) {
             if (!primaryState || !selectedYear) return;
+            if (typeof updateMap === "function") updateMap(primaryState, selectedYear);
 
-            // 1. Update the map
-            if (typeof updateMap === "function") {
-                updateMap(primaryState, selectedYear);
+            // Reset comparison on filter change
+            const prevalentDropdown = document.getElementById('prevalent-compare-select');
+            if (prevalentDropdown) {
+                prevalentDropdown.value = "";
+                if (typeof myChart2 !== 'undefined' && myChart2.data.datasets.length > 1) {
+                    myChart2.data.datasets.pop();
+                    myChart2.update();
+                }
             }
 
-            // Helper function to safely update text
             const safeSetText = (id, text) => {
                 const el = document.getElementById(id);
                 if (el) el.querySelector('p') ? el.querySelector('p').textContent = text : el.textContent = text;
             };
-
-            // Helper function to safely update HTML
             const safeSetHTML = (id, html) => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = html;
             };
 
-            // 2. Set "Loading..." States
             safeSetText('total-incidents', '...');
             safeSetHTML('most-frequent-risk-content', '<p>Loading...</p>');
             safeSetText('most-affected-lga', '...');
@@ -749,63 +542,23 @@
             safeSetHTML('crime-table-body',
                 '<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">Loading...</td></tr>');
 
-            // 3. Fetch New Data
             fetch(`/get-state-data/${primaryState}/${selectedYear}`)
                 .then(response => response.json())
                 .then(data => {
-                    console.log("API Response:", data);
-
-                    // --- A. Update Basic Cards ---
                     safeSetText('total-incidents', data.total_incidents);
-
                     const totalTitle = document.getElementById('total-incidents-title');
                     if (totalTitle) totalTitle.textContent = `Total Incidents (${selectedYear})`;
 
                     const riskContent = document.getElementById('most-frequent-risk-content');
                     if (riskContent) {
                         let riskText = 'No data available';
-                        if (data.mostFrequentRisk && data.mostFrequentRisk.length > 0) {
-                            riskText = data.mostFrequentRisk.map(risk => risk.riskindicators).join(', ');
-                        }
+                        if (data.mostFrequentRisk && data.mostFrequentRisk.length > 0) riskText = data.mostFrequentRisk
+                            .map(risk => risk.riskindicators).join(', ');
                         riskContent.innerHTML = `<p>${riskText}</p>`;
                     }
 
                     safeSetText('most-affected-lga', data.mostAffectedLGA ? data.mostAffectedLGA.lga : 'None');
 
-                    // --- B. Update Recent Incidents Table (SAFE CHECK ADDED) ---
-                    const recentContainer = document.getElementById('recent-incidents');
-                    if (recentContainer) {
-                        let tableHTML = `
-                <h3 class="text-xl font-semibold text-white mb-4">Most Recent Incidents</h3>
-                <table class="min-w-full bg-[#1E2D3D] border border-gray-700">
-                    <thead class="bg-[#131C27] text-slate-300">
-                        <tr>
-                            <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">LGA</th>
-                            <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Incident</th>
-                            <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Risk</th>
-                            <th class="text-left py-3 px-4 font-semibold border-r border-gray-700">Impact</th>
-                            <th class="text-left py-3 px-4 font-semibold">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-white">
-                `;
-                        if (data.recentIncidents) {
-                            data.recentIncidents.forEach(incident => {
-                                tableHTML += `
-                        <tr class="border-b border-gray-700">
-                            <td class="py-2 px-4 border-r border-gray-700">${incident.lga}</td>
-                            <td class="py-2 px-4 border-r border-gray-700">${incident.add_notes}</td>
-                            <td class="py-2 px-4 border-r border-gray-700">${incident.riskindicators}</td>
-                            <td class="py-2 px-4 border-r border-gray-700">${incident.impact}</td>
-                            <td class="py-2 px-4">${formatDate(incident.datecreated)}</td>
-                        </tr>`;
-                            });
-                        }
-                        tableHTML += '</tbody></table>';
-                        recentContainer.innerHTML = tableHTML;
-                    }
-
-                    // --- C. Update Charts ---
                     if (typeof myChart !== 'undefined') {
                         myChart.data.labels = data.chartLabels;
                         myChart.data.datasets[0].data = data.incidentCounts;
@@ -814,6 +567,8 @@
 
                     if (typeof myChart2 !== 'undefined') {
                         myChart2.data.labels = data.topRiskLabels;
+                        myChart2.data.datasets[0].label =
+                            primaryState; // <--- UPDATED: Set dynamic label on filter change
                         myChart2.data.datasets[0].data = data.topRiskCounts;
                         myChart2.update();
                     }
@@ -824,10 +579,8 @@
                         attackChart.update();
                     }
 
-                    // --- D. Update Crime Index Score ---
                     safeSetText('crime-index-score', data.stateCrimeIndexScore);
 
-                    // --- E. Update Crime Index Table ---
                     const crimeTableBody = document.getElementById('crime-table-body');
                     if (crimeTableBody) {
                         let crimeTableHtml = '';
@@ -836,16 +589,8 @@
                                 let statusColorClass = 'text-blue-400';
                                 if (item.status === 'Escalating') statusColorClass = 'text-red-500';
                                 else if (item.status === 'Improving') statusColorClass = 'text-green-500';
-
-                                crimeTableHtml += `
-                        <tr class="border-b border-gray-700">
-                            <td class="py-4 px-4 font-medium">${item.indicator_name}</td>
-                            <td class="py-4 px-4">${item.incident_count}</td>
-                            <td class="py-4 px-4">${item.previous_year_count}</td>
-                            <td class="py-4 px-4 font-semibold ${statusColorClass}">
-                                ${item.status}
-                            </td>
-                        </tr>`;
+                                crimeTableHtml +=
+                                    `<tr class="border-b border-gray-700"><td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td><td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td><td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td><td class="py-4 px-4 font-semibold ${statusColorClass} whitespace-nowrap">${item.status}</td></tr>`;
                             });
                         } else {
                             crimeTableHtml =
@@ -854,83 +599,45 @@
                         crimeTableBody.innerHTML = crimeTableHtml;
                     }
 
-                    // --- F. Update Insights ---
-                    if (typeof renderInsights === "function") {
-                        renderInsights(data.automatedInsights);
-                    }
-
-                    // --- G. Update Comparison Chart ---
-                    if (typeof updateComparisonChart === "function") {
-                        updateComparisonChart();
-                    }
+                    if (typeof renderInsights === "function") renderInsights(data.automatedInsights);
                 })
                 .catch(error => {
                     console.error('Error fetching primary data:', error);
-                    // Only try to set error text if the container actually exists
                     const errContainer = document.getElementById('insights-container');
                     if (errContainer) errContainer.innerHTML = '<p class="text-red-400 p-4">Error loading data.</p>';
                 });
         }
 
-
-        // 5. Event Listeners
-
-        document.addEventListener('DOMContentLoaded', initializeCharts);
-
         function handleFilterChange() {
             const primaryState = document.getElementById('state-select').value;
-            const selectedYear = document.getElementById('year-select').value; // <-- Get year
-
-            // Update page titles
+            const selectedYear = document.getElementById('year-select').value;
             document.getElementById('state-name').textContent = primaryState;
             document.getElementById('current-year').textContent = selectedYear;
-
-            // Call update function with both values
             updateMainDashboard(primaryState, selectedYear);
         }
 
-        // Attach the same handler to both dropdowns
-        document.getElementById('state-select').addEventListener('change', handleFilterChange);
-        document.getElementById('year-select').addEventListener('change', handleFilterChange); // <-- NEW LISTENER
-
-        // Comparison State Listener (This remains the same)
-        document.getElementById('compare-state-select').addEventListener('change', function() {
-            updateComparisonChart();
-        });
-
         function renderInsights(insights) {
             const container = document.getElementById('insights-container');
-            container.innerHTML = ''; // Clear old content
-
+            container.innerHTML = '';
             if (!insights || insights.length === 0) {
                 container.innerHTML =
-                    '<div class="col-span-2 text-center text-gray-500 italic py-4">Insufficient data pattern to generate strategic insights for this period.</div>';
+                    '<div class="col-span-1 md:col-span-2 text-center text-gray-500 italic py-4">Insufficient data pattern to generate strategic insights for this period.</div>';
                 return;
             }
-
             insights.forEach(insight => {
-                // We removed the border variables.
-                // We just change the TITLE color for subtle distinction.
                 let titleColor = 'text-gray-400';
-
                 if (insight.type === 'Velocity') titleColor = 'text-blue-400';
                 if (insight.type === 'Emerging Threat') titleColor = 'text-red-400';
                 if (insight.type === 'Lethality') titleColor = 'text-orange-400';
                 if (insight.type === 'Forecast') titleColor = 'text-green-400';
-
-                const html = `
-            <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
-                <h4 class="text-xs font-bold ${titleColor} uppercase mb-1 tracking-wider">
-                    ${insight.type}
-                </h4>
-                <p class="text-white text-md">
-                    ${insight.text}
-                </p>
-            </div>
-        `;
-                container.innerHTML += html;
+                container.innerHTML +=
+                    `<div class="bg-[#1E2D3D] p-4 rounded shadow-md"><h4 class="text-xs font-bold ${titleColor} uppercase mb-1 tracking-wider">${insight.type}</h4><p class="text-white text-md">${insight.text}</p></div>`;
             });
         }
-    </script>
 
+        document.addEventListener('DOMContentLoaded', initializeCharts);
+        document.getElementById('state-select').addEventListener('change', handleFilterChange);
+        document.getElementById('year-select').addEventListener('change', handleFilterChange);
+        document.getElementById('prevalent-compare-select').addEventListener('change', updatePrevalentComparison);
+    </script>
 </x-layout>

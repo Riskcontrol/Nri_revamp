@@ -6,11 +6,11 @@
                 <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-y-4">
                     <div class="space-y-2">
                         <h1 class="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-white">
-                            Nigeria Terrorism Index
+                            Real-time Security Intelligence
                         </h1>
                         <p class="text-sm sm:text-base text-gray-400">
-                            An analysis of terrorist incidents and risk levels in Nigeria.
-                        </p>
+                            Track terrorism, armed robbery, and security incidents across Nigeria with actionable
+                            intelligence </p>
                     </div>
                 </div>
             </div>
@@ -18,42 +18,26 @@
 
         <div class="px-4 sm:px-6 lg:px-8 pb-12 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            <article class="relative lg:col-span-7 bg-card rounded-xl border border-white/10 shadow-lg overflow-hidden">
-                <div class="p-2 sm:p-3">
-                    <div
-                        class="relative h-[400px] sm:h-[500px] rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+            <article
+                class="relative lg:col-span-7 bg-card rounded-xl border border-white/10 shadow-lg overflow-hidden flex flex-col">
 
-                        <div class="w-full h-full p-4 flex justify-center items-center">
-                            <img src="{{ asset('images/map_risk.png') }}" alt="Risk Map of Nigeria"
-                                class="max-h-full max-w-full object-contain">
-                        </div>
+                {{-- Modified Image Container --}}
+                <div class="relative h-[400px] sm:h-[500px] bg-white/5 flex items-center justify-center p-6 group">
+                    {{-- The image has a drop shadow to pop from the dark background --}}
+                    <img src="{{ asset('images/risk-database.png') }}" alt="Risk Map of Nigeria"
+                        class="max-h-full max-w-full object-contain drop-shadow-xl transition-transform duration-500 group-hover:scale-[1.02]">
 
-                        <div
-                            class="absolute right-3 bottom-3 bg-white/95 backdrop-blur px-4 py-2 rounded-md border border-slate-200 shadow-sm z-10">
-                            <div class="font-semibold text-slate-700 text-xs uppercase tracking-wider">Incidents</div>
-                            <div class="mt-1 flex items-center gap-2 text-sm text-slate-600">
-                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                <span class="text-xs">Low</span>
-                                <div
-                                    class="h-1 w-8 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full">
-                                </div>
-                                <span class="text-xs">High</span>
-                                <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                            </div>
-                        </div>
-
-                        <div class="absolute bottom-5 left-4 z-20">
-                            <a href="{{ route('securityIntelligence') }}"
-                                class="inline-flex items-center gap-2 bg-primary/90 hover:bg-black text-white backdrop-blur-md font-semibold border border-white/20 rounded-lg px-5 py-3 shadow-xl transition-all hover:scale-105 active:scale-95 group">
-                                Access Risk Intelligence Database
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                    class="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                            </a>
-                        </div>
+                    {{-- Modified Button: Smaller, Responsive, Aligned to Right --}}
+                    <div class="absolute bottom-4 right-4 z-20">
+                        <a href="{{ route('securityIntelligence') }}"
+                            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2.5 rounded-lg shadow-lg transition-all duration-300 hover:shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95">
+                            <span>Access Database</span>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </a>
                     </div>
                 </div>
             </article>

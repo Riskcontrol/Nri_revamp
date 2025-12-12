@@ -1,4 +1,3 @@
-{{-- <div class="bg-slate-50 min-h-screen p-8"> --}}
 <div class="max-w-7xl mx-auto">
 
     <form id="filter-form">
@@ -14,7 +13,6 @@
             <div class="mt-6 flex flex-col sm:flex-row sm:justify-center sm:space-x-4 space-y-4 sm:space-y-0">
 
                 <div>
-                    {{-- <label for="index_type" class="block text-sm font-medium text-gray-300">Index Type</label> --}}
                     <div class="relative mt-1">
                         <select id="index_type" name="index_type"
                             class="block w-full sm:w-60 appearance-none rounded-md border border-gray-600 bg-[#2b3a4a] py-3 pl-3 pr-10 text-base text-white shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
@@ -35,7 +33,6 @@
                 </div>
 
                 <div>
-                    {{-- <label for="year" class="block text-sm font-medium text-gray-300">Year</label> --}}
                     <div class="relative mt-1">
                         <select id="year" name="year"
                             class="block w-full sm:w-40 appearance-none rounded-md border border-gray-600 bg-[#2b3a4a] py-3 pl-3 pr-10 text-base text-white shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
@@ -63,34 +60,16 @@
             </div>
         </section>
     </form>
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    {{-- UPDATED GRID: Changed to md:grid-cols-2 since we removed one card --}}
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {{-- Threat Level Card REMOVED --}}
 
         <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-            <span class="bg-red-600 text-black text-xs font-bold uppercase px-3 py-1 rounded-full">Threat Level</span>
-            <p id="card-threat-level" class="text-3xl font-semibold text-white mt-3">...</p>
-        </div>
-
-        <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-            <h3 class="text-sm font-medium text-white uppercase tracking-wide">Total Tracked Incidents</h3>
-
+            <h3 class="text-sm font-medium text-white uppercase tracking-wide">Tracked Incidents</h3>
             <div class="mt-4">
-                <div class="flex items-baseline space-x-4">
-                    <p id="card-risk-index" class="text-4xl font-semibold text-white">...</p>
-                    <span id="card-incident-trend" class="text-sm font-semibold text-gray-400">
-                        ...
-                    </span>
-                </div>
-
-                <div class="mt-2 flex items-center text-xs text-gray-400">
-                    <span id="prev-year-label" class="font-medium text-gray-500">2024</span>
-
-                    <svg class="w-3 h-3 mx-1.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-                    </svg>
-
-                    <span id="prev-year-count" class="font-mono text-gray-300">...</span>
-                </div>
+                <p id="card-risk-index" class="text-4xl font-semibold text-white">...</p>
             </div>
         </div>
 
@@ -104,9 +83,9 @@
 
     <div class="mt-8 bg-[#1E2D3D] p-6 rounded-lg shadow-md ">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <h3 class="text-xl font-semibold text-white flex items-center gap-2">
+            {{-- <h3 class="text-xl font-semibold text-white flex items-center gap-2">
                 Top Insights
-            </h3>
+            </h3> --}}
             <span id="insight-badge"
                 class="mt-2 sm:mt-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-900 text-indigo-200 border border-indigo-700">
                 Loading Analysis...
@@ -125,17 +104,6 @@
     </div>
 
     <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {{-- <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md lg:col-span-1">
-            <h3 class="text-xl font-semibold text-white">Recent Activities</h3>
-            <ul class="mt-4 list-disc list-inside space-y-2 text-gray-200">
-                <li>60+ killed in attack on Darajamal, Borno</li>
-                <li>100+ civilians abducted in Kairu, Zamfara</li>
-                <li>30+ killed in Katsina mosque attack</li>
-                <li>20 women abducted by JAS in Borno</li>
-                <li>17 killed in Plateau-Kaduna border attacks</li>
-            </ul>
-        </div> --}}
 
         <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md lg:col-span-2">
             <h3 class="text-xl font-semibold text-white">Geographic Analysis</h3>
@@ -183,46 +151,45 @@
         const insightData = {
             'Composite Risk Index': [{
                     title: "Fastest Growing Threats",
-                    text: "While Borno retains the highest absolute incident count, <span class='text-white font-medium'>Katsina State</span> is currently exhibiting 'Escalating' traits with a <span class='text-red-400 font-bold'>120% year-over-year growth rate</span>, identifying it as the fastest-growing volatility hotspot."
+                    text: "While Borno retains the highest absolute incident count, Katsina State is currently exhibiting 'Escalating' traits with a 120% year-over-year growth rate, identifying it as the fastest-growing volatility hotspot."
                 },
                 {
                     title: "Zonal Risk",
-                    text: "The <span class='text-indigo-300 font-medium'>'North West'</span> zone has an aggregated composite risk score of 45.8, making it approximately <span class='text-white font-bold'>3x more dangerous</span> than the 'South West' (15.2), despite lower national media coverage on specific rural banditry incidents."
+                    text: "The 'North West' zone has an aggregated composite risk score of 45.8, making it approximately 3x more dangerous than the 'South West' (15.2), despite lower national media coverage on specific rural banditry incidents."
                 },
                 {
                     title: "New Conflict Zones",
-                    text: "Although <span class='text-white font-medium'>'Communal Clashes'</span> rank 7th in total volume, they have shown a <span class='text-yellow-400 font-bold'>300% surge</span> in the 'North Central' zone, marking a critical shift from criminal-economic violence to resource-based conflict."
+                    text: "Although 'Communal Clashes' rank 7th in total volume, they have shown a 300% surge in the 'North Central' zone, marking a critical shift from criminal-economic violence to resource-based conflict."
                 }
             ],
             'Terrorism Index': [{
                     title: "Fewer Attacks, More Death",
-                    text: "Terrorism incidents have numerically stabilized (-5% volume), but the <span class='text-red-400 font-bold'>Lethality Rate</span> has risen sharply. The average casualties per incident is now <span class='text-white font-bold'>8.2</span>, compared to 6.5 in the previous period, indicating more sophisticated IED usage."
+                    text: "Terrorism incidents have numerically stabilized (-5% volume), but the Lethality Rate has risen sharply. The average casualties per incident is now 8.2, compared to 6.5 in the previous period, indicating more sophisticated IED usage."
                 },
                 {
                     title: "The Violence is Moving",
-                    text: "While risk scores in Zamfara are 'Improving' (Rank 5 → 8), neighboring <span class='text-white font-medium'>Niger State</span> is 'Escalating'. This suggests that kinetic military operations in Zamfara are successfully <span class='text-indigo-300 font-medium'>displacing threat actors</span> southwards rather than neutralizing them."
+                    text: "While risk scores in Zamfara are 'Improving' (Rank 5 → 8), neighboring Niger State is 'Escalating'. This suggests that kinetic military operations in Zamfara are successfully displacing threat actors southwards rather than neutralizing them."
                 },
                 {
                     title: "Dry Season Dangers",
-                    text: "Attacks show a strong correlation (>0.85) with the <span class='text-yellow-400 font-bold'>Dry Season (Jan-Mar)</span>, driven by increased mobility for heavy trucks and motorcycles in the Sambisa and Lake Chad marshlands."
+                    text: "Attacks show a strong correlation (>0.85) with the Dry Season (Jan-Mar), driven by increased mobility for heavy trucks and motorcycles in the Sambisa and Lake Chad marshlands."
                 }
             ],
             'Kidnapping Index': [{
                     title: "End-of-Year Spikes",
-                    text: "Kidnapping incidents show a distinct <span class='text-red-400 font-bold'>40% spike</span> nationally in <span class='text-white font-bold'>Q4 (Oct-Dec)</span>. Historical data links this to increased travel density and liquidity demands of criminal groups during the holiday season."
+                    text: "Kidnapping incidents show a distinct 40% spike nationally in Q4 (Oct-Dec). Historical data links this to increased travel density and liquidity demands of criminal groups during the holiday season."
                 },
                 {
                     title: "High-Risk Highways",
-                    text: "In Kaduna, the top 3 affected LGAs (Chikun, Kajuru, Birnin Gwari) are contiguous. This clustering indicates a established <span class='text-indigo-300 font-medium'>threat corridor</span> along the main highway arteries, rather than opportunistic, isolated attacks."
+                    text: "In Kaduna, the top 3 affected LGAs (Chikun, Kajuru, Birnin Gwari) are contiguous. This clustering indicates a established threat corridor along the main highway arteries, rather than opportunistic, isolated attacks."
                 },
                 {
                     title: "It's About Money",
-                    text: "In states where Kidnapping is the #1 risk, the primary actor is <span class='text-white font-medium'>'Bandits' (75%)</span> and the documented motive is <span class='text-yellow-400 font-bold'>'Ransom' (88%)</span>, confirming the threat is driven by economic opportunism rather than ideology."
+                    text: "In states where Kidnapping is the #1 risk, the primary actor is 'Bandits' (75%) and the documented motive is 'Ransom' (88%), confirming the threat is driven by economic opportunism rather than ideology."
                 }
             ]
         };
 
-        // --- 2. DEFINE UPDATE FUNCTION ---
         function updateInsights(selectedType) {
             const listContainer = document.getElementById('insight-list');
             const badge = document.getElementById('insight-badge');
@@ -254,7 +221,6 @@
             }, 200);
         }
 
-        // ... (getRiskCategory function) ...
         function getRiskCategory(value) {
             if (value <= 1.7) return 'Low';
             if (value <= 2.8) return 'Medium';
@@ -262,7 +228,6 @@
             return 'Critical';
         }
 
-        // ... (options variable) ...
         var options = {
             series: [],
             chart: {
@@ -309,7 +274,7 @@
                     },
                     dataLabels: {
                         style: {
-                            colors: ['#000'] // Use white color for labels
+                            colors: ['#000']
                         }
                     }
                 }
@@ -334,7 +299,6 @@
 
         function updateRiskTable(tableData) {
             const tableBody = document.getElementById('risk-table-body');
-
             if (!tableData || tableData.length === 0) {
                 tableBody.innerHTML =
                     `<tr><td colspan="7" class="py-10 px-4 text-center text-gray-500">No data available for this filter.</td></tr>`;
@@ -343,45 +307,33 @@
 
             let tableHtml = '';
             tableData.forEach(state => {
-                let statusColorClass = 'text-gray-400'; // Stable
-                if (state.status === 'Escalating') {
-                    statusColorClass = 'text-red-500'; // Worse rank
-                } else if (state.status === 'Improving') {
-                    statusColorClass = 'text-green-500'; // Better rank
-                }
+                let statusColorClass = 'text-gray-400';
+                if (state.status === 'Escalating') statusColorClass = 'text-red-500';
+                else if (state.status === 'Improving') statusColorClass = 'text-green-500';
 
                 tableHtml += `
                     <tr class="border-b border-gray-700 hover:bg-gray-700">
                         <td class="py-3 px-4 font-medium">${state.state}</td>
                         <td class="py-3 px-4">${state.risk_score}%</td>
-                        <td class="py-3 px-4">
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskLevelClass(state.risk_level)}">
-                                ${state.risk_level}
-                            </span>
-                        </td>
+                        <td class="py-3 px-4"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskLevelClass(state.risk_level)}">${state.risk_level}</span></td>
                         <td class="py-3 px-4">${state.rank_current}</td>
                         <td class="py-3 px-4">${state.rank_previous}</td>
                         <td class="py-3 px-4 font-semibold ${statusColorClass}">${state.status}</td>
                         <td class="py-3 px-4">${state.incidents}</td>
-                    </tr>
-                `;
+                    </tr>`;
             });
-
             tableBody.innerHTML = tableHtml;
         }
 
-        // --- THIS IS THE UPDATED PART ---
-
         function updateChartData() {
-            // ... (Your existing code to get dropdowns and update title) ...
             const indexSelect = document.getElementById('index_type');
             const yearSelect = document.getElementById('year');
             const titleElement = document.getElementById('main-title');
             const tableTitleElement = document.getElementById('table-title');
             const selectedIndexText = indexSelect.options[indexSelect.selectedIndex].text;
             const selectedYear = yearSelect.value;
-            titleElement.textContent = `${selectedIndexText} - ${selectedYear}`;
 
+            titleElement.textContent = `${selectedIndexText} - ${selectedYear}`;
             tableTitleElement.textContent = `${selectedIndexText}: State Risk Ranking`;
 
             const indexType = indexSelect.value;
@@ -389,9 +341,8 @@
 
             updateInsights(indexType);
 
-            document.getElementById('prev-year-label').textContent = parseInt(selectedYear) - 1;
+            // Removed: document.getElementById('prev-year-label').textContent = ...
 
-            // Set loading states for BOTH chart and table
             chart.updateOptions({
                 noData: {
                     text: 'Loading filtered data...'
@@ -400,65 +351,20 @@
             document.getElementById('risk-table-body').innerHTML =
                 `<tr><td colspan="7" class="py-10 px-4 text-center text-gray-500">Loading risk table...</td></tr>`;
 
-            document.getElementById('card-threat-level').textContent = '...';
             document.getElementById('card-risk-index').textContent = '...';
             document.getElementById('card-top-threats').textContent = 'Loading...';
-            // Use the correct URL from your routes file
+
             fetch(`/risk-treemap-data?year=${year}&index_type=${indexType}`)
                 .then(response => response.json())
                 .then(data => {
-
                     chart.updateSeries(data.treemapSeries);
                     updateRiskTable(data.tableData);
 
-                    document.getElementById('card-threat-level').textContent = data.cardData
-                        .nationalThreatLevel;
                     document.getElementById('card-risk-index').textContent = data.cardData
                         .totalTrackedIncidents;
                     document.getElementById('card-top-threats').textContent = data.cardData.topThreatGroups;
 
-                    const trendSpan = document.getElementById('card-incident-trend');
-                    const status = data.cardData.incidentTrendStatus;
-                    const diff = data.cardData.incidentTrendDifference; // We still need this for the check
-
-                    let arrowIcon = '';
-                    let colorClass = 'text-gray-400'; // Default for Stable
-
-                    if (status === 'Escalating') {
-                        // Red Up Arrow: More incidents (Bad)
-                        colorClass = 'text-red-500';
-                        arrowIcon =
-                            `<svg class="w-4 h-4 mr-0.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
-                    } else if (status === 'Improving') {
-                        // Green Down Arrow: Fewer incidents (Good)
-                        colorClass = 'text-green-500';
-                        arrowIcon =
-                            `<svg class="w-4 h-4 mr-0.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
-                    }
-
-                    // Build the HTML
-                    trendSpan.className =
-                        `text-sm font-semibold flex items-center ${colorClass}`; // Set the color
-
-                    if (status === 'Stable') {
-                        trendSpan.innerHTML = `(No change)`;
-                    } else {
-
-                        trendSpan.innerHTML = `${arrowIcon} ${status}`;
-                    }
-
-                    const currentCount = data.cardData.totalTrackedIncidents;
-                    document.getElementById('card-risk-index').textContent = currentCount;
-
-                    // Remove commas to do math (e.g. "1,200" -> 1200)
-                    const currentVal = parseInt(String(currentCount).replace(/,/g, '')) || 0;
-                    // Get the difference (e.g. +50 or -20)
-                    const diffVal = parseInt(data.cardData.incidentTrendDifference) || 0;
-
-                    // Logic: Previous = Current - Difference
-                    const prevVal = currentVal - diffVal;
-
-                    document.getElementById('prev-year-count').textContent = prevVal.toLocaleString();
+                    // REMOVED: All Trend Logic (Arrows, previous year calculations, etc.)
                 })
                 .catch(error => {
                     console.error('Error fetching chart data:', error);
@@ -467,21 +373,18 @@
                             text: 'Failed to load data.'
                         }
                     });
-                    // Also update the table on error
                     document.getElementById('risk-table-body').innerHTML =
                         `<tr><td colspan="7" class="py-10 px-4 text-center text-red-500">Failed to load table data.</td></tr>`;
-                    document.getElementById('card-threat-level').textContent = 'N/A';
                     document.getElementById('card-risk-index').textContent = 'N/A';
                     document.getElementById('card-top-threats').textContent = 'Error';
                 });
         }
 
-        // ... (Your event listeners and initial updateChartData() call remain the same) ...
         const indexSelect = document.getElementById('index_type');
         const yearSelect = document.getElementById('year');
         indexSelect.addEventListener('change', updateChartData);
         yearSelect.addEventListener('change', updateChartData);
-        updateChartData(); // Load initial data
+        updateChartData();
     });
 
     function getRiskLevelClass(riskLevel) {

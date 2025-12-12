@@ -58,7 +58,12 @@
             <section class="bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl p-6">
                 <div class="space-y-2 text-center mb-6">
                     <h2 id="map-title" class="text-3xl font-bold text-white">Nigeria Risk Map</h2>
-                    <p id="map-subtitle" class="text-sm font-medium text-gray-300">Composite Risk - {{ date('Y') }}
+                    {{-- <p id="map-subtitle" class="text-sm font-medium text-gray-300">Composite Risk - {{ date('Y') }}
+                    </p> --}}
+
+                    {{-- ADDED INSTRUCTION HERE --}}
+                    <p class="text-xs text-yellow-400 italic mt-1 animate-pulse">
+                        (Click on a state to view detailed risk analysis)
                     </p>
                 </div>
 
@@ -85,7 +90,7 @@
             const riskSelect = document.getElementById('filter-risk');
             const applyButton = document.getElementById('apply-filters');
             // const mapTitle = document.getElementById('map-title');
-            const mapSubtitle = document.getElementById('map-subtitle');
+            // const mapSubtitle = document.getElementById('map-subtitle');
 
             var map = L.map('risk-map').setView([9.0820, 8.6753], 6);
 
@@ -328,7 +333,7 @@
                         }).addTo(map);
                         createLegend();
                         // mapTitle.innerText = `Nigeria ${riskText} Map`;
-                        mapSubtitle.innerText = `${riskText} - ${year}`;
+                        // mapSubtitle.innerText = `${riskText} - ${year}`;
                         loader.style.display = 'none';
                         console.log('Map updated successfully.');
                     });

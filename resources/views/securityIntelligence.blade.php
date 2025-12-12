@@ -1,13 +1,12 @@
 <x-layout title="Security Intelligence"
-    description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk
-    analysis in Nigeria. Access up-to-date insights on terrorism, crime rates, and safety across Nigeria’s regions. Leverage
-    our expert intelligence for businesses, expatriates, and travelers to make informed decisions and enhance safety.">
+    description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk analysis in Nigeria. Access up-to-date insights on terrorism, crime rates, and safety across Nigeria’s regions. Leverage our expert intelligence for businesses, expatriates, and travelers to make informed decisions and enhance safety.">
 
     <div class="container mx-auto max-w-7xl px-4 py-12" x-data="{ activeTab: 'overview' }">
 
         <div class="text-center mb-10">
             <h2 class="text-2xl font-semibold text-white">Comprehensive Interactive Database</h2>
-            {{-- <p class="text-xl text-white mt-2">2018–{{ date('Y') }}</p> --}}
+            {{-- Display Date Range: 2018 - Present Year --}}
+            <p class="text-xl text-gray-400 mt-2">{{ $startYear }} – {{ $currentYear }}</p>
         </div>
 
 
@@ -66,48 +65,54 @@
 
             </div>
         </div>
+
+        {{-- TAB CONTENT: OVERVIEW --}}
         <div x-show="activeTab === 'overview'" class="pt-10">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 
-                {{-- Card 1: Total Security Incidents --}}
+                {{-- Card 1: Total Incidents (Cumulative) --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-sm font-medium text-gray-300">Total Security Incidents ({{ date('Y') }})</h3>
-                    <p class="text-5xl font-bold text-white my-3">{{ $totalIncidents }}</p>
+                    <h3 class="text-sm font-medium text-gray-300">Tracked Security Incidents</h3>
+                    <p class="text-5xl font-bold text-white my-3">{{ number_format($totalIncidents) }}</p>
                 </div>
 
-                {{-- Card 2: High Risk State --}}
+                {{-- Card 2: High Risk States (Cumulative) --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-sm font-medium text-gray-300">High Risk State({{ date('Y') }})</h3>
-                    <p class="text-5xl font-bold text-white my-3">{{ $activeRiskZones }}</p>
-                    <span class="text-red-400 flex items-center"> {{-- Used red-400 for better visibility on dark background --}}
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <h3 class="text-sm font-medium text-gray-300">Total Fatalities</h3>
+                    <p class="text-5xl font-bold text-white my-3">{{ number_format($totalDeaths) }}</p>
+                    <span class="text-red-400 flex items-center text-sm">
+                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd"
-                                d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
                                 clip-rule="evenodd" />
                         </svg>
-                        <span>Escalating</span>
+                        <span>Confirmed Deaths</span>
                     </span>
                 </div>
 
-                {{-- Card 3: Most Prominent Risks --}}
+                {{-- Card 3: Prominent Risks (Cumulative) --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-base font-semibold text-white mb-4">Most Prominent Risks ({{ date('Y') }})</h3>
+                    <h3 class="text-base font-semibold text-white mb-4">Reoccuring Risk</h3>
                     <div class="space-y-2">
-                        <p class="text-base text-gray-200">{{ $prominentRisks }}</p>
+                        <p class="text-sm text-gray-200 leading-relaxed">{{ $prominentRisks }}</p>
                     </div>
                 </div>
 
-                {{-- Card 4: Risk Regions --}}
+                {{-- Card 4: Risk Regions (Cumulative) --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-base font-semibold text-white mb-4">Risk Regions ({{ date('Y') }})</h3>
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <h3 class="text-base font-semibold text-white mb-4">Hot Zones</h3>
+
+                    {{-- Stacked Layout (Flex Column) --}}
+                    <div class="flex flex-col space-y-4">
                         @forelse ($activeRegions as $region)
-                            <div class="text-sm">
-                                <span class="font-semibold text-white">{{ $region['zone'] }}:</span>
-                                <span class="text-gray-200 block">{{ $region['top_risk'] }}</span>
+                            <div class=" pl-3">
+                                <span class="font-medium text-white text-sm block mb-1">{{ $region['zone'] }}</span>
+                                <span
+                                    class="text-gray-400 text-xs block uppercase tracking-wide">{{ $region['top_risk'] }}</span>
                             </div>
                         @empty
-                            <p class="text-sm text-gray-200 col-span-2">No regional data available.</p>
+                            <p class="text-sm text-gray-400">No regional data available.</p>
                         @endforelse
                     </div>
                 </div>
@@ -116,17 +121,18 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
 
                 <div class="space-y-6">
+                    {{-- Chart 1: Trend Line --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Security Incidents
-                            (2018–{{ date('Y') }})</h3>
+                        <h3 class="text-lg font-semibold text-white mb-4">Security Incidents Trend
+                            ({{ $startYear }}–{{ $currentYear }})</h3>
                         <div class="relative" style="height: 300px;">
                             <canvas id="incidentChart"></canvas>
                         </div>
                     </div>
 
+                    {{-- Chart 2: Regional Pie --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Incidents by Region ({{ date('Y') }})
-                        </h3>
+                        <h3 class="text-lg font-semibold text-white mb-4">Incidents by Region (Cumulative)</h3>
                         <div class="relative" style="height: 300px;">
                             <canvas id="regionPieChart"></canvas>
                         </div>
@@ -135,35 +141,20 @@
 
                 <div class="space-y-6">
 
+                    {{-- List: Top 5 States --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Top 5 Active States ({{ date('Y') }})
-                        </h3>
-                        <div class="space-y-4 relative overflow-y-auto" style="height: 300px;">
-                            @php $maxIncidents = $top5States->first()->total_incidents ?? 0; @endphp
-                            @forelse($top5States as $state)
-                                <div>
-                                    <div class="flex justify-between text-base text-white mb-1">
-                                        <span class="font-medium">{{ $loop->iteration }}.
-                                            {{ $state->location }}</span>
-                                        <span class="text-white">{{ $state->total_incidents }} incidents</span>
-                                    </div>
-                                    <div class="w-full bg-gray-700 rounded-full h-1.5">
-                                        @php
-                                            $width =
-                                                $maxIncidents > 0 ? ($state->total_incidents / $maxIncidents) * 100 : 0;
-                                        @endphp
-                                        <div class="bg-[#10b981] h-1.5 rounded-full"
-                                            style="width: {{ $width }}%">
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <p class="text-base text-white">No state data available.</p>
-                            @endforelse
+                        <h3 class="text-lg font-semibold text-white mb-1">Active States</h3>
+                        {{-- <p class="text-xs text-gray-400 mb-4"> (% Change {{ $startYear }} vs
+                            {{ $currentYear }})</p> --}}
+
+                        <div class="relative" style="height: 300px;">
+                            <canvas id="stateChangeChart"></canvas>
                         </div>
                     </div>
+
+                    {{-- Chart 3: Risk Indicators Bar --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Risk Indicators ({{ date('Y') }})</h3>
+                        <h3 class="text-lg font-semibold text-white mb-4">Risk Indicators</h3>
                         <div class="relative" style="height: 300px;">
                             <canvas id="indicatorBarChart"></canvas>
                         </div>
@@ -173,46 +164,35 @@
             </div>
 
             <script>
-                // Renamed instances for clarity
                 let incidentChartInstance = null;
                 let regionPieChartInstance = null;
                 let indicatorBarChartInstance = null;
+                let stateChangeChartInstance = null; // New Instance
 
                 const chartColors = [
-                    '#DC2626', // red-600
-                    '#F59E0B', // amber-500
-                    '#10B981', // emerald-500
-                    '#3B82F6', // blue-500
-                    '#6366F1', // indigo-500
-                    '#8B5CF6', // violet-500
-                    '#6B7280', // gray-500 (For 'Others')
+                    '#DC2626', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#6B7280'
                 ];
 
                 document.addEventListener('DOMContentLoaded', () => {
-                    // Updated contexts
                     const ctxIncident = document.getElementById('incidentChart').getContext('2d');
                     const ctxRegionPie = document.getElementById('regionPieChart').getContext('2d');
                     const ctxIndicatorBar = document.getElementById('indicatorBarChart').getContext('2d');
+                    const ctxStateChange = document.getElementById('stateChangeChart').getContext('2d'); // New Context
 
-                    // Clear old charts if they exist
-                    if (Chart.getChart(ctxIncident)) {
-                        Chart.getChart(ctxIncident).destroy();
-                    }
-                    if (Chart.getChart(ctxRegionPie)) {
-                        Chart.getChart(ctxRegionPie).destroy();
-                    }
-                    if (Chart.getChart(ctxIndicatorBar)) {
-                        Chart.getChart(ctxIndicatorBar).destroy();
-                    }
+                    // Destroy existing charts
+                    if (Chart.getChart(ctxIncident)) Chart.getChart(ctxIncident).destroy();
+                    if (Chart.getChart(ctxRegionPie)) Chart.getChart(ctxRegionPie).destroy();
+                    if (Chart.getChart(ctxIndicatorBar)) Chart.getChart(ctxIndicatorBar).destroy();
+                    if (Chart.getChart(ctxStateChange)) Chart.getChart(ctxStateChange).destroy();
 
-                    // --- Line Chart (Unchanged) ---
+                    // 1. Line Chart
                     incidentChartInstance = new Chart(ctxIncident, {
                         type: 'line',
                         data: {
-                            labels: @json($chartLabels),
+                            labels: @json($trendLabels),
                             datasets: [{
-                                label: 'Number of Incidents',
-                                data: @json($chartData),
+                                label: 'Incidents',
+                                data: @json($trendData),
                                 borderColor: '#10b981',
                                 backgroundColor: '#10b981',
                                 fill: true,
@@ -251,16 +231,14 @@
                         }
                     });
 
-                    // --- NEW: Region Pie Chart (Was Bar Chart) ---
+                    // 2. Pie Chart
                     regionPieChartInstance = new Chart(ctxRegionPie, {
                         type: 'pie',
                         data: {
-                            // Uses data from the OLD bar chart
-                            labels: @json($barChartLabels),
+                            labels: @json($regionChartLabels),
                             datasets: [{
                                 label: 'Incidents by Region',
-                                // Uses data from the OLD bar chart
-                                data: @json($barChartData),
+                                data: @json($regionChartData),
                                 backgroundColor: chartColors,
                                 hoverOffset: 4
                             }]
@@ -270,7 +248,7 @@
                             maintainAspectRatio: false,
                             plugins: {
                                 legend: {
-                                    position: 'right', // Move legend to the side
+                                    position: 'right',
                                     labels: {
                                         boxWidth: 12,
                                         padding: 15,
@@ -281,14 +259,76 @@
                         }
                     });
 
+                    // 3. NEW Diverging Bar Chart (State Change)
+                    stateChangeChartInstance = new Chart(ctxStateChange, {
+                        type: 'bar',
+                        data: {
+                            labels: @json($stateChangeLabels),
+                            datasets: [{
+                                label: '% Change',
+                                data: @json($stateChangeData),
+                                // Dynamic coloring script
+                                backgroundColor: (context) => {
+                                    const value = context.raw;
+                                    // Red (#EF4444) for Escalation (+), Green (#10B981) for Improvement (-)
+                                    return value >= 0 ? '#EF4444' : '#10B981';
+                                },
+                                borderRadius: 4,
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y', // Horizontal Chart
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    ticks: {
+                                        color: 'white',
+                                        callback: function(value) {
+                                            return value + '%'
+                                        } // Add % symbol
+                                    },
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)',
+                                        zeroLineColor: 'white',
+                                        zeroLineWidth: 2
+                                    }
+                                },
+                                y: {
+                                    ticks: {
+                                        color: 'white',
+                                        font: {
+                                            weight: 'bold'
+                                        }
+                                    },
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.raw + '% Change';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
 
+                    // 4. Bar Chart (Risk Indicators)
                     indicatorBarChartInstance = new Chart(ctxIndicatorBar, {
                         type: 'bar',
                         data: {
-                            labels: @json($pieChartLabels),
+                            labels: @json($riskIndicatorLabels),
                             datasets: [{
-                                label: 'Risk Indicators',
-                                data: @json($pieChartData),
+                                label: 'Frequency',
+                                data: @json($riskIndicatorData),
                                 backgroundColor: '#10b981',
                                 borderColor: '#10b981',
                                 borderWidth: 1
@@ -297,32 +337,29 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            indexAxis: 'y', // Make it horizontal
+                            indexAxis: 'y',
                             scales: {
-                                x: { // This is your horizontal value axis
+                                x: {
                                     beginAtZero: true,
                                     ticks: {
-                                        color: 'white' // --- ADD THIS LINE ---
+                                        color: 'white'
                                     },
                                     grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)' // --- ADD THIS LINE (faint white grid) ---
+                                        color: 'rgba(255, 255, 255, 0.1)'
                                     }
                                 },
-                                y: { // This is your vertical category axis
+                                y: {
                                     ticks: {
-                                        color: 'white' // --- ADD THIS LINE ---
+                                        color: 'white'
                                     },
                                     grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)' // --- ADD THIS LINE (faint white grid) ---
+                                        color: 'rgba(255, 255, 255, 0.1)'
                                     }
                                 }
                             },
                             plugins: {
                                 legend: {
-                                    display: false,
-                                    labels: {
-                                        color: 'white'
-                                    }
+                                    display: false
                                 }
                             }
                         }
@@ -331,10 +368,10 @@
             </script>
         </div>
 
-        <div x-show="activeTab === 'analysis'" class="pt-10 text-white" style="display: none;">
+        {{-- TAB CONTENT: ANALYSIS --}}
+        <div x-show="activeTab === 'analysis'" class="pt-10 text-white">
             @include('partials.securityIntelligence.terrorism-analysis')
         </div>
-
 
     </div>
 </x-layout>
