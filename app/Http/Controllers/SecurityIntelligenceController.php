@@ -103,11 +103,14 @@ class SecurityIntelligenceController extends Controller
             if ($zone === 'Unknown') continue;
 
             if (!isset($zoneData[$zone])) {
-                $zoneData[$zone] = ['zone' => $zone, 'total_incidents' => 0];
+                // Initialize with 'total_deaths'
+                $zoneData[$zone] = ['zone' => $zone, 'total_deaths' => 0];
             }
-            $zoneData[$zone]['total_incidents'] += $state->total_incidents;
+            // Add state deaths to zone total
+            $zoneData[$zone]['total_deaths'] += $state->total_deaths;
         }
-        $sortedZones = collect($zoneData)->sortByDesc('total_incidents');
+        // Sort zones by highest fatalities
+        $sortedZones = collect($zoneData)->sortByDesc('total_deaths');
 
         $activeRegions = $sortedZones->take(2)->map(function ($regionData) use ($startYear) {
             $statesInZone = $this->getStatesForZone($regionData['zone']);
@@ -121,20 +124,24 @@ class SecurityIntelligenceController extends Controller
             return $regionData;
         });
 
-        // 8. Line Chart Data
-        $incidentData = tbldataentry::selectRaw('yy, COUNT(*) as incident_count')
-            ->where('yy', '>=', $startYear)->groupBy('yy')->orderBy('yy', 'asc')->get()->keyBy('yy');
+// 8. Line Chart Data (Updated to Track FATALITIES)
+        $fatalityData = tbldataentry::selectRaw('yy, SUM(Casualties_count) as total_deaths') // Summing deaths
+            ->where('yy', '>=', $startYear)
+            ->groupBy('yy')
+            ->orderBy('yy', 'asc')
+            ->get()
+            ->keyBy('yy');
 
         $trendLabels = [];
         $trendData = [];
         foreach (range($startYear, $currentYear) as $chartYear) {
             $trendLabels[] = $chartYear;
-            $trendData[] = $incidentData->get($chartYear)->incident_count ?? 0;
+            $trendData[] = $fatalityData->get($chartYear)->total_deaths ?? 0; // Using total_deaths
         }
 
         // 9. Pie Chart Data
         $regionChartLabels = $sortedZones->pluck('zone')->values();
-        $regionChartData = $sortedZones->pluck('total_incidents')->values();
+        $regionChartData = $sortedZones->pluck('total_deaths')->values();
 
         // 10. Bar Chart Data (Indicators) - MODIFIED: Removed "Others" logic
         $allRiskIndicators = tbldataentry::selectRaw('riskindicators, COUNT(*) as frequency')
@@ -146,6 +153,77 @@ class SecurityIntelligenceController extends Controller
 
         $riskIndicatorLabels = $allRiskIndicators->pluck('riskindicators')->toArray();
         $riskIndicatorData = $allRiskIndicators->pluck('frequency')->toArray();
+
+        // 1. Identify Top 5 Recurring Risks (by volume)
+$topRisks = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as count'))
+    ->where('yy', '>=', $startYear)
+    ->groupBy('riskindicators')
+    ->orderByDesc('count')
+    ->take(5)
+    ->pluck('riskindicators'); // e.g., ['Kidnapping', 'Terrorism', 'Banditry'...]
+
+// 2. Get Breakdown of States for these Risks
+$rawContributionData = tbldataentry::select('riskindicators', 'location', DB::raw('COUNT(*) as count'))
+    ->where('yy', '>=', $startYear)
+    ->whereIn('riskindicators', $topRisks)
+    ->groupBy('riskindicators', 'location')
+    ->get();
+
+// 3. Process Data for Chart.js (Group small states into "Others")
+$contributionDatasets = [];
+$riskLabels = $topRisks->toArray();
+$stateColors = [
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#6B7280' // Blue, Red, Green, Yellow, Purple, Gray
+];
+
+// We need to pivot the data: Rows = Risks, Cols = States
+$pivotData = [];
+foreach ($rawContributionData as $row) {
+    $pivotData[$row->riskindicators][$row->location] = $row->count;
+}
+
+// Identify top contributing states across ALL these risks to keep colors consistent
+$topStatesOverall = tbldataentry::select('location', DB::raw('COUNT(*) as count'))
+    ->where('yy', '>=', $startYear)
+    ->whereIn('riskindicators', $topRisks)
+    ->groupBy('location')
+    ->orderByDesc('count')
+    ->take(5)
+    ->pluck('location')
+    ->toArray();
+
+// Build Datasets for the Top 5 States
+foreach ($topStatesOverall as $index => $state) {
+    $data = [];
+    foreach ($riskLabels as $risk) {
+        // Calculate percentage or raw count (Raw count is usually better for stacked bars, let Chart.js handle tooltip %)
+        $count = $pivotData[$risk][$state] ?? 0;
+        $data[] = $count;
+    }
+
+    $contributionDatasets[] = [
+        'label' => $state,
+        'data' => $data,
+        'backgroundColor' => $stateColors[$index] ?? '#ccc',
+    ];
+}
+
+// Build "Others" Dataset
+$othersData = [];
+foreach ($riskLabels as $risk) {
+    $totalRiskCount = $rawContributionData->where('riskindicators', $risk)->sum('count');
+    $topStatesCount = 0;
+    foreach ($topStatesOverall as $state) {
+        $topStatesCount += $pivotData[$risk][$state] ?? 0;
+    }
+    $othersData[] = $totalRiskCount - $topStatesCount;
+}
+
+$contributionDatasets[] = [
+    'label' => 'Others',
+    'data' => $othersData,
+    'backgroundColor' => '#9CA3AF', // Gray for others
+];
 
         return view('securityIntelligence', compact(
             'totalIncidents',
@@ -162,7 +240,9 @@ class SecurityIntelligenceController extends Controller
             'startYear',
             'currentYear',
             'stateChangeLabels',
-            'stateChangeData'
+            'stateChangeData',
+            'riskLabels',
+            'contributionDatasets'
         ));
     }
 
@@ -201,6 +281,8 @@ class SecurityIntelligenceController extends Controller
         if ($riskIndicator !== 'All') {
             $baseQueryCurrent->where('riskindicators', $riskIndicator);
         }
+
+        $totalFatalities = (clone $baseQueryCurrent)->sum('Casualties_count');
 
         $stateDataCurrent = $baseQueryCurrent
             ->selectRaw('location, COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims, MAX(yy) as yy')
@@ -314,7 +396,8 @@ class SecurityIntelligenceController extends Controller
                 'totalTrackedIncidents' => $totalTrackedIncidents,
                 'topThreatGroups' => $topThreatGroups,
                 'incidentTrendDifference' => $incidentTrendDifference,
-                'incidentTrendStatus' => $incidentTrendStatus
+                'incidentTrendStatus' => $incidentTrendStatus,
+                'totalFatalities' => $totalFatalities
             ]
         ]);
     }

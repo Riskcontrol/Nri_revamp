@@ -1,7 +1,7 @@
 <x-layout title="Location Intelligence"
     description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk analysis in Nigeria.">
 
-    <div class="container mx-auto px-4 py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <h1 class="text-center text-2xl md:text-3xl font-bold text-white mb-8">
             Location Intelligence for <span id="state-name">{{ $state }}</span> in <span
                 id="current-year">{{ $year }}</span>
@@ -33,24 +33,35 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div id="total-incidents" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
-                <h3 id="total-incidents-title" class="text-lg md:text-xl font-semibold text-white mb-3">Tracked
-                    Incidents
-                    ({{ $year }})</h3>
-                <p class="text-2xl md:text-3xl font-medium text-white mt-2">{{ $total_incidents }}</p>
+        {{-- Updated Grid: 1 col on mobile, 2 on tablet, 4 on desktop --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+
+            {{-- 1. Total Incidents Card --}}
+            <div id="total-incidents" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5">
+                <h3 id="total-incidents-title"
+                    class="text-base md:text-lg font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+                    Tracked Incidents ({{ $year }})
+                </h3>
+                <p class="text-2xl md:text-3xl font-bold text-white mt-1">{{ $total_incidents }}</p>
             </div>
 
-            <div id="most-frequent-risk" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
-                <h3 class="text-lg md:text-xl font-semibold text-white mb-3">Most Prevalent Risk</h3>
-                <div id="most-frequent-risk-content" class="text-base md:text-lg text-white mt-2">
+            {{-- 2. Most Prevalent Risk Card --}}
+            <div id="most-frequent-risk"
+                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5">
+                <h3 class="text-base md:text-lg font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+                    Most Prevalent Risk
+                </h3>
+                <div id="most-frequent-risk-content" class="text-lg md:text-xl font-bold text-white mt-1">
                     <p>{{ $mostFrequentRisk->pluck('riskindicators')->implode(', ') ?: 'No data available' }}</p>
                 </div>
             </div>
 
-            <div id="most-affected-lga" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center">
-                <h3 class="text-lg md:text-xl font-semibold text-white mb-3">Most Affected LGA</h3>
-                <p class="text-base md:text-lg text-white mt-2">
+            {{-- 3. Most Affected LGA Card --}}
+            <div id="most-affected-lga" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5">
+                <h3 class="text-base md:text-lg font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+                    Most Affected LGA
+                </h3>
+                <p class="text-lg md:text-xl font-bold text-white mt-1">
                     @if ($mostAffectedLGA)
                         {{ $mostAffectedLGA->lga }}
                     @else
@@ -58,6 +69,36 @@
                     @endif
                 </p>
             </div>
+
+            {{-- 4. Crime Index Score Card (Moved & Styled) --}}
+            <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 relative group">
+                <h3 class="text-base md:text-lg font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+                    Crime Index Score
+                </h3>
+
+                <div class="flex flex-col items-center justify-center">
+                    {{-- Score --}}
+                    <p id="crime-index-score" class="text-2xl md:text-3xl font-bold text-white mt-1">
+                        {{ $stateCrimeIndexScore }}
+                    </p>
+
+                    {{-- Rank Badge --}}
+                    <div class="mt-2">
+                        <span id="rank-container"
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            Ranked <span id="state-rank" class="ml-1">{{ $stateRank }}</span><sup
+                                id="state-rank-ordinal">{{ $stateRankOrdinal }}</sup>
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Tooltip for context --}}
+                <div
+                    class="absolute inset-x-0 bottom-2 text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    Weighted contribution to national crime
+                </div>
+            </div>
+
         </div>
 
         <div class="mb-8">
@@ -67,22 +108,33 @@
                     <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
                         @php
                             $titleColor = 'text-gray-400';
-                            if ($insight['type'] == 'Velocity') {
-                                $titleColor = 'text-blue-400';
-                            }
-                            if ($insight['type'] == 'Emerging Threat') {
-                                $titleColor = 'text-red-400';
-                            }
-                            if ($insight['type'] == 'Lethality') {
-                                $titleColor = 'text-orange-400';
-                            }
-                            if ($insight['type'] == 'Forecast') {
-                                $titleColor = 'text-green-400';
+                            $friendlyTitle = $insight['type']; // Fallback
+
+                            switch ($insight['type']) {
+                                case 'Velocity':
+                                    $titleColor = 'text-blue-400';
+                                    $friendlyTitle = 'Activity Pace'; // Relatable for "Velocity"
+                                    break;
+                                case 'Emerging Threat':
+                                    $titleColor = 'text-red-400';
+                                    $friendlyTitle = 'Rising Risk'; // Relatable for "Emerging Threat"
+                                    break;
+                                case 'Lethality':
+                                    $titleColor = 'text-orange-400';
+                                    $friendlyTitle = 'Severity Level'; // Relatable for "Lethality"
+                                    break;
+                                case 'Forecast':
+                                    $titleColor = 'text-green-400';
+                                    $friendlyTitle = 'Future Outlook'; // Relatable for "Forecast"
+                                    break;
                             }
                         @endphp
+
+                        {{-- Display the mapped "Friendly" Title --}}
                         <h4 class="text-xs font-bold {{ $titleColor }} uppercase mb-1 tracking-wider">
-                            {{ $insight['type'] }}
+                            {{ $friendlyTitle }}
                         </h4>
+
                         <p class="text-white text-md">
                             {{ $insight['text'] }}
                         </p>
@@ -137,11 +189,6 @@
             </div>
         </div>
 
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h4 class="text-sm font-medium text-gray-400 mb-1">Crime Index Score</h4>
-            <p id="crime-index-score" class="text-3xl md:text-4xl font-bold text-white">{{ $stateCrimeIndexScore }}</p>
-            <p class="text-xs text-gray-500">(State's weighted contribution to national crime)</p>
-        </div>
 
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-6 mb-12 overflow-hidden">
             <h4 class="text-lg font-semibold text-white mb-4">Crime Indicator Breakdown</h4>
@@ -292,7 +339,7 @@
                     }]
                 },
                 options: {
-                    indexAxis: 'y',
+                    // indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -402,6 +449,7 @@
             const compareState = document.getElementById('prevalent-compare-select').value;
             const year = document.getElementById('year-select').value;
 
+            // If user unselects, remove the comparison dataset
             if (!compareState) {
                 if (myChart2.data.datasets.length > 1) {
                     myChart2.data.datasets.pop();
@@ -410,18 +458,25 @@
                 return;
             }
 
-            fetch(`/get-top-5-risks/${compareState}/${year}`)
+            // 1. Get the labels currently shown on the chart (The Primary State's Top 5)
+            const primaryLabels = myChart2.data.labels;
+
+            // 2. Prepare Query Parameters
+            const params = new URLSearchParams();
+            params.append('state', compareState);
+            params.append('year', year);
+
+            // Append each label as an array item: indicators[]
+            primaryLabels.forEach(label => params.append('indicators[]', label));
+
+            // 3. Fetch data specifically for these labels
+            fetch(`/get-comparison-risk-counts?${params.toString()}`)
                 .then(response => response.json())
                 .then(data => {
-                    const primaryLabels = myChart2.data.labels;
-                    const alignedCounts = primaryLabels.map(label => {
-                        const index = data.labels.indexOf(label);
-                        return index !== -1 ? data.counts[index] : 0;
-                    });
 
                     const comparisonDataset = {
                         label: compareState,
-                        data: alignedCounts,
+                        data: data.counts, // The backend now returns the counts in the exact order of the labels
                         backgroundColor: '#3b82f6',
                         borderColor: '#3b82f6',
                         borderWidth: 1
@@ -545,20 +600,25 @@
             fetch(`/get-state-data/${primaryState}/${selectedYear}`)
                 .then(response => response.json())
                 .then(data => {
+                    // 1. Update Basic Stats
                     safeSetText('total-incidents', data.total_incidents);
                     const totalTitle = document.getElementById('total-incidents-title');
-                    if (totalTitle) totalTitle.textContent = `Total Incidents (${selectedYear})`;
+                    if (totalTitle) totalTitle.textContent = `Tracked Incidents (${selectedYear})`;
 
+                    // 2. Update Most Frequent Risk Text
                     const riskContent = document.getElementById('most-frequent-risk-content');
                     if (riskContent) {
                         let riskText = 'No data available';
-                        if (data.mostFrequentRisk && data.mostFrequentRisk.length > 0) riskText = data.mostFrequentRisk
-                            .map(risk => risk.riskindicators).join(', ');
+                        if (data.mostFrequentRisk && data.mostFrequentRisk.length > 0) {
+                            riskText = data.mostFrequentRisk.map(risk => risk.riskindicators).join(', ');
+                        }
                         riskContent.innerHTML = `<p>${riskText}</p>`;
                     }
 
+                    // 3. Update Most Affected LGA
                     safeSetText('most-affected-lga', data.mostAffectedLGA ? data.mostAffectedLGA.lga : 'None');
 
+                    // 4. Update Charts
                     if (typeof myChart !== 'undefined') {
                         myChart.data.labels = data.chartLabels;
                         myChart.data.datasets[0].data = data.incidentCounts;
@@ -567,8 +627,7 @@
 
                     if (typeof myChart2 !== 'undefined') {
                         myChart2.data.labels = data.topRiskLabels;
-                        myChart2.data.datasets[0].label =
-                            primaryState; // <--- UPDATED: Set dynamic label on filter change
+                        myChart2.data.datasets[0].label = primaryState;
                         myChart2.data.datasets[0].data = data.topRiskCounts;
                         myChart2.update();
                     }
@@ -579,8 +638,18 @@
                         attackChart.update();
                     }
 
+                    // 5. Update Crime Score & Rank (NEW)
                     safeSetText('crime-index-score', data.stateCrimeIndexScore);
 
+                    // --- NEW: Update Rank & Ordinal ---
+                    const rankSpan = document.getElementById('state-rank');
+                    const ordinalSup = document.getElementById('state-rank-ordinal');
+
+                    if (rankSpan) rankSpan.textContent = data.stateRank;
+                    if (ordinalSup) ordinalSup.textContent = data.stateRankOrdinal;
+                    // ----------------------------------
+
+                    // 6. Update Crime Table
                     const crimeTableBody = document.getElementById('crime-table-body');
                     if (crimeTableBody) {
                         let crimeTableHtml = '';
@@ -589,8 +658,14 @@
                                 let statusColorClass = 'text-blue-400';
                                 if (item.status === 'Escalating') statusColorClass = 'text-red-500';
                                 else if (item.status === 'Improving') statusColorClass = 'text-green-500';
-                                crimeTableHtml +=
-                                    `<tr class="border-b border-gray-700"><td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td><td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td><td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td><td class="py-4 px-4 font-semibold ${statusColorClass} whitespace-nowrap">${item.status}</td></tr>`;
+
+                                crimeTableHtml += `
+                                    <tr class="border-b border-gray-700">
+                                        <td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td>
+                                        <td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td>
+                                        <td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td>
+                                        <td class="py-4 px-4 font-semibold ${statusColorClass} whitespace-nowrap">${item.status}</td>
+                                    </tr>`;
                             });
                         } else {
                             crimeTableHtml =
@@ -599,6 +674,7 @@
                         crimeTableBody.innerHTML = crimeTableHtml;
                     }
 
+                    // 7. Update Automated Insights
                     if (typeof renderInsights === "function") renderInsights(data.automatedInsights);
                 })
                 .catch(error => {

@@ -4,7 +4,7 @@
     <div class="container mx-auto max-w-7xl px-4 py-12" x-data="{ activeTab: 'overview' }">
 
         <div class="text-center mb-10">
-            <h2 class="text-2xl font-semibold text-white">Comprehensive Interactive Database</h2>
+            <h2 class="text-2xl font-semibold text-white">Risk Intelligence Database</h2>
             {{-- Display Date Range: 2018 - Present Year --}}
             <p class="text-xl text-gray-400 mt-2">{{ $startYear }} – {{ $currentYear }}</p>
         </div>
@@ -78,17 +78,9 @@
 
                 {{-- Card 2: High Risk States (Cumulative) --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-sm font-medium text-gray-300">Total Fatalities</h3>
+                    <h3 class="text-sm font-medium text-gray-300">Fatalities</h3>
                     <p class="text-5xl font-bold text-white my-3">{{ number_format($totalDeaths) }}</p>
-                    <span class="text-red-400 flex items-center text-sm">
-                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd"
-                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <span>Confirmed Deaths</span>
-                    </span>
+
                 </div>
 
                 {{-- Card 3: Prominent Risks (Cumulative) --}}
@@ -106,7 +98,7 @@
                     {{-- Stacked Layout (Flex Column) --}}
                     <div class="flex flex-col space-y-4">
                         @forelse ($activeRegions as $region)
-                            <div class=" pl-3">
+                            <div class="">
                                 <span class="font-medium text-white text-sm block mb-1">{{ $region['zone'] }}</span>
                                 <span
                                     class="text-gray-400 text-xs block uppercase tracking-wide">{{ $region['top_risk'] }}</span>
@@ -123,7 +115,7 @@
                 <div class="space-y-6">
                     {{-- Chart 1: Trend Line --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Security Incidents Trend
+                        <h3 class="text-lg font-semibold text-white mb-4">Fatalities Trend
                             ({{ $startYear }}–{{ $currentYear }})</h3>
                         <div class="relative" style="height: 300px;">
                             <canvas id="incidentChart"></canvas>
@@ -132,7 +124,7 @@
 
                     {{-- Chart 2: Regional Pie --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Incidents by Region (Cumulative)</h3>
+                        <h3 class="text-lg font-semibold text-white mb-4">Fatalities by Region</h3>
                         <div class="relative" style="height: 300px;">
                             <canvas id="regionPieChart"></canvas>
                         </div>
@@ -140,25 +132,23 @@
                 </div>
 
                 <div class="space-y-6">
-
-                    {{-- List: Top 5 States --}}
-                    <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-1">Active States</h3>
-                        {{-- <p class="text-xs text-gray-400 mb-4"> (% Change {{ $startYear }} vs
-                            {{ $currentYear }})</p> --}}
-
-                        <div class="relative" style="height: 300px;">
-                            <canvas id="stateChangeChart"></canvas>
-                        </div>
-                    </div>
-
                     {{-- Chart 3: Risk Indicators Bar --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Risk Indicators</h3>
+                        <h3 class="text-lg font-semibold text-white mb-4">Reoccuring Risk</h3>
                         <div class="relative" style="height: 300px;">
                             <canvas id="indicatorBarChart"></canvas>
                         </div>
                     </div>
+
+
+                    <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md mt-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">State Contribution to Recurring Risks</h3>
+                        <div class="relative" style="height: 350px;">
+                            <canvas id="contributionChart"></canvas>
+                        </div>
+                    </div>
+
+
                 </div>
 
             </div>
@@ -177,13 +167,13 @@
                     const ctxIncident = document.getElementById('incidentChart').getContext('2d');
                     const ctxRegionPie = document.getElementById('regionPieChart').getContext('2d');
                     const ctxIndicatorBar = document.getElementById('indicatorBarChart').getContext('2d');
-                    const ctxStateChange = document.getElementById('stateChangeChart').getContext('2d'); // New Context
+                    // const ctxStateChange = document.getElementById('stateChangeChart').getContext('2d');
+                    const ctxContribution = document.getElementById('contributionChart').getContext('2d');
 
-                    // Destroy existing charts
                     if (Chart.getChart(ctxIncident)) Chart.getChart(ctxIncident).destroy();
                     if (Chart.getChart(ctxRegionPie)) Chart.getChart(ctxRegionPie).destroy();
                     if (Chart.getChart(ctxIndicatorBar)) Chart.getChart(ctxIndicatorBar).destroy();
-                    if (Chart.getChart(ctxStateChange)) Chart.getChart(ctxStateChange).destroy();
+                    // if (Chart.getChart(ctxStateChange)) Chart.getChart(ctxStateChange).destroy();
 
                     // 1. Line Chart
                     incidentChartInstance = new Chart(ctxIncident, {
@@ -191,7 +181,7 @@
                         data: {
                             labels: @json($trendLabels),
                             datasets: [{
-                                label: 'Incidents',
+                                label: 'Fatalities',
                                 data: @json($trendData),
                                 borderColor: '#10b981',
                                 backgroundColor: '#10b981',
@@ -237,7 +227,7 @@
                         data: {
                             labels: @json($regionChartLabels),
                             datasets: [{
-                                label: 'Incidents by Region',
+                                label: 'Fatalities by Region',
                                 data: @json($regionChartData),
                                 backgroundColor: chartColors,
                                 hoverOffset: 4
@@ -259,69 +249,8 @@
                         }
                     });
 
-                    // 3. NEW Diverging Bar Chart (State Change)
-                    stateChangeChartInstance = new Chart(ctxStateChange, {
-                        type: 'bar',
-                        data: {
-                            labels: @json($stateChangeLabels),
-                            datasets: [{
-                                label: '% Change',
-                                data: @json($stateChangeData),
-                                // Dynamic coloring script
-                                backgroundColor: (context) => {
-                                    const value = context.raw;
-                                    // Red (#EF4444) for Escalation (+), Green (#10B981) for Improvement (-)
-                                    return value >= 0 ? '#EF4444' : '#10B981';
-                                },
-                                borderRadius: 4,
-                            }]
-                        },
-                        options: {
-                            indexAxis: 'y', // Horizontal Chart
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: {
-                                    ticks: {
-                                        color: 'white',
-                                        callback: function(value) {
-                                            return value + '%'
-                                        } // Add % symbol
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)',
-                                        zeroLineColor: 'white',
-                                        zeroLineWidth: 2
-                                    }
-                                },
-                                y: {
-                                    ticks: {
-                                        color: 'white',
-                                        font: {
-                                            weight: 'bold'
-                                        }
-                                    },
-                                    grid: {
-                                        display: false
-                                    }
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: false
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            return context.raw + '% Change';
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
 
-                    // 4. Bar Chart (Risk Indicators)
+                    // 3. Bar Chart (Risk Indicators)
                     indicatorBarChartInstance = new Chart(ctxIndicatorBar, {
                         type: 'bar',
                         data: {
@@ -360,6 +289,62 @@
                             plugins: {
                                 legend: {
                                     display: false
+                                }
+                            }
+                        }
+                    });
+
+                    new Chart(ctxContribution, {
+                        type: 'bar',
+                        data: {
+                            labels: @json($riskLabels), // The Risks (X-Axis)
+                            datasets: @json($contributionDatasets) // The States (Stacked segments)
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    stacked: true, // Enable Stacking
+                                    ticks: {
+                                        color: 'white'
+                                    },
+                                    grid: {
+                                        display: false
+                                    }
+                                },
+                                y: {
+                                    stacked: true, // Enable Stacking
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: 'white'
+                                    },
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        color: 'white',
+                                        boxWidth: 12
+                                    }
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            let value = context.raw;
+                                            let total = context.chart._metasets[context.datasetIndex].total;
+                                            // Note: calculating true total in stacked tooltip is complex in vanilla Chart.js,
+                                            // showing raw value is often clearer.
+                                            return label + ': ' + value + ' Incidents';
+                                        }
+                                    }
                                 }
                             }
                         }

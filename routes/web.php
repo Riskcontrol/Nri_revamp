@@ -30,7 +30,9 @@ Route::get('/risk-treemap-data', [SecurityIntelligenceController::class, 'getRis
 
 Route::get('/security-intelligence/analysis', [SecurityIntelligenceController::class, 'getRiskIndexAnalysis'])->name('security.analysis');
 
-Route::get('/risk-map-data', [ASecurityIntelligenceController::class, 'getMapData']);
+Route::get('/risk-map-data', [SecurityIntelligenceController::class, 'getMapData']);
+
+Route::get('/get-comparison-risk-counts', [LocationController::class, 'getComparisonRiskCounts']);
 
 
 

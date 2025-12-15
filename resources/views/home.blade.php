@@ -15,7 +15,7 @@
 
 
             <div
-                class="relative max-w-[1250px] mx-auto grid gap-8 md:gap-12 lg:gap-16 md:grid-cols-3 p-6 sm:p-8 lg:p-10 pb-20">
+                class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-20 grid gap-8 md:gap-12 lg:gap-16 md:grid-cols-3">
 
                 {{-- LEFT COLUMN: Text & Buttons --}}
                 <div class="space-y-6 md:col-span-2">
@@ -25,12 +25,12 @@
                     </h1>
 
                     <p class="text-[#fff] text-xl sm:text-2xl leading-relaxed mt-4">
-                        Transform complex data into actionable security and business intelligence for informed
+                        Transform complex data into actionable security <br> and business intelligence for informed
                         decision-making
                     </p>
 
-                    <p class="text-gray-300 text-lg sm:text-xl mt-6 font-semibold">
-                        Join 500+ security professionals accessing real-time Nigeria intelligence across various
+                    <p class="text-[#FDA557] text-lg sm:text-xl mt-6 font-semibold">
+                        Join 500+ security professionals accessing real-time <br>Nigeria intelligence across various
                         industries
                     </p>
 
@@ -49,47 +49,41 @@
 
                 </div>
 
-                {{-- RIGHT COLUMN: White Stats Cards --}}
-                <div class="grid gap-4 content-start">
+                {{-- RIGHT COLUMN: White Stats Cards (Compact Version) --}}
+                <div class="grid gap-3 content-start">
 
-                    {{-- 1. National Threat Level (Neutral Style) --}}
-                    <div class="bg-[#fff] rounded-xl shadow-[0_8px_30px_rgba(0,0,0,.18)] p-3 sm:p-4">
-                        <h3 class="text-black font-bold tracking-wide text-base sm:text-lg">National Threat Level</h3>
-
-                        <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600 mt-1">
+                    {{-- 1. National Threat Level --}}
+                    <div class="bg-white rounded-xl shadow-lg p-3">
+                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">National Threat Level</h3>
+                        <div class="text-xl sm:text-2xl font-bold text-red-600 mt-0.5">
                             {{ $currentThreatLevel }}
                         </div>
-
-                        {{-- Factors displayed simply below --}}
-                        <p class="text-xs text-gray-500 mt-2 leading-snug">
-                            <span class="font-bold text-black">Driven by:</span>
-                            {{ $trendingRiskFactors->take(3)->pluck('riskindicators')->implode(', ') }}
-                        </p>
                     </div>
 
                     {{-- 2. Total Incidents --}}
-                    <div class="bg-[#fff] rounded-xl shadow-[0_8px_30px_rgba(0,0,0,.18)] p-3 sm:p-4">
-                        <h3 class="text-black font-bold tracking-wide text-base sm:text-lg">Total Incidents 2024</h3>
-                        <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-black mt-1">
+                    <div class="bg-white rounded-xl shadow-lg p-3">
+                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">Total Incidents 2024</h3>
+                        <div class="text-xl sm:text-2xl font-bold text-black mt-0.5">
                             {{ number_format($totalIncidents) }}
                         </div>
                     </div>
 
                     {{-- 3. High Risk States --}}
-                    <div class="bg-[#fff] rounded-xl shadow-[0_8px_30px_rgba(0,0,0,.18)] p-3 sm:p-4">
-                        <h3 class="text-black font-bold tracking-wide text-base sm:text-lg">High Risk States</h3>
-                        <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-black mt-1">
+                    <div class="bg-white rounded-xl shadow-lg p-3">
+                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">High Risk States</h3>
+                        <div class="text-xl sm:text-2xl font-bold text-black mt-0.5">
                             {{ $highRiskStateCount }}
                         </div>
                     </div>
 
                     {{-- 4. Most Affected --}}
-                    <div class="bg-[#fff] rounded-xl shadow-[0_8px_30px_rgba(0,0,0,.18)] p-3 sm:p-4">
-                        <h3 class="text-black font-bold tracking-wide text-base sm:text-lg">Most Affected</h3>
-                        <div class="text-lg sm:text-xl lg:text-2xl font-bold text-black mt-1 truncate">
+                    <div class="bg-white rounded-xl shadow-lg p-3">
+                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">Most Affected</h3>
+                        <div class="text-lg sm:text-xl font-bold text-black mt-0.5 truncate">
                             {{ $top3HighRiskStates }}
                         </div>
                     </div>
+
                 </div>
             </div>
 

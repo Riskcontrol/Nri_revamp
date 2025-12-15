@@ -87,20 +87,18 @@ class RiskMapController extends Controller
     /**
      * Fetch and merge REAL risk data with GeoJSON for the map.
      */
-    public function getMapData(Request $request)
+  public function getMapData(Request $request)
     {
         // --- 1. Get Filters ---
         $selectedYear = (int)$request->input('year', now()->year);
         $selectedRiskType = $request->input('risk_type', 'All');
 
-        // --- 4. UPDATE FILTER LOGIC ---
-
-        // --- Base Query for Current Year ---
+        // --- 2. BUILD FILTER LOGIC (Keep your existing filter logic) ---
         $baseQueryCurrentYear = tbldataentry::where('yy', $selectedYear);
 
         if ($selectedRiskType === 'Crime') {
             $baseQueryCurrentYear->whereIn('riskindicators', $this->crimeIndexIndicators);
-        } elseif ($selectedRiskType === 'Property-Risk') { // <-- NEW LOGIC
+        } elseif ($selectedRiskType === 'Property-Risk') {
             $baseQueryCurrentYear->whereIn('riskindicators', $this->propertyThreatIndicators);
         } else {
             $riskIndicator = $this->riskMapping[$selectedRiskType] ?? null;
@@ -112,10 +110,10 @@ class RiskMapController extends Controller
         // --- Base Query for Previous Year ---
         $previousYear = $selectedYear - 1;
         $baseQueryPreviousYear = tbldataentry::where('yy', $previousYear);
-
+        // ... (Keep your existing previous year filter logic) ...
         if ($selectedRiskType === 'Crime') {
             $baseQueryPreviousYear->whereIn('riskindicators', $this->crimeIndexIndicators);
-        } elseif ($selectedRiskType === 'Property-Risk') { // <-- NEW LOGIC
+        } elseif ($selectedRiskType === 'Property-Risk') {
             $baseQueryPreviousYear->whereIn('riskindicators', $this->propertyThreatIndicators);
         } else {
             $riskIndicator = $this->riskMapping[$selectedRiskType] ?? null;
@@ -137,21 +135,44 @@ class RiskMapController extends Controller
             ->pluck('incident_count_prev_year', 'location')
             ->toArray();
 
-        // --- Get Most Affected LGA per State ---
-        $lgaQuery = (clone $baseQueryCurrentYear) // Uses the fully filtered query
-            ->select('location', 'lga', DB::raw('COUNT(*) as lga_incident_count'))
+        // ============================================================
+        // --- SMART LOGIC: Determine Metric for "Most Affected LGA" ---
+        // ============================================================
+
+        $metricRaw = "COUNT(*) as metric_count"; // Default to Frequency (Incidents)
+
+        // If the risk is highly lethal, use Fatalities. Otherwise, use Frequency.
+        if (in_array($selectedRiskType, ['All', 'Terrorism', 'Homicide'])) {
+            $metricRaw = "SUM(Casualties_count) as metric_count";
+        }
+        // Note: Kidnapping, Crime, and Property will default to COUNT(*)
+        // This ensures Property Risk map doesn't break due to 0 deaths.
+
+        $lgaQuery = (clone $baseQueryCurrentYear)
+            ->select('location', 'lga', DB::raw($metricRaw))
             ->whereNotNull('lga')
             ->where('lga', '!=', '');
 
         $lgaData = $lgaQuery->groupBy('location', 'lga')
                             ->orderBy('location')
-                            ->orderByDesc('lga_incident_count')
+                            ->orderByDesc('metric_count') // Sorts by the chosen metric (Deaths or Incidents)
                             ->get();
 
         $tempLGAs = [];
         foreach ($lgaData as $row) {
+            // Pick the first one (highest value) for each state
             if (!isset($tempLGAs[$row->location])) {
-                $tempLGAs[$row->location] = ['lga_name' => $row->lga, 'count' => $row->lga_incident_count];
+                // Formatting the label so the user knows WHY this LGA was picked
+                $label = $row->lga;
+
+                // Optional: Append the count to the name for clarity?
+                // e.g., "Chikun (50)"
+                // $label = $row->lga . " (" . number_format($row->metric_count) . ")";
+
+                $tempLGAs[$row->location] = [
+                    'lga_name' => $label,
+                    'count' => $row->metric_count
+                ];
             }
         }
 
@@ -159,12 +180,13 @@ class RiskMapController extends Controller
         foreach ($tempLGAs as $state => $data) {
             $mostAffectedLGAs[$state] = $data['lga_name'];
         }
+        // ============================================================
 
         // --- Calculate Risk using the ALGORITHM ---
         $stateRiskReports = $this->calculateStateRisk($stateDataCurrentYear);
 
         // --- Load GeoJSON file ---
-        $geoJsonPath = public_path('nigeria-state.geojson'); // Ensure this is correct
+        $geoJsonPath = public_path('nigeria-state.geojson');
         if (!File::exists($geoJsonPath)) {
             Log::error("GeoJSON file not found at: " . $geoJsonPath);
             return response()->json(['error' => 'GeoJSON file not found.'], 404);
@@ -173,7 +195,7 @@ class RiskMapController extends Controller
 
         // --- Loop and merge ALL data into GeoJSON ---
         foreach ($geoJson['features'] as &$feature) {
-            $stateName = $feature['properties']['name'] ?? 'Unknown'; // Ensure this key is correct
+            $stateName = $feature['properties']['name'] ?? 'Unknown';
 
             $riskData = $stateRiskReports[$stateName] ?? null;
 

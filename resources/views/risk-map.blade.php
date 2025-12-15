@@ -29,7 +29,7 @@
                     <label for="filter-risk" class="block text-sm font-medium text-gray-300 mb-2">Risk Index</label>
                     <select id="filter-risk" name="risk_type"
                         class="block w-full bg-gray-700 border-gray-600 text-white rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="All">Composite Risk Index</option>
+                        {{-- <option value="All">Composite Risk Index</option> --}}
                         <option value="Terrorism">Terrorism</option>
                         <option value="Kidnapping">Kidnapping</option>
                         <option value="Crime">Crime</option>

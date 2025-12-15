@@ -288,8 +288,13 @@ $crimeIndicators = $this->getCrimeIndexIndicators();
         $automatedInsights = array_values(array_filter($automatedInsights));
         // --- END INSIGHT GENERATION ---
 
+        $rankingData = $this->calculateRankAndScore($state, $year);
+        $stateCrimeIndexScore = $rankingData['score'];
+        $stateRank = $rankingData['rank'];
+        $stateRankOrdinal = $rankingData['ordinal'];
 
-    return view('locationIntelligence', compact('total_incidents', 'availableYears', 'year', 'state', 'mostFrequentRisk','chartLabels','incidentCounts','topRiskLabels','topRiskCounts', 'yearLabels','yearCounts', 'attackLabels','attackCounts', 'mostAffectedLGA','recentIncidents','getStates','stateCrimeIndexScore','crimeTable','automatedInsights'));
+
+    return view('locationIntelligence', compact('total_incidents', 'availableYears', 'year', 'state', 'mostFrequentRisk','chartLabels','incidentCounts','topRiskLabels','topRiskCounts', 'yearLabels','yearCounts', 'attackLabels','attackCounts', 'mostAffectedLGA','recentIncidents','getStates','stateCrimeIndexScore','crimeTable','automatedInsights','stateRank','stateRankOrdinal'));
 }
 
 
@@ -492,6 +497,8 @@ $attackCounts = $attackData->pluck('occurrences')->toArray();
         ];
         $automatedInsights = array_values(array_filter($automatedInsights));
 
+        $rankingData = $this->calculateRankAndScore($state, $year);
+
     return response()->json([
         'total_incidents' => $total_incidents,
         'mostFrequentRisk' => $mostFrequentRisk,
@@ -506,6 +513,8 @@ $attackCounts = $attackData->pluck('occurrences')->toArray();
         'attackLabels'    => $attackLabels,
         'attackCounts'    => $attackCounts,
         'stateCrimeIndexScore' => $stateCrimeIndexScore,
+        'stateRank' => $rankingData['rank'],
+        'stateRankOrdinal' => $rankingData['ordinal'],
         'crimeTable'           => $crimeTable,
         'automatedInsights' => $automatedInsights
     ]);
@@ -579,6 +588,135 @@ $attackCounts = $attackData->pluck('occurrences')->toArray();
             ->pluck('incident_count', 'lga');
 
         return response()->json($lgaCounts);
+    }
+
+    // Add this to LocationController.php
+
+    public function getComparisonRiskCounts(Request $request)
+    {
+        $state = $request->input('state');
+        $year = $request->input('year');
+        // We receive the labels displayed on the chart
+        $indicators = $request->input('indicators');
+
+        if (!$state || !$year || empty($indicators)) {
+            return response()->json(['counts' => []]);
+        }
+
+        // Fetch counts ONLY for the requested indicators
+        $data = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
+            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+            ->where('yy', $year)
+            ->whereIn('riskindicators', $indicators)
+            ->groupBy('riskindicators')
+            ->get()
+            ->pluck('occurrences', 'riskindicators'); // Key by name: ['Kidnapping' => 50, 'Robbery' => 10]
+
+        // Align the data to match the exact order of the input indicators
+        // If the state has 0 for a specific indicator, return 0 instead of null
+        $orderedCounts = [];
+        foreach ($indicators as $ind) {
+            $orderedCounts[] = $data[$ind] ?? 0;
+        }
+
+        return response()->json([
+            'counts' => $orderedCounts
+        ]);
+    }
+
+    // --- Helper Method to Calculate Score & Rank for ALL States ---
+    private function calculateRankAndScore($targetState, $year)
+    {
+        $crimeIndicators = $this->getCrimeIndexIndicators();
+
+        if ($crimeIndicators->isEmpty()) {
+            return ['score' => 0, 'rank' => 'N/A', 'ordinal' => '', 'total_states' => 0];
+        }
+
+        // 1. Get National Totals
+        $nat = tbldataentry::selectRaw('COUNT(*) as i, SUM(Casualties_count) as d, SUM(victim) as v')
+            ->where('yy', $year)
+            ->whereIn('riskindicators', $crimeIndicators)
+            ->first();
+
+        if (!$nat || $nat->i == 0) {
+            return ['score' => 0, 'rank' => 'N/A', 'ordinal' => '', 'total_states' => 0];
+        }
+
+        // 2. Get Totals for ALL States Grouped
+        $statesData = tbldataentry::selectRaw('LOWER(location) as loc, COUNT(*) as i, SUM(Casualties_count) as d, SUM(victim) as v')
+            ->where('yy', $year)
+            ->whereIn('riskindicators', $crimeIndicators)
+            ->groupBy(DB::raw('LOWER(location)'))
+            ->get()
+            ->keyBy('loc');
+
+        // 3. Get All Correction Factors
+        $factors = CorrectionFactorForStates::all()->mapWithKeys(function ($item) {
+            return [strtolower($item->state) => $item];
+        });
+
+        // 4. Calculate Score for EVERY State
+        // We use StateInsight to ensure we iterate all valid 36+1 states
+        $allStates = StateInsight::pluck('state')->map(fn($s) => strtolower($s))->unique();
+        $scores = [];
+
+        foreach ($allStates as $stateName) {
+            $data = $statesData->get($stateName);
+            $fact = $factors->get($stateName);
+
+            $i_count = $data->i ?? 0;
+            $v_count = $data->v ?? 0;
+            $d_count = $data->d ?? 0;
+
+            // Default factor to 1 if missing
+            $f_i = $fact->incident_correction ?? 1;
+            $f_v = $fact->victim_correction ?? 1;
+            $f_d = $fact->casualty_correction ?? 1;
+
+            // Avoid division by zero
+            $nat_v = $nat->v ?: 1;
+            $nat_d = $nat->d ?: 1;
+
+            $score = (($i_count / $nat->i) * 25 * $f_i) +
+                     (($v_count / $nat_v) * 35 * $f_v) +
+                     (($d_count / $nat_d) * 40 * $f_d);
+
+            $scores[$stateName] = round($score, 2);
+        }
+
+        // 5. Sort High to Low (Higher score = Rank 1)
+        arsort($scores);
+
+        // 6. Find Rank of Target
+        $rank = 1;
+        $targetScore = 0;
+        $targetLower = strtolower($targetState);
+
+        foreach ($scores as $s => $val) {
+            if ($s === $targetLower) {
+                $targetScore = $val;
+                break;
+            }
+            $rank++;
+        }
+
+        // Add ordinal suffix (st, nd, rd, th)
+        $ordinal = 'th';
+        if (!in_array(($rank % 100), [11, 12, 13])) {
+            switch ($rank % 10) {
+                case 1: $ordinal = 'st'; break;
+                case 2: $ordinal = 'nd'; break;
+                case 3: $ordinal = 'rd'; break;
+            }
+        }
+
+        return [
+            'score' => $targetScore,
+            'rank' => $rank,
+            'ordinal' => $ordinal,
+            'total_states' => count($scores)
+        ];
     }
 
 }

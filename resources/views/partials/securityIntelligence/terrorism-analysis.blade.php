@@ -16,9 +16,10 @@
                     <div class="relative mt-1">
                         <select id="index_type" name="index_type"
                             class="block w-full sm:w-60 appearance-none rounded-md border border-gray-600 bg-[#2b3a4a] py-3 pl-3 pr-10 text-base text-white shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
-                            <option selected>Terrorism Index</option>
+                            <option selected>Composite Risk Index</option>
+                            <option>Terrorism Index</option>
                             <option>Kidnapping Index</option>
-                            <option>Composite Risk Index</option>
+
                         </select>
                         <div
                             class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
@@ -62,7 +63,7 @@
     </form>
 
     {{-- UPDATED GRID: Changed to md:grid-cols-2 since we removed one card --}}
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {{-- Threat Level Card REMOVED --}}
 
@@ -70,6 +71,14 @@
             <h3 class="text-sm font-medium text-white uppercase tracking-wide">Tracked Incidents</h3>
             <div class="mt-4">
                 <p id="card-risk-index" class="text-4xl font-semibold text-white">...</p>
+            </div>
+        </div>
+
+        {{-- 2. NEW: Fatalities Card --}}
+        <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
+            <h3 class="text-sm font-medium text-white uppercase tracking-wide">Total Fatalities</h3>
+            <div class="mt-4">
+                <p id="card-fatalities" class="text-4xl font-semibold text-gray-100">...</p>
             </div>
         </div>
 
@@ -363,6 +372,8 @@
                     document.getElementById('card-risk-index').textContent = data.cardData
                         .totalTrackedIncidents;
                     document.getElementById('card-top-threats').textContent = data.cardData.topThreatGroups;
+                    document.getElementById('card-fatalities').textContent = new Intl.NumberFormat().format(
+                        data.cardData.totalFatalities);
 
                     // REMOVED: All Trend Logic (Arrows, previous year calculations, etc.)
                 })
@@ -377,6 +388,7 @@
                         `<tr><td colspan="7" class="py-10 px-4 text-center text-red-500">Failed to load table data.</td></tr>`;
                     document.getElementById('card-risk-index').textContent = 'N/A';
                     document.getElementById('card-top-threats').textContent = 'Error';
+                    document.getElementById('card-fatalities').textContent = 'N/A';
                 });
         }
 
