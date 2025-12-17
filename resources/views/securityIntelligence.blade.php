@@ -50,7 +50,7 @@
                     </a>
 
                     {{-- Button 2: Comprehensive Database --}}
-                    <a href="{{ route('analytics.view') }}"
+                    {{-- <a href="{{ route('analytics.view') }}"
                         class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-emerald-500 transition-all shadow-md shadow-emerald-900/20">
                         <svg class="w-4 h-4 mr-2 text-emerald-100" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -59,7 +59,7 @@
                             </path>
                         </svg>
                         Database Visualization
-                    </a>
+                    </a> --}}
 
                 </div>
 

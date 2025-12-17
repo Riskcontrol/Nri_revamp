@@ -1,4 +1,4 @@
-<div class="py-10 md:py-14 bg-[#0E1B2C]">
+<div class="py-10 md:py-14 bg-white">
     {{-- CHANGED: max-w-6xl -> max-w-7xl and added standard padding --}}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 

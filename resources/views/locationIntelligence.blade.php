@@ -191,7 +191,7 @@
 
 
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-6 mb-12 overflow-hidden">
-            <h4 class="text-lg font-semibold text-white mb-4">Crime Indicator Breakdown</h4>
+            <h4 class="text-lg font-semibold text-white mb-4">Crime Index</h4>
             <div class="overflow-x-auto">
                 <table class="min-w-full">
                     <thead>
@@ -695,19 +695,41 @@
         function renderInsights(insights) {
             const container = document.getElementById('insights-container');
             container.innerHTML = '';
+
             if (!insights || insights.length === 0) {
                 container.innerHTML =
                     '<div class="col-span-1 md:col-span-2 text-center text-gray-500 italic py-4">Insufficient data pattern to generate strategic insights for this period.</div>';
                 return;
             }
+
             insights.forEach(insight => {
                 let titleColor = 'text-gray-400';
-                if (insight.type === 'Velocity') titleColor = 'text-blue-400';
-                if (insight.type === 'Emerging Threat') titleColor = 'text-red-400';
-                if (insight.type === 'Lethality') titleColor = 'text-orange-400';
-                if (insight.type === 'Forecast') titleColor = 'text-green-400';
-                container.innerHTML +=
-                    `<div class="bg-[#1E2D3D] p-4 rounded shadow-md"><h4 class="text-xs font-bold ${titleColor} uppercase mb-1 tracking-wider">${insight.type}</h4><p class="text-white text-md">${insight.text}</p></div>`;
+                let friendlyTitle = insight.type; // Default to the raw type
+
+                // --- NEW: Map the titles in JavaScript just like you did in PHP ---
+                if (insight.type === 'Velocity') {
+                    titleColor = 'text-blue-400';
+                    friendlyTitle = 'Activity Pace';
+                } else if (insight.type === 'Emerging Threat') {
+                    titleColor = 'text-red-400';
+                    friendlyTitle = 'Rising Risk';
+                } else if (insight.type === 'Lethality') {
+                    titleColor = 'text-orange-400';
+                    friendlyTitle = 'Severity Level';
+                } else if (insight.type === 'Forecast') {
+                    titleColor = 'text-green-400';
+                    friendlyTitle = 'Future Outlook';
+                }
+
+                container.innerHTML += `
+            <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
+                <h4 class="text-xs font-bold ${titleColor} uppercase mb-1 tracking-wider">
+                    ${friendlyTitle}
+                </h4>
+                <p class="text-white text-md">
+                    ${insight.text}
+                </p>
+            </div>`;
             });
         }
 

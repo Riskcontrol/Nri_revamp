@@ -7,6 +7,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\SecurityIntelligenceController;
 use App\Http\Controllers\RiskMapController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\RiskMapAnalyticsController;
 
 
 
@@ -61,3 +62,7 @@ Route::prefix('analytics')->group(function () {
     Route::get('/data', [AnalyticsController::class, 'getFilteredStats'])->name('analytics.data');
 
 });
+
+
+Route::get('/risk-map-analytics', [RiskMapAnalyticsController::class, 'index'])->name('risk-map.analytics');
+Route::get('/risk-map-analytics/data', [RiskMapAnalyticsController::class, 'getData']);

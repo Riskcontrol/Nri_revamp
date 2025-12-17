@@ -3,22 +3,22 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Header --}}
+        {{-- Preserving your original wrapper classes --}}
         <div class="pb-8 w-full lg:w-1/2 lg:pr-12">
-
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-primary mb-3">
+            <h6 class="text-xs sm:text-sm font-bold tracking-widest text-card uppercase mb-3">
                 Location Intelligence
+            </h6>
+
+            <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-primary mb-4">
+                The Power of 8 years+ proprietary security data
             </h1>
 
-            <h2 class="text-lg sm:text-xl font-medium text-gray-900 mb-3">
-                The Power of 8 years+ proprietary security data
-            </h2>
-
-            {{-- Text fills full width on tablet, aligned left on desktop --}}
-            <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
+            <p class="text-base text-gray-600 leading-relaxed">
                 Get real-time location intelligence across 36 states backed by security analysts who continuously
                 verify local data, mapped against 8 years of historical trends to give a solid basis for proactive
                 decision making.
             </p>
+
         </div>
         {{-- Content Wrapper: Map + Lists --}}
         <div class="w-full md:flex gap-8 lg:gap-12">
