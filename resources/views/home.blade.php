@@ -54,7 +54,7 @@
 
                     {{-- 1. National Threat Level --}}
                     <div class="bg-white rounded-xl shadow-lg p-3">
-                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">National Threat Level</h3>
+                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">National Threat Outlook</h3>
                         <div class="text-xl sm:text-2xl font-bold text-black lowercase mt-0.5">
                             {{ $currentThreatLevel }}
                         </div>

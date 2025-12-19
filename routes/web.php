@@ -13,18 +13,15 @@ use App\Http\Controllers\RiskMapAnalyticsController;
 
 Route::get('/', [HomeNewController::class, 'getStateRiskReports'])
     ->name('home');
-// Route::post('/searched-location-intelligence/{state?}', [LocationIntelligenceController::class, 'index'])->name('locationIntelligence');
 Route::get('/location-intelligence/{state}', [LocationController::class, 'getTotalIncident'])->name('locationIntelligence');
 Route::get('/get-state-data/{state}/{year}', [LocationController::class, 'getStateData']);
 Route::get('/get-total-incidents-only/{state}/{year}', [LocationController::class, 'getTotalIncidentsOnly']);
-// Route to get high-impact incident coordinates for the map
 Route::get('/get-incident-locations/{state}/{year}', [LocationController::class, 'getIncidentLocations']);
 
 Route::get('/security-intelligence', [SecurityIntelligenceController::class, 'getOverview'])
     ->name('securityIntelligence');
 Route::get('/get-top-5-risks/{state}/{year}', [LocationController::class, 'getTop5Risks']);
 
-// Add this with your other location routes
 Route::get('/get-lga-incident-counts/{state}/{year}', [LocationController::class, 'getLgaIncidentCounts']);
 
 Route::get('/risk-treemap-data', [SecurityIntelligenceController::class, 'getRiskData']);
@@ -66,3 +63,8 @@ Route::prefix('analytics')->group(function () {
 
 Route::get('/risk-map-analytics', [RiskMapAnalyticsController::class, 'index'])->name('risk-map.analytics');
 Route::get('/risk-map-analytics/data', [RiskMapAnalyticsController::class, 'getData']);
+Route::get('/news-insight', function () {
+    return view('news-insight');
+})->name('news-insight');
+
+Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])->name('api.calc-risk');

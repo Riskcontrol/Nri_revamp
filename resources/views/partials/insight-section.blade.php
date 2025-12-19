@@ -15,7 +15,8 @@
         <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6">
 
             <article
-                class="flex flex-col justify-between p-6 rounded-2xl bg-card shadow-lg hover:shadow-xl hover:bg-[#253646] transition-all duration-300 min-h-[280px] border border-white/5 group">
+                class="relative flex flex-col justify-between p-6 rounded-2xl bg-card shadow-lg hover:shadow-xl hover:bg-[#253646] transition-all duration-300 min-h-[280px] border border-white/5 group">
+
                 <div>
                     <span class="text-xs font-bold text-white uppercase tracking-wider mb-3 block">Insights</span>
                     <h3
@@ -27,9 +28,12 @@
                         affected regions.
                     </p>
                 </div>
+
                 <div class="mt-6">
-                    <a href="#"
-                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white hover:bg-[#1976D2] hover:scale-110 transition-all shadow-md">
+                    {{-- The 'after:absolute' classes make this link cover the whole <article> --}}
+                    <a href="{{ url('/news-insight') }}"
+                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white group-hover:bg-[#1976D2] group-hover:scale-110 transition-all shadow-md after:absolute after:inset-0 after:content-['']">
+
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -52,8 +56,9 @@
                     </p>
                 </div>
                 <div class="mt-6">
-                    <a href="#"
-                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white hover:bg-[#1976D2] hover:scale-110 transition-all shadow-md">
+                    <a href="{{ url('/news-insight') }}"
+                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white group-hover:bg-[#1976D2] group-hover:scale-110 transition-all shadow-md after:absolute after:inset-0 after:content-['']">
+
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -76,8 +81,9 @@
                     </p>
                 </div>
                 <div class="mt-6">
-                    <a href="#"
-                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white hover:bg-[#1976D2] hover:scale-110 transition-all shadow-md">
+                    <a href="{{ url('/news-insight') }}"
+                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white group-hover:bg-[#1976D2] group-hover:scale-110 transition-all shadow-md after:absolute after:inset-0 after:content-['']">
+
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -100,8 +106,9 @@
                     </p>
                 </div>
                 <div class="mt-6">
-                    <a href="#"
-                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white hover:bg-[#1976D2] hover:scale-110 transition-all shadow-md">
+                    <a href="{{ url('/news-insight') }}"
+                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white group-hover:bg-[#1976D2] group-hover:scale-110 transition-all shadow-md after:absolute after:inset-0 after:content-['']">
+
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />

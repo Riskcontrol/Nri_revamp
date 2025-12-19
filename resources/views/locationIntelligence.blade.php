@@ -1,6 +1,9 @@
 <x-layout title="Location Intelligence"
     description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk analysis in Nigeria.">
 
+    {{-- 1. Load ApexCharts CDN --}}
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <h1 class="text-center text-2xl md:text-3xl font-bold text-white mb-8">
             Location Intelligence for <span id="state-name">{{ $state }}</span> in <span
@@ -37,65 +40,68 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
             {{-- 1. Total Incidents Card --}}
-            <div id="total-incidents" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5">
+            <div id="total-incidents"
+                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 flex flex-col justify-center">
                 <h3 id="total-incidents-title"
-                    class="text-base md:text-lg font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+                    class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
                     Tracked Incidents ({{ $year }})
                 </h3>
-                <p class="text-2xl md:text-3xl font-bold text-white mt-1">{{ $total_incidents }}</p>
+                <p class="text-3xl md:text-4xl font-semibold text-white tracking-tight">
+                    {{ $total_incidents }}
+                </p>
             </div>
 
             {{-- 2. Most Prevalent Risk Card --}}
             <div id="most-frequent-risk"
-                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5">
-                <h3 class="text-base md:text-lg font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 flex flex-col justify-center">
+                <h3 class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
                     Most Prevalent Risk
                 </h3>
-                <div id="most-frequent-risk-content" class="text-lg md:text-xl font-bold text-white mt-1">
+                <div id="most-frequent-risk-content"
+                    class="text-base md:text-lg font-semibold text-white leading-tight">
                     <p>{{ $mostFrequentRisk->pluck('riskindicators')->implode(', ') ?: 'No data available' }}</p>
                 </div>
             </div>
 
             {{-- 3. Most Affected LGA Card --}}
-            <div id="most-affected-lga" class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5">
-                <h3 class="text-base md:text-lg font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+            <div id="most-affected-lga"
+                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 flex flex-col justify-center">
+                <h3 class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
                     Most Affected LGA
                 </h3>
-                <p class="text-lg md:text-xl font-bold text-white mt-1">
+                <p class="text-base md:text-lg font-semibold text-white tracking-wide">
                     @if ($mostAffectedLGA)
                         {{ $mostAffectedLGA->lga }}
                     @else
-                        No data available
+                        <span class="text-gray-500 font-normal italic">No data available</span>
                     @endif
                 </p>
             </div>
 
-            {{-- 4. Crime Index Score Card (Moved & Styled) --}}
-            <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 relative group">
-                <h3 class="text-base md:text-lg font-semibold text-gray-300 mb-2 uppercase tracking-wide">
+            {{-- 4. Crime Index Score Card --}}
+            <div
+                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 relative group flex flex-col justify-center">
+                <h3 class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
                     Crime Index Score
                 </h3>
 
                 <div class="flex flex-col items-center justify-center">
-                    {{-- Score --}}
-                    <p id="crime-index-score" class="text-2xl md:text-3xl font-bold text-white mt-1">
+                    <p id="crime-index-score" class="text-3xl md:text-4xl font-semibold text-white tracking-tight">
                         {{ $stateCrimeIndexScore }}
                     </p>
 
-                    {{-- Rank Badge --}}
                     <div class="mt-2">
                         <span id="rank-container"
-                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-tighter">
                             Ranked <span id="state-rank" class="ml-1">{{ $stateRank }}</span><sup
-                                id="state-rank-ordinal">{{ $stateRankOrdinal }}</sup>
+                                id="state-rank-ordinal" class="lowercase">{{ $stateRankOrdinal }}</sup>
                         </span>
                     </div>
                 </div>
 
-                {{-- Tooltip for context --}}
                 <div
-                    class="absolute inset-x-0 bottom-2 text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Weighted contribution to national crime
+                    class="absolute inset-x-0 bottom-2 text-[9px] text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 uppercase font-medium">
+                    Weighted Contribution
                 </div>
             </div>
 
@@ -113,24 +119,23 @@
                             switch ($insight['type']) {
                                 case 'Velocity':
                                     $titleColor = 'text-blue-400';
-                                    $friendlyTitle = 'Activity Pace'; // Relatable for "Velocity"
+                                    $friendlyTitle = 'Activity Pace';
                                     break;
                                 case 'Emerging Threat':
                                     $titleColor = 'text-red-400';
-                                    $friendlyTitle = 'Rising Risk'; // Relatable for "Emerging Threat"
+                                    $friendlyTitle = 'Rising Risk';
                                     break;
                                 case 'Lethality':
                                     $titleColor = 'text-orange-400';
-                                    $friendlyTitle = 'Severity Level'; // Relatable for "Lethality"
+                                    $friendlyTitle = 'Severity Level';
                                     break;
                                 case 'Forecast':
                                     $titleColor = 'text-green-400';
-                                    $friendlyTitle = 'Future Outlook'; // Relatable for "Forecast"
+                                    $friendlyTitle = 'Future Outlook';
                                     break;
                             }
                         @endphp
 
-                        {{-- Display the mapped "Friendly" Title --}}
                         <h4 class="text-xs font-bold {{ $titleColor }} uppercase mb-1 tracking-wider">
                             {{ $friendlyTitle }}
                         </h4>
@@ -148,12 +153,12 @@
         </div>
 
         <div class="flex flex-col lg:flex-row gap-6 mb-8">
+            {{-- Chart 1: Incidents Over 12 Months (APEXCHARTS) --}}
             <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
                 <h3 class="text-center text-lg md:text-xl font-semibold text-white mb-4">Incidents Over the Past 12
                     Months</h3>
-                <div class="relative h-64 md:h-80">
-                    <canvas id="myChart"></canvas>
-                </div>
+                {{-- ApexChart Container --}}
+                <div id="incidentsTrendChart" style="min-height: 320px;"></div>
             </div>
 
             <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
@@ -240,95 +245,105 @@
 
     <script>
         // 1. Global Variables
-        let myChart, myChart2, attackChart;
+        let incidentsTrendChart; // ApexChart Instance
+        let myChart2, attackChart; // Chart.js Instances
         let map, geojsonLayer, info;
         let lgaGeoJsonData;
         let lgaIncidentData = {};
-
-        const formatDate = (dateString) => {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString;
-            const options = {
-                year: 'numeric',
-                month: 'short',
-                day: '2-digit'
-            };
-            return date.toLocaleDateString('en-US', options).replace(/,/, '');
-        };
 
         // 2. Initialize Charts
         async function initializeCharts() {
             try {
                 const response = await fetch('/nigeria-lga.json');
                 lgaGeoJsonData = await response.json();
-                console.log("GeoJSON loaded successfully.");
             } catch (e) {
                 console.error("CRITICAL: Could not load nigeria-lga.json.", e);
                 document.getElementById('map-title').textContent = "Map failed to load.";
                 return;
             }
 
-            // --- Get Default State Name from DOM ---
             const defaultState = document.getElementById('state-name').textContent || 'Primary State';
             const defaultYear = document.getElementById('current-year').textContent;
 
-            // Chart 1: Incidents Over Past Months
-            const ctx1 = document.getElementById('myChart').getContext('2d');
-            myChart = new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: @json($chartLabels),
-                    datasets: [{
-                        label: 'Incidents occurred in a month',
-                        data: @json($incidentCounts),
-                        fill: true,
-                        tension: 0.3,
-                        borderWidth: 2,
-                        pointRadius: 4,
-                        borderColor: '#10b981',
-                        backgroundColor: '#10b981',
-                    }]
+            // --- Chart 1: Incidents Over Past 12 Months (ApexCharts) ---
+            const trendOptions = {
+                series: [{
+                    name: 'Incidents',
+                    data: @json($incidentCounts)
+                }],
+                chart: {
+                    type: 'area',
+                    height: 320,
+                    toolbar: {
+                        show: false
+                    },
+                    background: 'transparent',
+                    fontFamily: 'inherit'
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                color: 'white'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                color: 'white'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
+                colors: ['#10B981'], // Emerald 500
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.7,
+                        opacityTo: 0.1,
+                        stops: [0, 90, 100]
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    curve: 'smooth',
+                    width: 2
+                },
+                xaxis: {
+                    categories: @json($chartLabels),
+                    labels: {
+                        style: {
+                            colors: '#9CA3AF' // Gray-400
                         }
                     },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'white'
-                            }
+                    axisBorder: {
+                        show: false
+                    },
+                    axisTicks: {
+                        show: false
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: '#9CA3AF' // Gray-400
                         }
                     }
+                },
+                grid: {
+                    borderColor: '#374151', // Gray-700
+                    strokeDashArray: 4,
+                },
+                theme: {
+                    mode: 'dark'
+                },
+                tooltip: {
+                    theme: 'dark'
                 }
-            });
+            };
 
-            // Chart 2: Prevalent Risk Indicators
+            incidentsTrendChart = new ApexCharts(document.querySelector("#incidentsTrendChart"), trendOptions);
+            incidentsTrendChart.render();
+
+            // --- Chart 2: Prevalent Risk (Chart.js) ---
             const ctx2 = document.getElementById('myChart2').getContext('2d');
             myChart2 = new Chart(ctx2, {
                 type: 'bar',
                 data: {
                     labels: @json($topRiskLabels),
                     datasets: [{
-                        label: defaultState, // Uses State Name instead of "Top 5 Risk..."
+                        label: defaultState,
                         data: @json($topRiskCounts),
                         backgroundColor: [
                             'rgba(27, 158, 133, 0.7)', 'rgba(54, 162, 235, 0.7)',
@@ -339,7 +354,6 @@
                     }]
                 },
                 options: {
-                    // indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -371,7 +385,7 @@
                 }
             });
 
-            // Chart 3: Incidents by Actors
+            // --- Chart 3: Incidents by Actors (Chart.js) ---
             const attackCtx = document.getElementById('attackChart').getContext('2d');
             attackChart = new Chart(attackCtx, {
                 type: 'pie',
@@ -427,20 +441,6 @@
             };
             info.addTo(map);
 
-            const legend = L.control({
-                position: 'bottomright'
-            });
-            legend.onAdd = function(map) {
-                const div = L.DomUtil.create('div', 'info legend');
-                const grades = [0, 10, 20, 50, 100, 200, 500];
-                for (let i = 0; i < grades.length; i++) {
-                    div.innerHTML += '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' + grades[i] + (
-                        grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
-                }
-                return div;
-            };
-            legend.addTo(map);
-
             updateMap(defaultState, defaultYear);
         }
 
@@ -449,7 +449,6 @@
             const compareState = document.getElementById('prevalent-compare-select').value;
             const year = document.getElementById('year-select').value;
 
-            // If user unselects, remove the comparison dataset
             if (!compareState) {
                 if (myChart2.data.datasets.length > 1) {
                     myChart2.data.datasets.pop();
@@ -458,25 +457,18 @@
                 return;
             }
 
-            // 1. Get the labels currently shown on the chart (The Primary State's Top 5)
             const primaryLabels = myChart2.data.labels;
-
-            // 2. Prepare Query Parameters
             const params = new URLSearchParams();
             params.append('state', compareState);
             params.append('year', year);
-
-            // Append each label as an array item: indicators[]
             primaryLabels.forEach(label => params.append('indicators[]', label));
 
-            // 3. Fetch data specifically for these labels
             fetch(`/get-comparison-risk-counts?${params.toString()}`)
                 .then(response => response.json())
                 .then(data => {
-
                     const comparisonDataset = {
                         label: compareState,
-                        data: data.counts, // The backend now returns the counts in the exact order of the labels
+                        data: data.counts,
                         backgroundColor: '#3b82f6',
                         borderColor: '#3b82f6',
                         borderWidth: 1
@@ -487,7 +479,6 @@
                     } else {
                         myChart2.data.datasets.push(comparisonDataset);
                     }
-
                     myChart2.update();
                 })
                 .catch(error => console.error('Error fetching prevalent risk comparison:', error));
@@ -508,7 +499,6 @@
             );
 
             if (stateFeatures.length === 0) {
-                console.warn(`No GeoJSON features found for state: ${state}`);
                 geojsonLayer.clearLayers();
                 map.setView([9.0820, 8.6753], 6);
                 return;
@@ -570,7 +560,6 @@
             if (!primaryState || !selectedYear) return;
             if (typeof updateMap === "function") updateMap(primaryState, selectedYear);
 
-            // Reset comparison on filter change
             const prevalentDropdown = document.getElementById('prevalent-compare-select');
             if (prevalentDropdown) {
                 prevalentDropdown.value = "";
@@ -589,6 +578,7 @@
                 if (el) el.innerHTML = html;
             };
 
+            // Reset UI placeholders
             safeSetText('total-incidents', '...');
             safeSetHTML('most-frequent-risk-content', '<p>Loading...</p>');
             safeSetText('most-affected-lga', '...');
@@ -619,10 +609,18 @@
                     safeSetText('most-affected-lga', data.mostAffectedLGA ? data.mostAffectedLGA.lga : 'None');
 
                     // 4. Update Charts
-                    if (typeof myChart !== 'undefined') {
-                        myChart.data.labels = data.chartLabels;
-                        myChart.data.datasets[0].data = data.incidentCounts;
-                        myChart.update();
+
+                    // --- UPDATE APEX CHART (Trend) ---
+                    if (incidentsTrendChart) {
+                        incidentsTrendChart.updateOptions({
+                            xaxis: {
+                                categories: data.chartLabels
+                            }
+                        });
+                        incidentsTrendChart.updateSeries([{
+                            name: 'Incidents',
+                            data: data.incidentCounts
+                        }]);
                     }
 
                     if (typeof myChart2 !== 'undefined') {
@@ -638,16 +636,12 @@
                         attackChart.update();
                     }
 
-                    // 5. Update Crime Score & Rank (NEW)
+                    // 5. Update Crime Score & Rank
                     safeSetText('crime-index-score', data.stateCrimeIndexScore);
-
-                    // --- NEW: Update Rank & Ordinal ---
                     const rankSpan = document.getElementById('state-rank');
                     const ordinalSup = document.getElementById('state-rank-ordinal');
-
                     if (rankSpan) rankSpan.textContent = data.stateRank;
                     if (ordinalSup) ordinalSup.textContent = data.stateRankOrdinal;
-                    // ----------------------------------
 
                     // 6. Update Crime Table
                     const crimeTableBody = document.getElementById('crime-table-body');
@@ -704,9 +698,8 @@
 
             insights.forEach(insight => {
                 let titleColor = 'text-gray-400';
-                let friendlyTitle = insight.type; // Default to the raw type
+                let friendlyTitle = insight.type; // Default
 
-                // --- NEW: Map the titles in JavaScript just like you did in PHP ---
                 if (insight.type === 'Velocity') {
                     titleColor = 'text-blue-400';
                     friendlyTitle = 'Activity Pace';

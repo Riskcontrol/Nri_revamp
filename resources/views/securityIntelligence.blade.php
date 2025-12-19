@@ -1,6 +1,9 @@
 <x-layout title="Security Intelligence"
     description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk analysis in Nigeria. Access up-to-date insights on terrorism, crime rates, and safety across Nigeria’s regions. Leverage our expert intelligence for businesses, expatriates, and travelers to make informed decisions and enhance safety.">
 
+    {{-- Add ApexCharts CDN --}}
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     <div class="container mx-auto max-w-7xl px-4 py-12" x-data="{ activeTab: 'overview' }">
 
         <div class="text-center mb-10">
@@ -36,7 +39,6 @@
 
                 {{-- RIGHT: ACTION BUTTONS --}}
                 <div class="flex items-center space-x-4 mt-4 md:mt-0 mb-3 md:mb-2">
-
                     {{-- Button 1: Location Intelligence / Risk Map --}}
                     <a href="{{ route('risk-map.show') }}"
                         class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-500 transition-all shadow-sm">
@@ -48,19 +50,6 @@
                         </svg>
                         Risk Map
                     </a>
-
-                    {{-- Button 2: Comprehensive Database --}}
-                    {{-- <a href="{{ route('analytics.view') }}"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-emerald-500 transition-all shadow-md shadow-emerald-900/20">
-                        <svg class="w-4 h-4 mr-2 text-emerald-100" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4">
-                            </path>
-                        </svg>
-                        Database Visualization
-                    </a> --}}
-
                 </div>
 
             </div>
@@ -70,38 +59,36 @@
         <div x-show="activeTab === 'overview'" class="pt-10">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 
-                {{-- Card 1: Total Incidents (Cumulative) --}}
+                {{-- Card 1: Total Incidents --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-sm font-medium text-gray-300">Tracked Security Incidents</h3>
-                    <p class="text-5xl font-bold text-white my-3">{{ number_format($totalIncidents) }}</p>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Tracked Security
+                        Incidents</h3>
+                    <p class="text-5xl font-bold text-white tracking-tight">{{ number_format($totalIncidents) }}</p>
                 </div>
 
-                {{-- Card 2: High Risk States (Cumulative) --}}
+                {{-- Card 2: Fatalities --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-sm font-medium text-gray-300">Fatalities</h3>
-                    <p class="text-5xl font-bold text-white my-3">{{ number_format($totalDeaths) }}</p>
-
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Fatalities</h3>
+                    <p class="text-5xl font-bold text-white tracking-tight">{{ number_format($totalDeaths) }}</p>
                 </div>
 
-                {{-- Card 3: Prominent Risks (Cumulative) --}}
+                {{-- Card 3: Recurring Risk --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-base font-semibold text-white mb-4">Reoccuring Risk</h3>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Recurring Risk</h3>
                     <div class="space-y-2">
-                        <p class="text-sm text-gray-200 leading-relaxed">{{ $prominentRisks }}</p>
+                        <p class="text-base font-medium text-white leading-relaxed">{{ $prominentRisks }}</p>
                     </div>
                 </div>
 
-                {{-- Card 4: Risk Regions (Cumulative) --}}
+                {{-- Card 4: Hot Zones --}}
                 <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-base font-semibold text-white mb-4">Hot Zones</h3>
-
-                    {{-- Stacked Layout (Flex Column) --}}
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Hot Zones</h3>
                     <div class="flex flex-col space-y-4">
                         @forelse ($activeRegions as $region)
-                            <div class="">
-                                <span class="font-medium text-white text-sm block mb-1">{{ $region['zone'] }}</span>
+                            <div>
+                                <span class="text-sm font-semibold text-white block">{{ $region['zone'] }}</span>
                                 <span
-                                    class="text-gray-400 text-xs block uppercase tracking-wide">{{ $region['top_risk'] }}</span>
+                                    class="text-[10px] font-medium text-gray-500 uppercase tracking-wide block">{{ $region['top_risk'] }}</span>
                             </div>
                         @empty
                             <p class="text-sm text-gray-400">No regional data available.</p>
@@ -113,16 +100,15 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
 
                 <div class="space-y-6">
-                    {{-- Chart 1: Trend Line --}}
+                    {{-- Chart 1: Trend Line (APEX CHART) --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
                         <h3 class="text-lg font-semibold text-white mb-4">Fatalities Trend
                             ({{ $startYear }}–{{ $currentYear }})</h3>
-                        <div class="relative" style="height: 300px;">
-                            <canvas id="incidentChart"></canvas>
-                        </div>
+                        {{-- Replaced Canvas with Div for ApexCharts --}}
+                        <div id="incidentTrendChart" style="height: 300px;"></div>
                     </div>
 
-                    {{-- Chart 2: Regional Pie --}}
+                    {{-- Chart 2: Regional Pie (Chart.js) --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
                         <h3 class="text-lg font-semibold text-white mb-4">Fatalities by Region</h3>
                         <div class="relative" style="height: 300px;">
@@ -132,7 +118,7 @@
                 </div>
 
                 <div class="space-y-6">
-                    {{-- Chart 3: Risk Indicators Bar --}}
+                    {{-- Chart 3: Risk Indicators Bar (Chart.js) --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
                         <h3 class="text-lg font-semibold text-white mb-4">Reoccuring Risk</h3>
                         <div class="relative" style="height: 300px;">
@@ -140,86 +126,95 @@
                         </div>
                     </div>
 
-
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md mt-6">
                         <h3 class="text-lg font-semibold text-white mb-4">State Contribution to Recurring Risks</h3>
                         <div class="relative" style="height: 350px;">
                             <canvas id="contributionChart"></canvas>
                         </div>
                     </div>
-
-
                 </div>
 
             </div>
 
             <script>
-                let incidentChartInstance = null;
-                let regionPieChartInstance = null;
-                let indicatorBarChartInstance = null;
-                let stateChangeChartInstance = null; // New Instance
-
-                const chartColors = [
-                    '#DC2626', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#6B7280'
-                ];
-
+                // --- APEX CHART FOR TREND ---
                 document.addEventListener('DOMContentLoaded', () => {
-                    const ctxIncident = document.getElementById('incidentChart').getContext('2d');
-                    const ctxRegionPie = document.getElementById('regionPieChart').getContext('2d');
-                    const ctxIndicatorBar = document.getElementById('indicatorBarChart').getContext('2d');
-                    // const ctxStateChange = document.getElementById('stateChangeChart').getContext('2d');
-                    const ctxContribution = document.getElementById('contributionChart').getContext('2d');
-
-                    if (Chart.getChart(ctxIncident)) Chart.getChart(ctxIncident).destroy();
-                    if (Chart.getChart(ctxRegionPie)) Chart.getChart(ctxRegionPie).destroy();
-                    if (Chart.getChart(ctxIndicatorBar)) Chart.getChart(ctxIndicatorBar).destroy();
-                    // if (Chart.getChart(ctxStateChange)) Chart.getChart(ctxStateChange).destroy();
-
-                    // 1. Line Chart
-                    incidentChartInstance = new Chart(ctxIncident, {
-                        type: 'line',
-                        data: {
-                            labels: @json($trendLabels),
-                            datasets: [{
-                                label: 'Fatalities',
-                                data: @json($trendData),
-                                borderColor: '#10b981',
-                                backgroundColor: '#10b981',
-                                fill: true,
-                                tension: 0.1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                        color: 'white'
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
-                                    }
-                                },
-                                x: {
-                                    ticks: {
-                                        color: 'white'
-                                    },
-                                    grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
-                                    }
-                                }
+                    const trendOptions = {
+                        series: [{
+                            name: 'Fatalities',
+                            data: @json($trendData)
+                        }],
+                        chart: {
+                            type: 'area',
+                            height: 300,
+                            toolbar: {
+                                show: false
                             },
-                            plugins: {
-                                legend: {
-                                    labels: {
-                                        color: 'white'
-                                    }
+                            background: 'transparent'
+                        },
+                        colors: ['#10B981'], // Emerald-500
+                        fill: {
+                            type: 'gradient',
+                            gradient: {
+                                shadeIntensity: 1,
+                                opacityFrom: 0.7,
+                                opacityTo: 0.1,
+                                stops: [0, 90, 100]
+                            }
+                        },
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            curve: 'smooth',
+                            width: 2
+                        },
+                        xaxis: {
+                            categories: @json($trendLabels),
+                            labels: {
+                                style: {
+                                    colors: '#9CA3AF'
+                                }
+                            }, // Gray-400
+                            axisBorder: {
+                                show: false
+                            },
+                            axisTicks: {
+                                show: false
+                            }
+                        },
+                        yaxis: {
+                            labels: {
+                                style: {
+                                    colors: '#9CA3AF'
                                 }
                             }
+                        },
+                        grid: {
+                            borderColor: '#374151', // Gray-700
+                            strokeDashArray: 4,
+                        },
+                        theme: {
+                            mode: 'dark'
                         }
-                    });
+                    };
+
+                    const trendChart = new ApexCharts(document.querySelector("#incidentTrendChart"), trendOptions);
+                    trendChart.render();
+                });
+
+                // --- CHART.JS FOR OTHERS ---
+                let regionPieChartInstance = null;
+                let indicatorBarChartInstance = null;
+                const chartColors = ['#DC2626', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#6B7280'];
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    const ctxRegionPie = document.getElementById('regionPieChart').getContext('2d');
+                    const ctxIndicatorBar = document.getElementById('indicatorBarChart').getContext('2d');
+                    const ctxContribution = document.getElementById('contributionChart').getContext('2d');
+
+                    if (Chart.getChart(ctxRegionPie)) Chart.getChart(ctxRegionPie).destroy();
+                    if (Chart.getChart(ctxIndicatorBar)) Chart.getChart(ctxIndicatorBar).destroy();
 
                     // 2. Pie Chart
                     regionPieChartInstance = new Chart(ctxRegionPie, {
@@ -230,7 +225,9 @@
                                 label: 'Fatalities by Region',
                                 data: @json($regionChartData),
                                 backgroundColor: chartColors,
-                                hoverOffset: 4
+                                hoverOffset: 4,
+                                borderColor: '#1E2D3D',
+                                borderWidth: 2
                             }]
                         },
                         options: {
@@ -249,7 +246,6 @@
                         }
                     });
 
-
                     // 3. Bar Chart (Risk Indicators)
                     indicatorBarChartInstance = new Chart(ctxIndicatorBar, {
                         type: 'bar',
@@ -260,7 +256,8 @@
                                 data: @json($riskIndicatorData),
                                 backgroundColor: '#10b981',
                                 borderColor: '#10b981',
-                                borderWidth: 1
+                                borderWidth: 1,
+                                borderRadius: 4
                             }]
                         },
                         options: {
@@ -271,10 +268,10 @@
                                 x: {
                                     beginAtZero: true,
                                     ticks: {
-                                        color: 'white'
+                                        color: '#9CA3AF'
                                     },
                                     grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
+                                        color: 'rgba(255, 255, 255, 0.05)'
                                     }
                                 },
                                 y: {
@@ -282,7 +279,7 @@
                                         color: 'white'
                                     },
                                     grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
+                                        display: false
                                     }
                                 }
                             },
@@ -294,33 +291,34 @@
                         }
                     });
 
+                    // 4. Stacked Contribution Chart
                     new Chart(ctxContribution, {
                         type: 'bar',
                         data: {
-                            labels: @json($riskLabels), // The Risks (X-Axis)
-                            datasets: @json($contributionDatasets) // The States (Stacked segments)
+                            labels: @json($riskLabels),
+                            datasets: @json($contributionDatasets)
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
                             scales: {
                                 x: {
-                                    stacked: true, // Enable Stacking
+                                    stacked: true,
                                     ticks: {
-                                        color: 'white'
+                                        color: '#9CA3AF'
                                     },
                                     grid: {
                                         display: false
                                     }
                                 },
                                 y: {
-                                    stacked: true, // Enable Stacking
+                                    stacked: true,
                                     beginAtZero: true,
                                     ticks: {
-                                        color: 'white'
+                                        color: '#9CA3AF'
                                     },
                                     grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
+                                        color: 'rgba(255, 255, 255, 0.05)'
                                     }
                                 }
                             },
@@ -337,12 +335,7 @@
                                     intersect: false,
                                     callbacks: {
                                         label: function(context) {
-                                            let label = context.dataset.label || '';
-                                            let value = context.raw;
-                                            let total = context.chart._metasets[context.datasetIndex].total;
-                                            // Note: calculating true total in stacked tooltip is complex in vanilla Chart.js,
-                                            // showing raw value is often clearer.
-                                            return label + ': ' + value + ' Incidents';
+                                            return (context.dataset.label || '') + ': ' + context.raw;
                                         }
                                     }
                                 }
