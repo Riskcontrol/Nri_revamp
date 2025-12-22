@@ -60,43 +60,59 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 
                 {{-- Card 1: Total Incidents --}}
-                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Tracked Security
-                        Incidents</h3>
-                    <p class="text-5xl font-bold text-white tracking-tight">{{ number_format($totalIncidents) }}</p>
+                {{-- 'flex flex-col justify-center' ensures content stays centered regardless of line count --}}
+                <div
+                    class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border border-white/5 flex flex-col justify-center min-h-[160px]">
+                    <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                        Tracked Security Incidents
+                    </h3>
+                    <p class="text-2xl md:text-3xl font-medium text-white tracking-tight">
+                        {{ number_format($totalIncidents) }}
+                    </p>
                 </div>
 
                 {{-- Card 2: Fatalities --}}
-                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Fatalities</h3>
-                    <p class="text-5xl font-bold text-white tracking-tight">{{ number_format($totalDeaths) }}</p>
+                <div
+                    class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border border-white/5 flex flex-col justify-center min-h-[160px]">
+                    <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                        Fatalities
+                    </h3>
+                    <p class="text-2xl md:text-3xl font-medium text-white tracking-tight">
+                        {{ number_format($totalDeaths) }}
+                    </p>
                 </div>
 
                 {{-- Card 3: Recurring Risk --}}
-                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Recurring Risk</h3>
-                    <div class="space-y-2">
-                        <p class="text-base font-medium text-white leading-relaxed">{{ $prominentRisks }}</p>
-                    </div>
+                <div
+                    class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border border-white/5 flex flex-col justify-center min-h-[160px]">
+                    <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                        Recurring Risk
+                    </h3>
+                    {{-- 'leading-tight' prevents multi-line text from pushing the layout too far --}}
+                    <p class="text-lg md:text-xl font-medium text-white leading-tight">
+                        {{ $prominentRisks }}
+                    </p>
                 </div>
 
                 {{-- Card 4: Hot Zones --}}
-                <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md h-full">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Hot Zones</h3>
-                    <div class="flex flex-col space-y-4">
+                <div
+                    class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border border-white/5 flex flex-col justify-center min-h-[160px]">
+                    <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                        Hot Zones
+                    </h3>
+                    <div class="text-lg md:text-xl font-medium text-white leading-tight">
                         @forelse ($activeRegions as $region)
-                            <div>
-                                <span class="text-sm font-semibold text-white block">{{ $region['zone'] }}</span>
-                                <span
-                                    class="text-[10px] font-medium text-gray-500 uppercase tracking-wide block">{{ $region['top_risk'] }}</span>
-                            </div>
+                            <span>{{ $region['zone'] }}</span>
+                            @if (!$loop->last)
+                                ,
+                            @endif
                         @empty
-                            <p class="text-sm text-gray-400">No regional data available.</p>
+                            <span class="text-gray-500 font-normal italic text-sm">No regional data available</span>
                         @endforelse
                     </div>
                 </div>
-            </div>
 
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
 
                 <div class="space-y-6">

@@ -41,35 +41,35 @@
 
             {{-- 1. Total Incidents Card --}}
             <div id="total-incidents"
-                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 flex flex-col justify-center">
+                class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 flex flex-col justify-center min-h-[140px]">
                 <h3 id="total-incidents-title"
-                    class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
                     Tracked Incidents ({{ $year }})
                 </h3>
-                <p class="text-3xl md:text-4xl font-semibold text-white tracking-tight">
+                <p class="text-2xl md:text-3xl font-medium text-white tracking-tight">
                     {{ $total_incidents }}
                 </p>
             </div>
 
             {{-- 2. Most Prevalent Risk Card --}}
             <div id="most-frequent-risk"
-                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 flex flex-col justify-center">
-                <h3 class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 flex flex-col justify-center min-h-[140px]">
+                <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
                     Most Prevalent Risk
                 </h3>
                 <div id="most-frequent-risk-content"
-                    class="text-base md:text-lg font-semibold text-white leading-tight">
+                    class="text-lg md:text-xl font-medium text-white leading-tight px-2">
                     <p>{{ $mostFrequentRisk->pluck('riskindicators')->implode(', ') ?: 'No data available' }}</p>
                 </div>
             </div>
 
             {{-- 3. Most Affected LGA Card --}}
             <div id="most-affected-lga"
-                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 flex flex-col justify-center">
-                <h3 class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 flex flex-col justify-center min-h-[140px]">
+                <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
                     Most Affected LGA
                 </h3>
-                <p class="text-base md:text-lg font-semibold text-white tracking-wide">
+                <p class="text-lg md:text-xl font-medium text-white tracking-wide">
                     @if ($mostAffectedLGA)
                         {{ $mostAffectedLGA->lga }}
                     @else
@@ -80,23 +80,22 @@
 
             {{-- 4. Crime Index Score Card --}}
             <div
-                class="bg-[#1E2D3D] p-6 rounded-lg shadow-lg text-center border border-white/5 relative group flex flex-col justify-center">
-                <h3 class="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+                class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 relative group flex flex-col justify-center min-h-[140px]">
+                <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
                     Crime Index Score
                 </h3>
 
-                <div class="flex flex-col items-center justify-center">
-                    <p id="crime-index-score" class="text-3xl md:text-4xl font-semibold text-white tracking-tight">
+                {{-- Flex row to place Rank beside the Score --}}
+                <div class="flex items-center justify-center gap-3">
+                    <p id="crime-index-score" class="text-2xl md:text-3xl font-medium text-white tracking-tight">
                         {{ $stateCrimeIndexScore }}
                     </p>
 
-                    <div class="mt-2">
-                        <span id="rank-container"
-                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-tighter">
-                            Ranked <span id="state-rank" class="ml-1">{{ $stateRank }}</span><sup
-                                id="state-rank-ordinal" class="lowercase">{{ $stateRankOrdinal }}</sup>
-                        </span>
-                    </div>
+                    <span id="rank-container"
+                        class="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-wider">
+                        Ranked <span id="state-rank" class="ml-1">{{ $stateRank }}</span><sup
+                            id="state-rank-ordinal" class="lowercase">{{ $stateRankOrdinal }}</sup>
+                    </span>
                 </div>
 
                 <div

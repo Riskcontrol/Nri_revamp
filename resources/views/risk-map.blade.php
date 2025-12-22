@@ -3,99 +3,105 @@
     {{-- Add Chart.js for the dynamic charts --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <div class="lg:flex max-w-full mx-auto p-4 lg:p-8 space-y-4 lg:space-y-0 lg:space-x-8">
+    <div class="max-w-full mx-auto p-4 lg:p-8 space-y-6">
 
-        <div class="lg:w-1/3 bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl p-6 h-full">
-            <h2 class="text-2xl font-bold text-white mb-6">Risk Filters</h2>
-            <div class="pt-4 border-t border-gray-700">
-                <div class="flex items-center justify-between mb-2">
-                    <label class="text-sm font-medium text-gray-300">Comparison Mode</label>
-                    <button id="toggle-comparison"
-                        class="px-3 py-1 text-xs font-bold text-white bg-gray-600 rounded hover:bg-gray-500 transition">
-                        OFF
-                    </button>
+        <div class="flex flex-col lg:flex-row gap-6">
+            <div class="lg:w-2/3 bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl p-6">
+                <div class="flex flex-col md:flex-row md:items-end gap-6">
+                    <div class="flex-1">
+                        <h2 class="text-xl font-bold text-white mb-4">Risk Filters</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="filter-year"
+                                    class="block text-xs font-medium text-gray-400 mb-1 uppercase">Year</label>
+                                <select id="filter-year" name="year"
+                                    class="block w-full bg-gray-700 border-gray-600 text-white rounded-md p-2 text-sm focus:ring-blue-500">
+                                    @php
+                                        $currentYear = 2025;
+                                        $startYear = 2018;
+                                    @endphp
+                                    @for ($year = $currentYear; $year >= $startYear; $year--)
+                                        <option value="{{ $year }}"
+                                            @if ($year == $currentYear) selected @endif>{{ $year }}
+                                        </option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter-risk"
+                                    class="block text-xs font-medium text-gray-400 mb-1 uppercase">Risk Index</label>
+                                <select id="filter-risk" name="risk_type"
+                                    class="block w-full bg-gray-700 border-gray-600 text-white rounded-md p-2 text-sm focus:ring-blue-500">
+                                    <option value="Terrorism">Terrorism</option>
+                                    <option value="Kidnapping">Kidnapping</option>
+                                    <option value="Crime">Crime</option>
+                                    <option value="Homicide">Homicide</option>
+                                    <option value="Property-Risk">Property Risk</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1 uppercase">Comparison
+                                    Mode</label>
+                                <div class="flex items-center space-x-3 bg-gray-700 p-2 rounded-md">
+                                    <button id="toggle-comparison"
+                                        class="px-3 py-1 text-xs font-bold text-white bg-gray-600 rounded hover:bg-gray-500 transition">OFF</button>
+                                    <button id="clear-selection"
+                                        class="hidden text-xs text-red-400 hover:text-red-300 underline">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:w-48">
+                        <button id="apply-filters"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 text-sm">
+                            Apply Filters
+                        </button>
+                    </div>
                 </div>
-                <p class="text-[10px] text-gray-400">Enable to select multiple states and compare data.</p>
-                <button id="clear-selection"
-                    class="hidden w-full mt-2 text-xs text-red-400 hover:text-red-300 underline">
-                    Clear Selection
-                </button>
             </div>
 
-            <div class="space-y-6">
-                <div>
-                    <label for="filter-year" class="block text-sm font-medium text-gray-300 mb-2">Year</label>
-                    <select id="filter-year" name="year"
-                        class="block w-full bg-gray-700 border-gray-600 text-white rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
-                        @php
-                            $currentYear = 2025; // Set your current year
-                            $startYear = 2018; // Set the earliest year
-                        @endphp
-                        @for ($year = $currentYear; $year >= $startYear; $year--)
-                            <option value="{{ $year }}" @if ($year == $currentYear) selected @endif>
-                                {{ $year }}
-                            </option>
-                        @endfor
-                    </select>
-                </div>
-
-                <div>
-                    <label for="filter-risk" class="block text-sm font-medium text-gray-300 mb-2">Risk Index</label>
-                    <select id="filter-risk" name="risk_type"
-                        class="block w-full bg-gray-700 border-gray-600 text-white rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
-                        {{-- <option value="All">Composite Risk Index</option> --}}
-                        <option value="Terrorism">Terrorism</option>
-                        <option value="Kidnapping">Kidnapping</option>
-                        <option value="Crime">Crime</option>
-                        <option value="Homicide">Homicide</option>
-                        <option value="Property-Risk">Property Risk</option>
-                    </select>
-                </div>
-
-                <button id="apply-filters"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
-                    Apply Filters
-                </button>
-            </div>
-
-            <div class="mt-8 pt-6 border-t border-gray-700">
-                <h3 class="text-sm font-medium text-white uppercase tracking-wide">
-                    Active Threat Groups
-                </h3>
-                <p id="card-top-threats" class="text-lg font-semibold text-gray-100 mt-4" style="line-height: 1.6;">
+            <div
+                class="lg:w-1/3 bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl p-6 flex flex-col justify-center">
+                <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide">Active Threat Groups</h3>
+                <p id="card-top-threats" class="text-lg font-semibold text-white mt-2 leading-relaxed">
                     Loading...
                 </p>
             </div>
         </div>
 
-        <div class="lg:w-2/3">
-            <section class="bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl p-6">
-                <div class="space-y-2 text-center mb-6">
-                    <h2 id="map-title" class="text-3xl font-bold text-white">Nigeria Risk Map</h2>
-                    {{-- <p id="map-subtitle" class="text-sm font-medium text-gray-300">Composite Risk - {{ date('Y') }}
-                    </p> --}}
-
-                    {{-- ADDED INSTRUCTION HERE --}}
-                    <p class="text-xs text-yellow-400 italic mt-1 animate-pulse">
-                        (Click on a state to view detailed risk analysis)
-                    </p>
-                </div>
-
-                <div id="risk-map" class="w-full"
-                    style="height: 600px; background-color: #1E2D3D; border-radius: 8px;">
-                    <div id="map-loader" class="flex items-center justify-center h-full">
-                        <p class="text-white text-lg">Loading Map...</p>
+        <div class="flex flex-col lg:flex-row gap-6">
+            <div class="lg:w-2/3">
+                <section class="bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 id="map-title" class="text-xl font-bold text-white">Nigeria Risk Map</h2>
+                        <p class="text-xs text-yellow-400 italic animate-pulse">Click a state for details</p>
                     </div>
-                </div>
-            </section>
 
-            <section id="comparison-container"
-                class="hidden mt-6 bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl p-6">
-                <h3 class="text-xl font-bold text-white mb-4">State Comparison: Incidents</h3>
-                <div style="height: 300px;">
-                    <canvas id="comparisonBarChart"></canvas>
+                    <div id="risk-map" class="w-full"
+                        style="height: 600px; background-color: #1E2D3D; border-radius: 8px;">
+                        <div id="map-loader" class="flex items-center justify-center h-full">
+                            <p class="text-white text-lg">Loading Map...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="lg:w-1/3">
+                <section id="comparison-container"
+                    class="hidden h-full bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl p-6">
+                    <h3 class="text-lg font-bold text-white mb-4">State Comparison</h3>
+                    <div class="relative" style="height: 500px;">
+                        <canvas id="comparisonBarChart"></canvas>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-4">Select multiple states in Comparison Mode to populate this
+                        chart.</p>
+                </section>
+
+                <div id="chart-placeholder"
+                    class="flex items-center justify-center h-full border-2 border-dashed border-gray-700 rounded-lg p-6 text-center">
+                    <p class="text-gray-500 text-sm">Select states to view comparison data</p>
                 </div>
-            </section>
+            </div>
         </div>
     </div>
 
@@ -161,12 +167,14 @@
 
             // Function moved INSIDE scope to access selectedStates
             function updateComparisonChart() {
-                if (selectedStates.length < 1) {
+                const placeholder = document.getElementById('chart-placeholder');
+                if (selectedStates.length < 1 || !isComparisonMode) {
                     comparisonContainer.classList.add('hidden');
+                    placeholder.classList.remove('hidden'); // Show the dashed box
                     clearBtn.classList.add('hidden');
                     return;
                 }
-
+                placeholder.classList.add('hidden');
                 comparisonContainer.classList.remove('hidden');
                 clearBtn.classList.remove('hidden');
 
@@ -279,55 +287,7 @@
                 };
             }
 
-            // Pop-up Trend Chart
-            function createIncidentChart(canvasId, currentYear, previousYear, currentIncidents, previousIncidents) {
-                if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
-                const ctx = document.getElementById(canvasId);
-                if (!ctx) return;
 
-                chartInstances[canvasId] = new Chart(ctx.getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: [previousYear, currentYear],
-                        datasets: [{
-                            label: 'Trend',
-                            data: [previousIncidents, currentIncidents],
-                            borderColor: '#36A2EB',
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            tension: 0.3,
-                            fill: true,
-                            pointRadius: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true
-                            },
-                            tooltip: {
-                                enabled: true
-                            }
-                        },
-                        scales: {
-                            x: {
-                                ticks: {
-                                    color: '#FFFFFF',
-                                    size: 10
-                                },
-                                grid: {
-                                    display: false
-                                }
-                            },
-                            y: {
-                                display: false,
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            }
 
             function onEachFeature(feature, layer) {
                 const props = feature.properties;
@@ -387,10 +347,15 @@
                     </div>
                 </div>
 
-                <div class="w-24 flex-shrink-0">
-                    <p class="text-[10px] uppercase font-semibold text-gray-500 tracking-wider mb-2 text-center">Trend</p>
-                    <div style="height: 60px;">
-                        <canvas id="${chartCanvasId}"></canvas>
+               <div class="space-y-3 border-l border-gray-700 pl-4">
+                    <div>
+                        <p class="text-[10px] uppercase font-semibold text-gray-500 tracking-wider mb-0.5">Incidents (${props.current_year})</p>
+                        <p class="text-xl font-bold text-white">${props.incidents_count}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-[10px] uppercase font-semibold text-gray-500 tracking-wider mb-0.5">Prev. Year (${props.previous_year})</p>
+                        <p class="text-xl font-bold text-gray-400">${props.incidents_prev_year}</p>
                     </div>
                 </div>
             </div>
@@ -441,12 +406,7 @@
                     }
                 });
 
-                layer.on('popupopen', () => {
-                    if (!isComparisonMode) {
-                        createIncidentChart(chartCanvasId, props.current_year, props.previous_year, props
-                            .incidents_count, props.incidents_prev_year);
-                    }
-                });
+
             }
 
             // --- 6. DATA FETCHING ---

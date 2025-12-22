@@ -2,14 +2,15 @@
     {{-- Replaced arbitrary width with standard max-w-7xl --}}
     <section class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {{-- Header Part --}}
-        <div class="pb-8">
-            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-y-4">
-                <div class="space-y-2">
-                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-white">
+        {{-- Header Part: Updated to center alignment --}}
+        <div class="pb-12 text-center"> {{-- Added text-center here --}}
+            <div class="flex flex-col items-center justify-center gap-y-4"> {{-- Changed flex logic --}}
+                <div class="space-y-3">
+                    <h1 class="text-3xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-white">
                         Real-time Security Intelligence
                     </h1>
-                    <p class="text-sm sm:text-base text-gray-400 max-w-2xl">
+                    {{-- Added mx-auto to center the max-w-2xl paragraph --}}
+                    <p class="text-md sm:text-base text-gray-400 mx-auto leading-relaxed">
                         Track terrorism, armed robbery, and security incidents across Nigeria with actionable
                         intelligence
                     </p>
@@ -17,7 +18,6 @@
             </div>
         </div>
 
-        {{-- Content Grid --}}
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
 
             {{-- Left Column: Image Card --}}
@@ -26,33 +26,21 @@
                 <div class="relative h-[400px] sm:h-[500px] bg-white/5 flex items-center justify-center p-6 group">
                     <img src="{{ asset('images/risk-database.png') }}" alt="Risk Map of Nigeria"
                         class="max-h-full max-w-full object-contain drop-shadow-xl transition-transform duration-500 group-hover:scale-[1.02]">
-
-                    <div class="absolute bottom-4 right-4 z-20">
-                        <a href="{{ route('securityIntelligence') }}"
-                            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2.5 rounded-lg shadow-lg transition-all duration-300 hover:shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95">
-                            <span>Access Database</span>
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
-                        </a>
-                    </div>
                 </div>
             </article>
 
             {{-- Right Column: Data Table --}}
             <aside
-                class="lg:col-span-5 bg-card rounded-xl border border-white/10 shadow-lg overflow-hidden flex flex-col">
+                class="lg:col-span-5 bg-card rounded-xl border border-white/10 shadow-lg overflow-hidden flex flex-col max-h-[500px]">
                 <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center bg-primary/30">
                     <h3 class="text-lg font-bold text-white flex items-center gap-2">
                         <span>📊</span> Risk State Data
                     </h3>
                 </div>
 
-                <div class="overflow-x-auto flex-1">
+                <div class="overflow-y-auto flex-1"> {{-- Changed to overflow-y-auto to allow scrolling within fixed height --}}
                     <table class="min-w-full text-left">
-                        <thead class="bg-primary/50 text-gray-300 text-xs uppercase tracking-wider">
+                        <thead class="sticky top-0 z-10 bg-[#1a1f2e] text-gray-300 text-xs uppercase tracking-wider">
                             <tr>
                                 <th class="py-3 px-4 font-semibold">State</th>
                                 <th class="py-3 px-4 font-semibold text-center">Incidents</th>
@@ -61,22 +49,14 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-white/10 text-sm text-gray-200">
-                            @php
-                                $incidentNo = $total_ratio = 0;
-                            @endphp
-
                             @foreach ($dataByState as $stateId => $report)
                                 <tr class="hover:bg-white/5 transition-colors duration-150">
                                     <td class="py-3 px-4 font-medium text-white">{{ $report['location'] }}</td>
-
                                     <td class="py-3 px-4 text-center text-gray-400 font-mono">
-                                        {{ $report['incident_count'] }}
-                                    </td>
-
+                                        {{ $report['incident_count'] }}</td>
                                     <td class="py-3 px-4 text-center font-mono">
                                         {{ number_format((float) ($report['total_ratio'] == 0 ? 0.01 : $report['total_ratio']), 2, '.', '') }}%
                                     </td>
-
                                     <td class="py-3 px-4 text-right">
                                         @if ($report['total_ratio'] > 7)
                                             <span
@@ -91,19 +71,22 @@
                                     </td>
                                 </tr>
                             @endforeach
-
-                            @if (count($dataByState) == 0)
-                                <tr>
-                                    <td colspan="4" class="py-8 text-center text-gray-500">
-                                        No data available for this period.
-                                    </td>
-                                </tr>
-                            @endif
                         </tbody>
                     </table>
                 </div>
             </aside>
+        </div>
 
+        {{-- NEW: Button Section below the grid --}}
+        <div class="mt-10 flex justify-center">
+            <a href="{{ route('securityIntelligence') }}"
+                class="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base px-8 py-3.5 rounded-xl shadow-xl transition-all duration-300 hover:shadow-blue-500/40 hover:-translate-y-1 active:translate-y-0 active:scale-95">
+                <span>Access Security Database</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </a>
         </div>
     </section>
 </main>

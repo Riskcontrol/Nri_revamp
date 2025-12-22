@@ -76,7 +76,7 @@
 
         {{-- 2. NEW: Fatalities Card --}}
         <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-            <h3 class="text-sm font-medium text-white uppercase tracking-wide">Total Fatalities</h3>
+            <h3 class="text-sm font-medium text-white uppercase tracking-wide">Fatalities</h3>
             <div class="mt-4">
                 <p id="card-fatalities" class="text-4xl font-semibold text-gray-100">...</p>
             </div>
@@ -112,12 +112,21 @@
         </div>
     </div>
 
-    <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="mt-8 grid grid-cols-1 gap-6">
 
-        <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md lg:col-span-2">
+        {{-- Geographic Analysis Chart --}}
+        <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
             <h3 class="text-xl font-semibold text-white">Geographic Analysis</h3>
-            <div class="mt-4 bg-[#1E2D3D]">
+            <div class="mt-4">
                 <div id="treemap-chart"></div>
+            </div>
+        </div>
+
+        {{-- Fatality Trend Line Chart --}}
+        <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
+            <h3 id="line-chart-title" class="text-xl font-semibold text-white">Fatality Trend</h3>
+            <div class="mt-4">
+                <div id="fatality-line-chart"></div>
             </div>
         </div>
 
@@ -306,6 +315,52 @@
         var chart = new ApexCharts(document.querySelector("#treemap-chart"), options);
         chart.render();
 
+        var lineOptions = {
+            series: [{
+                name: 'Fatalities',
+                data: []
+            }],
+            chart: {
+                height: 350,
+                type: 'line',
+                toolbar: {
+                    show: false
+                },
+                animations: {
+                    enabled: true
+                }
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 3
+            },
+            colors: ['#ef4444'], // Red color for fatalities
+            xaxis: {
+                categories: [],
+                labels: {
+                    style: {
+                        colors: '#94a3b8'
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: '#94a3b8'
+                    }
+                }
+            },
+            grid: {
+                borderColor: '#334155'
+            },
+            tooltip: {
+                theme: 'dark'
+            }
+        };
+
+        var fatalityChart = new ApexCharts(document.querySelector("#fatality-line-chart"), lineOptions);
+        fatalityChart.render();
+
         function updateRiskTable(tableData) {
             const tableBody = document.getElementById('risk-table-body');
             if (!tableData || tableData.length === 0) {
@@ -375,7 +430,25 @@
                     document.getElementById('card-fatalities').textContent = new Intl.NumberFormat().format(
                         data.cardData.totalFatalities);
 
-                    // REMOVED: All Trend Logic (Arrows, previous year calculations, etc.)
+                    if (data.trendSeries && data.trendSeries.labels) {
+                        fatalityChart.updateOptions({
+                            xaxis: {
+                                categories: data.trendSeries.labels
+                            }
+                        });
+
+                        fatalityChart.updateSeries([{
+                            name: "Fatalities",
+                            data: data.trendSeries.data
+                        }]);
+
+                        document.getElementById('line-chart-title').textContent =
+                            `${selectedIndexText} Fatality Trend`;
+                    } else {
+                        console.error(
+                            "Trend data is missing from the server response. Check Controller scope and clear cache."
+                        );
+                    }
                 })
                 .catch(error => {
                     console.error('Error fetching chart data:', error);

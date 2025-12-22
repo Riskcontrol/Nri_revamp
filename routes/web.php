@@ -8,6 +8,7 @@ use App\Http\Controllers\SecurityIntelligenceController;
 use App\Http\Controllers\RiskMapController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\RiskMapAnalyticsController;
+use App\Http\Controllers\SecurityHubController;
 
 
 
@@ -66,5 +67,7 @@ Route::get('/risk-map-analytics/data', [RiskMapAnalyticsController::class, 'getD
 Route::get('/news-insight', function () {
     return view('news-insight');
 })->name('news-insight');
+
+Route::get('/news', [SecurityHubController::class, 'index'])->name('news');;
 
 Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])->name('api.calc-risk');

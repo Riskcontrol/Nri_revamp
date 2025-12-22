@@ -2,27 +2,23 @@
     {{-- Standard Container --}}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {{-- Header --}}
-        {{-- Preserving your original wrapper classes --}}
-        <div class="pb-8 w-full lg:w-1/2 lg:pr-12">
-            <h6 class="text-xs sm:text-sm font-bold tracking-widest text-card uppercase mb-3">
+        <div class="max-w-4xl mx-auto text-center mb-16 md:mb-20">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-primary mb-2">
                 Location Intelligence
-            </h6>
-
-            <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-primary mb-4">
-                The Power of 8 years+ proprietary security data
             </h1>
 
-            <p class="text-base text-gray-600 leading-relaxed">
+            <h2 class="text-md sm:text-md md:text-xl font-bold text-gray-600 mb-6">
+                The Power of 8 years+ proprietary security data
+            </h2>
+
+            <p class="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
                 Get real-time location intelligence across 36 states backed by security analysts who continuously
                 verify local data, mapped against 8 years of historical trends to give a solid basis for proactive
                 decision making.
             </p>
-
         </div>
         {{-- Content Wrapper: Map + Lists --}}
-        <div class="w-full md:flex gap-8 lg:gap-12">
-
+        <div class="w-full md:flex gap-12 lg:gap-20 items-start">
             {{-- LEFT: Map --}}
             <div class="w-full md:w-1/2 relative">
                 <div class="map-container md:mt-10">
