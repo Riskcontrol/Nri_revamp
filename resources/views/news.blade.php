@@ -135,7 +135,7 @@
                         </p>
 
                         <div class="flex flex-wrap gap-4 pt-4">
-                            <a href=""
+                            <a href="{{ route('reports.download') }}" target="_blank"
                                 class="inline-flex items-center  border border-white gap-3 bg-transparent hover:bg-primary text-white font-semibold py-4 px-10 rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 uppercase tracking-widest text-sm">
                                 <span>Download Full Report</span>
                                 <i class="fa-solid fa-cloud-arrow-down animate-bounce"></i>

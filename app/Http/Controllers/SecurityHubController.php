@@ -6,6 +6,7 @@ use App\Models\tbldataentry;
 use App\Models\StateNeighbourhoods;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class SecurityHubController extends Controller
 {
@@ -72,6 +73,24 @@ class SecurityHubController extends Controller
         'totalIncidents' => $stats->total_incidents ?? 0,
         'highRiskAlerts' => $stats->high_risk_alerts ?? 0,
         'statesAffected' => $stats->states_affected ?? 0
+    ]);
+}
+
+
+
+public function downloadReport()
+{
+    $filename = 'NIGERIA-RISK-INDEX.pdf';
+    $path = storage_path("app/public/reports/{$filename}");
+
+    // Safety check to prevent 404 errors
+    if (!file_exists($path)) {
+        return redirect()->back()->with('error', 'The security report is currently being updated. Please try again shortly.');
+    }
+
+ return response()->file($path, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="NIGERIA-RISK-INDEX.pdf"'
     ]);
 }
 }

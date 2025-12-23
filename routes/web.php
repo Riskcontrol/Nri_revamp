@@ -71,3 +71,4 @@ Route::get('/news-insight', function () {
 Route::get('/news', [SecurityHubController::class, 'index'])->name('news');;
 
 Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])->name('api.calc-risk');
+Route::get('/download-security-report', [SecurityHubController::class, 'downloadReport'])->name('reports.download');
