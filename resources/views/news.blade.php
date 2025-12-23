@@ -51,14 +51,14 @@
         <div class="py-12 px-6 lg:px-16 -mt-8">
             <div class="max-w-7xl mx-auto">
                 <div class="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse bg-gray-100 border border-black">
+                    <div class="overflow-x-auto border border-black">
+                        <table class="w-full text-left border-collapse bg-gray-100">
                             <thead>
                                 <tr
                                     class="bg-gray-200 text-[#0a1628] uppercase text-[10px] font-black tracking-[0.15em] border-b border-black">
-                                    <th class="px-6 py-5 border-r border-black">No</th>
+                                    <th class="px-6 py-5 border-r border-black text-center">No</th>
                                     <th class="px-6 py-5 border-r border-black">State</th>
-                                    <th class="px-6 py-5 border-r border-black">Neighbourhood</th>
+                                    <th class="px-6 py-5 border-r border-black ">Neighbourhood</th>
                                     <th class="px-6 py-5 border-r border-black">Date</th>
                                     <th class="px-6 py-5 border-r border-black">Incident</th>
                                     <th class="px-6 py-5 border-r border-black">Associated Risk</th>
@@ -68,13 +68,16 @@
                             <tbody class="text-sm text-gray-800 divide-y divide-black">
                                 @foreach ($incidents as $index => $incident)
                                     <tr class="hover:bg-gray-200 transition-all group">
-                                        <td class="px-6 py-6 font-mono text-gray-600 text-xs border-r border-black">
+                                        <td
+                                            class="px-6 py-6 font-mono text-gray-600 text-xs border-r border-black text-center">
                                             {{ $incidents->firstItem() + $index }}
                                         </td>
                                         <td class="px-6 py-6 font-bold text-[#0a1628] border-r border-black">
-                                            {{ $incident->location }}</td>
-                                        <td class="px-6 py-6 font-medium border-r border-black">
-                                            {{ $incident->lga ?? 'Unknown' }}
+                                            {{ $incident->location }}
+                                        </td>
+                                        {{-- Updated LGA Cell --}}
+                                        <td class="px-6 py-6 font-semibold border-r border-black text-blue-800">
+                                            {{ $incident->proper_lga }}
                                         </td>
                                         <td class="px-6 py-6 whitespace-nowrap border-r border-black">
                                             <span
@@ -82,31 +85,17 @@
                                                 {{ \Carbon\Carbon::parse($incident->eventdateToUse)->format('M d, Y') }}
                                             </span>
                                         </td>
-                                        <td class="px-6 py-6 max-w-sm leading-relaxed border-r border-black">
+                                        <td
+                                            class="px-6 py-6 max-w-sm leading-relaxed border-r border-black text-gray-600">
                                             {{ $incident->add_notes }}
                                         </td>
-                                        <td class="px-6 py-6 italic border-r border-black">
-                                            {{ $incident->associated_risks }}
+                                        <td class="px-6 py-6 italic border-r border-black text-gray-500">
+                                            {{ $incident->display_risk }}
                                         </td>
                                         <td class="px-6 py-6 text-center">
-                                            @php
-                                                $casualties = $incident->Casualties_count ?? 0;
-                                                $victims = $incident->victim ?? 0;
-
-                                                if ($casualties > 2 || $victims > 5) {
-                                                    $bgClass = 'bg-red-600';
-                                                    $label = 'High';
-                                                } elseif ($casualties > 0 || $victims > 0) {
-                                                    $bgClass = 'bg-orange-500';
-                                                    $label = 'Medium';
-                                                } else {
-                                                    $bgClass = 'bg-emerald-500';
-                                                    $label = 'Low';
-                                                }
-                                            @endphp
                                             <span
-                                                class="inline-block px-4 py-1.5 rounded-full {{ $bgClass }} text-white text-[10px] font-black uppercase tracking-widest shadow-sm border border-black/20">
-                                                {{ $label }}
+                                                class="inline-block px-4 py-1.5 rounded-full {{ $incident->impact_class }} text-white text-[10px] font-black uppercase tracking-widest shadow-sm border border-black/20">
+                                                {{ $incident->impact_label }}
                                             </span>
                                         </td>
                                     </tr>
