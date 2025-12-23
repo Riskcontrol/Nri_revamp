@@ -43,22 +43,22 @@
             <div id="total-incidents"
                 class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 flex flex-col justify-center min-h-[140px]">
                 <h3 id="total-incidents-title"
-                    class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
+                    class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
                     Tracked Incidents ({{ $year }})
                 </h3>
-                <p class="text-2xl md:text-3xl font-medium text-white tracking-tight">
+                <p class="text-md md:text-md font-medium text-white tracking-tight">
                     {{ $total_incidents }}
                 </p>
             </div>
 
             {{-- 2. Most Prevalent Risk Card --}}
             <div id="most-frequent-risk"
-                class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 flex flex-col justify-center min-h-[140px]">
-                <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
+                class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border text-center border-white/5 flex flex-col justify-center min-h-[140px]">
+                <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
                     Most Prevalent Risk
                 </h3>
                 <div id="most-frequent-risk-content"
-                    class="text-lg md:text-xl font-medium text-white leading-tight px-2">
+                    class="text-md md:text-md font-medium text-white leading-tight px-2">
                     <p>{{ $mostFrequentRisk->pluck('riskindicators')->implode(', ') ?: 'No data available' }}</p>
                 </div>
             </div>
@@ -66,10 +66,10 @@
             {{-- 3. Most Affected LGA Card --}}
             <div id="most-affected-lga"
                 class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 flex flex-col justify-center min-h-[140px]">
-                <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
+                <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
                     Most Affected LGA
                 </h3>
-                <p class="text-lg md:text-xl font-medium text-white tracking-wide">
+                <p class="text-md md:text-md font-medium text-white tracking-wide">
                     @if ($mostAffectedLGA)
                         {{ $mostAffectedLGA->lga }}
                     @else
@@ -81,13 +81,13 @@
             {{-- 4. Crime Index Score Card --}}
             <div
                 class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 relative group flex flex-col justify-center min-h-[140px]">
-                <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
+                <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
                     Crime Index Score
                 </h3>
 
                 {{-- Flex row to place Rank beside the Score --}}
                 <div class="flex items-center justify-center gap-3">
-                    <p id="crime-index-score" class="text-2xl md:text-3xl font-medium text-white tracking-tight">
+                    <p id="crime-index-score" class="text-md md:text-md font-medium text-white tracking-tight">
                         {{ $stateCrimeIndexScore }}
                     </p>
 
@@ -117,25 +117,21 @@
 
                             switch ($insight['type']) {
                                 case 'Velocity':
-                                    $titleColor = 'text-blue-400';
                                     $friendlyTitle = 'Activity Pace';
                                     break;
                                 case 'Emerging Threat':
-                                    $titleColor = 'text-red-400';
                                     $friendlyTitle = 'Rising Risk';
                                     break;
                                 case 'Lethality':
-                                    $titleColor = 'text-orange-400';
                                     $friendlyTitle = 'Severity Level';
                                     break;
                                 case 'Forecast':
-                                    $titleColor = 'text-green-400';
                                     $friendlyTitle = 'Future Outlook';
                                     break;
                             }
                         @endphp
 
-                        <h4 class="text-xs font-bold {{ $titleColor }} uppercase mb-1 tracking-wider">
+                        <h4 class="text-xs font-semibold {{ $titleColor }} uppercase mb-1 tracking-wider">
                             {{ $friendlyTitle }}
                         </h4>
 
@@ -154,7 +150,7 @@
         <div class="flex flex-col lg:flex-row gap-6 mb-8">
             {{-- Chart 1: Incidents Over 12 Months (APEXCHARTS) --}}
             <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-lg md:text-xl font-semibold text-white mb-4">Incidents Over the Past 12
+                <h3 class="text-center text-lg md:text-xl font-semibold text-gray-400 mb-4">Incidents Over the Past 12
                     Months</h3>
                 {{-- ApexChart Container --}}
                 <div id="incidentsTrendChart" style="min-height: 320px;"></div>
@@ -162,7 +158,8 @@
 
             <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
-                    <h3 class="text-center sm:text-left text-lg md:text-xl font-semibold text-white">Prevalent Risk</h3>
+                    <h3 class="text-center sm:text-left text-lg md:text-xl font-semibold  text-gray-400">Prevalent Risk
+                    </h3>
                     <select id="prevalent-compare-select"
                         class="bg-[#131C27] text-white text-xs py-1 px-3 border border-gray-600 rounded hover:border-gray-400 focus:outline-none focus:border-emerald-500 transition-colors w-full sm:w-auto">
                         <option value="" selected>Compare...</option>
@@ -179,14 +176,14 @@
 
         <div class="flex flex-col lg:flex-row gap-6 mb-8">
             <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-lg md:text-xl font-semibold text-white mb-4" id="map-title">
+                <h3 class="text-center text-lg md:text-xl font-semibold  text-gray-400 mb-4" id="map-title">
                     High Impact Incidents in {{ $state }} ({{ $year }})
                 </h3>
                 <div id="map" style="height: 300px; width: 100%; border-radius: 8px;" class="md:h-[400px]"></div>
             </div>
 
             <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-lg md:text-xl font-semibold text-white mb-4">Incidents by Actors</h3>
+                <h3 class="text-center text-lg md:text-xl font-semibold  text-gray-400 mb-4">Incidents by Actors</h3>
                 <div class="relative h-64 md:h-80">
                     <canvas id="attackChart"></canvas>
                 </div>
@@ -195,7 +192,7 @@
 
 
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-6 mb-12 overflow-hidden">
-            <h4 class="text-lg font-semibold text-white mb-4">Crime Index</h4>
+            <h4 class="text-lg font-semibold  text-gray-400 mb-4">Crime Index</h4>
             <div class="overflow-x-auto">
                 <table class="min-w-full">
                     <thead>
@@ -655,8 +652,10 @@
                         if (data.crimeTable && data.crimeTable.length > 0) {
                             data.crimeTable.forEach(item => {
                                 let statusColorClass = 'text-blue-400';
-                                if (item.status === 'Escalating') statusColorClass = 'text-red-500';
-                                else if (item.status === 'Improving') statusColorClass = 'text-green-500';
+                                if (item.status === 'Escalating') statusColorClass =
+                                    'text-white border-red-500';
+                                else if (item.status === 'Improving') statusColorClass =
+                                    'text-white border-green-500';
 
                                 crimeTableHtml += `
                                     <tr class="border-b border-gray-700">

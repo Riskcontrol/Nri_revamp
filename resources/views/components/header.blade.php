@@ -1,11 +1,11 @@
 <header class="bg-primary backdrop-blur shadow-lg sticky top-0 z-50 border-b border-white/10">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between py-6">
+        <div class="flex items-center justify-between py-4">
 
             {{-- Logo --}}
             <a href="{{ url('/') }}" class="flex items-center gap-2">
                 <img src="{{ asset('images/nri-logo.png') }}" alt="Nigeria Risk Index Logo"
-                    class="h-16 md:h-20 w-auto object-contain">
+                    class="h-28 md:h-28 w-auto object-contain">
                 <span class="sr-only">Nigeria Risk Index</span>
             </a>
 
@@ -13,41 +13,41 @@
             <div class="hidden md:flex items-center gap-8">
                 {{-- Home --}}
                 <a href="{{ url('/') }}"
-                    class="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                    class="text-md font-medium text-gray-300 hover:text-white transition-colors">
                     Home
                 </a>
 
                 {{-- Location Intelligence (Broken) --}}
                 <a href="{{ route('locationIntelligence', ['state' => 'lagos']) }}"
-                    class="flex flex-col text-sm font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
                     <span>Location</span>
                     <span>Intelligence</span>
                 </a>
 
                 {{-- Risk Index (Broken) --}}
                 <a href="{{ route('securityIntelligence') }}"
-                    class="flex flex-col text-sm font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
                     <span>Risk</span>
                     <span>Index</span>
                 </a>
 
                 {{-- Risk Map (Broken) --}}
                 <a href="{{ route('risk-map.show') }}"
-                    class="flex flex-col text-sm font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
                     <span>Risk</span>
                     <span>Map</span>
                 </a>
 
                 {{-- News & Insight (Broken) --}}
                 <a href="{{ route('news') }}"
-                    class="flex flex-col text-sm font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
                     <span>News &</span>
                     <span>Insight</span>
                 </a>
 
                 {{-- Login --}}
                 <a href="{{ url('/login') }}"
-                    class="inline-block rounded-lg bg-blue-600 px-8 py-3 text-sm text-white font-semibold hover:bg-blue-500 transition shadow-md">
+                    class="inline-block rounded-lg bg-transparent border border-white px-8 py-3 text-md text-white font-semibold hover:bg-blue-500 transition shadow-md">
                     Login
                 </a>
             </div>
@@ -86,7 +86,7 @@
 
                 <div class="px-4 mt-4">
                     <a href="{{ url('/login') }}"
-                        class="block w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-medium text-center hover:bg-blue-500 transition shadow-md">
+                        class="block w-full rounded-lg bg-transparent border border-white px-4 py-3 text-white font-medium text-center hover:bg-blue-500 transition shadow-md">
                         Login
                     </a>
                 </div>

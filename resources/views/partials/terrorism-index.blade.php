@@ -80,12 +80,9 @@
         {{-- NEW: Button Section below the grid --}}
         <div class="mt-10 flex justify-center">
             <a href="{{ route('securityIntelligence') }}"
-                class="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base px-8 py-3.5 rounded-xl shadow-xl transition-all duration-300 hover:shadow-blue-500/40 hover:-translate-y-1 active:translate-y-0 active:scale-95">
+                class="inline-flex items-center gap-3 border-2 border-gray-500 bg-transparent text-gray-500 font-semibold text-base px-8 py-3.5 rounded-xl transition-all duration-300 hover:bg-white hover:text-gray-600 hover:shadow-xl hover:-translate-y-1 active:translate-y-0 active:scale-95">
                 <span>Access Security Database</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
+                <i class="fa-solid fa-arrow-right"></i>
             </a>
         </div>
     </section>

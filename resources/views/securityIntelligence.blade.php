@@ -63,10 +63,10 @@
                 {{-- 'flex flex-col justify-center' ensures content stays centered regardless of line count --}}
                 <div
                     class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border border-white/5 flex flex-col justify-center min-h-[160px]">
-                    <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                    <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
                         Tracked Security Incidents
                     </h3>
-                    <p class="text-2xl md:text-3xl font-medium text-white tracking-tight">
+                    <p class="text-md md:text-md font-medium text-white tracking-tight">
                         {{ number_format($totalIncidents) }}
                     </p>
                 </div>
@@ -74,10 +74,10 @@
                 {{-- Card 2: Fatalities --}}
                 <div
                     class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border border-white/5 flex flex-col justify-center min-h-[160px]">
-                    <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                    <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
                         Fatalities
                     </h3>
-                    <p class="text-2xl md:text-3xl font-medium text-white tracking-tight">
+                    <p class="text-md md:text-md font-medium text-white tracking-tight">
                         {{ number_format($totalDeaths) }}
                     </p>
                 </div>
@@ -85,11 +85,11 @@
                 {{-- Card 3: Recurring Risk --}}
                 <div
                     class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border border-white/5 flex flex-col justify-center min-h-[160px]">
-                    <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                    <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
                         Recurring Risk
                     </h3>
                     {{-- 'leading-tight' prevents multi-line text from pushing the layout too far --}}
-                    <p class="text-lg md:text-xl font-medium text-white leading-tight">
+                    <p class="text-md md:text-md font-medium text-white leading-tight">
                         {{ $prominentRisks }}
                     </p>
                 </div>
@@ -97,10 +97,10 @@
                 {{-- Card 4: Hot Zones --}}
                 <div
                     class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg border border-white/5 flex flex-col justify-center min-h-[160px]">
-                    <h3 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+                    <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
                         Hot Zones
                     </h3>
-                    <div class="text-lg md:text-xl font-medium text-white leading-tight">
+                    <div class="text-md md:text-md font-medium text-white leading-tight">
                         @forelse ($activeRegions as $region)
                             <span>{{ $region['zone'] }}</span>
                             @if (!$loop->last)
@@ -118,7 +118,7 @@
                 <div class="space-y-6">
                     {{-- Chart 1: Trend Line (APEX CHART) --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Fatalities Trend
+                        <h3 class="text-lg font-semibold text-gray-400 mb-4">Fatalities Trend
                             ({{ $startYear }}–{{ $currentYear }})</h3>
                         {{-- Replaced Canvas with Div for ApexCharts --}}
                         <div id="incidentTrendChart" style="height: 300px;"></div>
@@ -126,8 +126,8 @@
 
                     {{-- Chart 2: Regional Pie (Chart.js) --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Fatalities by Region</h3>
-                        <div class="relative" style="height: 300px;">
+                        <h3 class="text-lg font-semibold text-gray-400 mb-4">Fatalities by Region</h3>
+                        <div class="relative" style="height: 350px;">
                             <canvas id="regionPieChart"></canvas>
                         </div>
                     </div>
@@ -136,14 +136,14 @@
                 <div class="space-y-6">
                     {{-- Chart 3: Risk Indicators Bar (Chart.js) --}}
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-semibold text-white mb-4">Reoccuring Risk</h3>
+                        <h3 class="text-lg font-semibold text-gray-400 mb-4">Reoccuring Risk</h3>
                         <div class="relative" style="height: 300px;">
                             <canvas id="indicatorBarChart"></canvas>
                         </div>
                     </div>
 
                     <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md mt-6">
-                        <h3 class="text-lg font-semibold text-white mb-4">State Contribution to Recurring Risks</h3>
+                        <h3 class="text-lg font-semibold text-gray-400 mb-4">State Contribution to Recurring Risks</h3>
                         <div class="relative" style="height: 350px;">
                             <canvas id="contributionChart"></canvas>
                         </div>

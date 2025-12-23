@@ -3,7 +3,7 @@
         <h6 class="text-sm md:text-base font-bold tracking-tight text-[#10b981] mb-6">
             Nigeria Risk Assessment Calculator
         </h6>
-        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-[#0f172a] mb-8">
+        <h1 class="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-[#0f172a] mb-8">
             Calculate Your Organization's Risk Score
         </h1>
         <p class="text-lg md:text-xl text-slate-600 mb-12 max-w-3xl mx-auto">
@@ -12,9 +12,9 @@
         </p>
 
         <button onclick="toggleRiskModal(true)"
-            class="inline-flex items-center gap-2 bg-[#0a1120] hover:bg-[#111a2e] text-white font-bold text-sm px-6 py-3 rounded-lg shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 uppercase tracking-wider">
+            class="inline-flex items-center gap-2 bg-card hover:bg-[#111a2e] text-white font-bold text-sm px-6 py-6 rounded-lg shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 uppercase tracking-wider">
             <span>Start Risk Assessment</span>
-            <i class="fa-solid fa-chevron-right text-xs"></i>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
         </button>
     </div>
 </section>

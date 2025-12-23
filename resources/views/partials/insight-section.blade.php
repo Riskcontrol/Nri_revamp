@@ -81,7 +81,7 @@
 
         <div class="mt-12 flex justify-center">
             <a href="#"
-                class="inline-flex items-center justify-center rounded-md bg-[#2196F3] px-8 py-3 text-white font-semibold shadow-lg hover:bg-[#1976D2] hover:-translate-y-1 transition-all duration-300">
+                class="inline-flex items-center gap-3 border-2 border-gray-500 bg-transparent text-gray-500 font-semibold text-base px-8 py-3.5 rounded-xl transition-all duration-300 hover:bg-white hover:text-gray-600 hover:shadow-xl hover:-translate-y-1 active:translate-y-0 active:scale-95">
                 View More Insights
             </a>
         </div>

@@ -68,23 +68,23 @@
         {{-- Threat Level Card REMOVED --}}
 
         <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-            <h3 class="text-sm font-medium text-white uppercase tracking-wide">Tracked Incidents</h3>
+            <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wide">Tracked Incidents</h3>
             <div class="mt-4">
-                <p id="card-risk-index" class="text-4xl font-semibold text-white">...</p>
+                <p id="card-risk-index" class="text-md font-medium text-white">...</p>
             </div>
         </div>
 
         {{-- 2. NEW: Fatalities Card --}}
         <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-            <h3 class="text-sm font-medium text-white uppercase tracking-wide">Fatalities</h3>
+            <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wide">Fatalities</h3>
             <div class="mt-4">
-                <p id="card-fatalities" class="text-4xl font-semibold text-gray-100">...</p>
+                <p id="card-fatalities" class="text-md font-medium text-gray-100">...</p>
             </div>
         </div>
 
         <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-            <h3 class="text-sm font-medium text-white uppercase tracking-wide">ACTIVE THREAT GROUPS</h3>
-            <p id="card-top-threats" class="text-lg font-semibold text-gray-100 mt-4">
+            <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wide">ACTIVE THREAT GROUPS</h3>
+            <p id="card-top-threats" class="text-md font-medium text-gray-100 mt-4">
                 .....
             </p>
         </div>
@@ -116,7 +116,7 @@
 
         {{-- Geographic Analysis Chart --}}
         <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-semibold text-white">Geographic Analysis</h3>
+            <h3 class="text-xl font-semibold text-gray-400">Geographic Analysis</h3>
             <div class="mt-4">
                 <div id="treemap-chart"></div>
             </div>
@@ -124,7 +124,7 @@
 
         {{-- Fatality Trend Line Chart --}}
         <div class="bg-[#1E2D3D] p-6 rounded-lg shadow-md">
-            <h3 id="line-chart-title" class="text-xl font-semibold text-white">Fatality Trend</h3>
+            <h3 id="line-chart-title" class="text-xl font-semibold text-gray-400">Fatality Trend</h3>
             <div class="mt-4">
                 <div id="fatality-line-chart"></div>
             </div>
@@ -133,7 +133,7 @@
     </div>
 
     <div class="mt-8 bg-[#1E2D3D] p-6 rounded-lg shadow-md lg:col-span-3">
-        <h3 id="table-title" class="text-xl font-semibold text-white mb-4">State Risk Ranking</h3>
+        <h3 id="table-title" class="text-xl font-semibold text-gray-400 mb-4">State Risk Ranking</h3>
         <div class="overflow-x-auto">
             <table class="min-w-full">
                 <thead>

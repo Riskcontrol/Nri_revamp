@@ -20,18 +20,20 @@
                 {{-- LEFT COLUMN: Text & Buttons --}}
                 <div class="space-y-6 md:col-span-2">
 
-                    <h1 class="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight tracking-tight">
-                        Nigeria’s Premier<br class="hidden sm:block" /> Risk Intelligence Portal
+                    <h1 class="text-4xl sm:text-3xl lg:text-4xl font-semibold leading-tight tracking-tight">
+                        Nigeria’s Most Comprehensive <br class="hidden sm:block" />Security Intelligence Platform
                     </h1>
 
-                    <p class="text-[#fff] text-xl sm:text-2xl leading-relaxed mt-4">
-                        Transform complex data into actionable security <br> and business intelligence for informed
-                        decision-making
+                    <p class="text-white text-xl sm:text-xl leading-relaxed mt-4">
+                        Get real-time alerts on security incidents across all 36 states.<br> Transform threat data into
+                        strategic decisions with predictive analytics, <br> location-based risk assessments, and
+                        verified
+                        incident reports.
                     </p>
 
                     <p class="text-[#FDA557] text-lg sm:text-xl mt-6 font-semibold">
-                        Join 500+ security professionals accessing real-time <br>Nigeria intelligence across various
-                        industries
+                        Trusted by 500+ security professionals across <br> banking, energy, telecom, and logistics
+                        sector
                     </p>
 
                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-8">
@@ -53,8 +55,9 @@
                 <div class="grid gap-3 content-start">
 
                     {{-- 1. National Threat Level --}}
-                    <div class="bg-white rounded-xl shadow-lg p-3">
-                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">National Threat Outlook</h3>
+                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">National Threat Outlook
+                        </h3>
 
                         @php
                             $level = strtolower($currentThreatLevel);
@@ -78,25 +81,26 @@
                     </div>
 
                     {{-- 2. Total Incidents --}}
-                    <div class="bg-white rounded-xl shadow-lg p-3">
-                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">Total Incidents 2024</h3>
-                        <div class="text-xl sm:text-2xl font-bold text-black mt-0.5">
+                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Total Incidents 2024
+                        </h3>
+                        <div class="text-xl sm:text-2xl font-medium text-white mt-0.5">
                             {{ number_format($totalIncidents) }}
                         </div>
                     </div>
 
                     {{-- 3. High Risk States --}}
-                    <div class="bg-white rounded-xl shadow-lg p-3">
-                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">High Risk States</h3>
-                        <div class="text-xl sm:text-2xl font-bold text-black mt-0.5">
+                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">High Risk States</h3>
+                        <div class="text-xl sm:text-2xl font-medium text-white mt-0.5">
                             {{ $highRiskStateCount }}
                         </div>
                     </div>
 
                     {{-- 4. Most Affected --}}
-                    <div class="bg-white rounded-xl shadow-lg p-3">
-                        <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">Most Affected</h3>
-                        <div class="text-lg sm:text-xl font-bold text-black mt-0.5 truncate">
+                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Most Affected</h3>
+                        <div class="text-lg sm:text-xl font-medium text-white mt-0.5 truncate">
                             {{ $top3HighRiskStates }}
                         </div>
                     </div>
@@ -120,7 +124,7 @@
                         class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -z-10">
                     </div>
 
-                    <img src="{{ asset('images/mobile.png') }}" alt="Risk Track app interface"
+                    <img src="{{ asset('images/mobile3.png') }}" alt="Risk Track app interface"
                         class="max-w-sm sm:max-w-md lg:max-w-lg w-full h-auto drop-shadow-2xl">
                 </div>
 
