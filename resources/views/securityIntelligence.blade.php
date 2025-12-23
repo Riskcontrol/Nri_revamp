@@ -222,7 +222,7 @@
                 // --- CHART.JS FOR OTHERS ---
                 let regionPieChartInstance = null;
                 let indicatorBarChartInstance = null;
-                const chartColors = ['#DC2626', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#6B7280'];
+                const chartColors = ['#DC2626', '#F59E0B', '#10B981', '#3B82F6', '#ff9f63', '#8B5CF6', '#0047d6'];
 
                 document.addEventListener('DOMContentLoaded', () => {
                     const ctxRegionPie = document.getElementById('regionPieChart').getContext('2d');

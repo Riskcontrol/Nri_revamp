@@ -55,8 +55,25 @@
                     {{-- 1. National Threat Level --}}
                     <div class="bg-white rounded-xl shadow-lg p-3">
                         <h3 class="text-gray-800 font-bold text-sm uppercase tracking-wide">National Threat Outlook</h3>
-                        <div class="text-xl sm:text-2xl font-bold text-black lowercase mt-0.5">
-                            {{ $currentThreatLevel }}
+
+                        @php
+                            $level = strtolower($currentThreatLevel);
+
+                            if (str_contains($level, 'high') || str_contains($level, 'critical')) {
+                                $pillClasses = 'bg-red-100 text-red-700 border-red-200';
+                            } elseif (str_contains($level, 'medium')) {
+                                $pillClasses = 'bg-orange-100 text-orange-700 border-orange-200';
+                            } else {
+                                // Normal solid green for Low
+                                $pillClasses = 'bg-green-600 text-white border-transparent';
+                            }
+                        @endphp
+
+                        <div class="flex items-center mt-2">
+                            <span
+                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border {{ $pillClasses }}">
+                                {{ $currentThreatLevel }}
+                            </span>
                         </div>
                     </div>
 

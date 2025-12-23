@@ -12,12 +12,9 @@
         </p>
 
         <button onclick="toggleRiskModal(true)"
-            class="inline-flex items-center gap-3 bg-[#0a1120] hover:bg-[#111a2e] text-white font-semibold text-lg px-10 py-5 rounded-2xl shadow-2xl transition-all duration-300 hover:-translate-y-1 active:scale-95">
+            class="inline-flex items-center gap-2 bg-[#0a1120] hover:bg-[#111a2e] text-white font-bold text-sm px-6 py-3 rounded-lg shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 uppercase tracking-wider">
             <span>Start Risk Assessment</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
         </button>
     </div>
 </section>

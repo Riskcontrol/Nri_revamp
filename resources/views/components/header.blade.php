@@ -5,7 +5,7 @@
             {{-- Logo --}}
             <a href="{{ url('/') }}" class="flex items-center gap-2">
                 <img src="{{ asset('images/nri-logo.png') }}" alt="Nigeria Risk Index Logo"
-                    class="h-20 w-auto object-contain">
+                    class="h-16 md:h-20 w-auto object-contain">
                 <span class="sr-only">Nigeria Risk Index</span>
             </a>
 
@@ -17,28 +17,32 @@
                     Home
                 </a>
 
-                {{-- Location Intelligence --}}
+                {{-- Location Intelligence (Broken) --}}
                 <a href="{{ route('locationIntelligence', ['state' => 'lagos']) }}"
-                    class="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-                    Location Intelligence
+                    class="flex flex-col text-sm font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    <span>Location</span>
+                    <span>Intelligence</span>
                 </a>
 
-                {{-- Risk Index --}}
+                {{-- Risk Index (Broken) --}}
                 <a href="{{ route('securityIntelligence') }}"
-                    class="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-                    Risk Index
+                    class="flex flex-col text-sm font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    <span>Risk</span>
+                    <span>Index</span>
                 </a>
 
-                {{-- Risk Map --}}
+                {{-- Risk Map (Broken) --}}
                 <a href="{{ route('risk-map.show') }}"
-                    class="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-                    Risk Map
+                    class="flex flex-col text-sm font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    <span>Risk</span>
+                    <span>Map</span>
                 </a>
 
-                {{-- News & Insight --}}
-                <a href="{{ route('securityIntelligence') }}"
-                    class="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-                    News & Insight
+                {{-- News & Insight (Broken) --}}
+                <a href="{{ route('news') }}"
+                    class="flex flex-col text-sm font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    <span>News &</span>
+                    <span>Insight</span>
                 </a>
 
                 {{-- Login --}}
@@ -48,14 +52,11 @@
                 </a>
             </div>
 
-            {{-- Hamburger (mobile) --}}
+            {{-- Hamburger (mobile) using Font Awesome Icon instead of SVG --}}
             <button id="menu-toggle"
-                class="md:hidden text-gray-300 p-2 rounded hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                class="md:hidden text-gray-300 p-2 rounded hover:bg-white/10 focus:outline-none transition-colors"
                 aria-controls="mobile-menu" aria-expanded="false" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                <i class="fa-solid fa-bars text-2xl"></i>
             </button>
         </div>
 
@@ -78,7 +79,7 @@
                     class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
                     Risk Map
                 </a>
-                <a href="{{ route('securityIntelligence') }}"
+                <a href="{{ route('news') }}"
                     class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
                     News & Insight
                 </a>

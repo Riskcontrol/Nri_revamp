@@ -3,53 +3,44 @@
     <section class="min-h-screen bg-[#f8fafc] font-sans antialiased">
         <div class="bg-gradient-to-b from-[#0a1628] to-[#111e2f] text-white px-6 py-16 lg:px-16 shadow-inner">
             <div class="max-w-7xl mx-auto">
-                <div class="flex justify-end items-center space-x-3 mb-10">
-                    <span class="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">Data Controls</span>
-                    <button
-                        class="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-xs font-semibold hover:bg-white/10 transition flex items-center gap-2">
-                        <i class="fa-solid fa-earth-africa text-blue-400"></i> Region
-                    </button>
-                    <button
-                        class="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-xs font-semibold hover:bg-white/10 transition flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-blue-400"></i> Timeline
-                    </button>
-                </div>
+
 
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-12">
                     <div class="lg:w-1/2 space-y-4">
-                        <h1 class="text-4xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white">
+                        <h1 class="text-4xl lg:text-5xl font-semibold tracking-tight leading-[1.1] text-white">
                             Nigeria Security <br /> Intelligence Hub</span>
                         </h1>
-                        <p class="text-gray-400 text-lg leading-relaxed max-w-md font-medium">
-                            Premium risk data and forensic security analysis for professional intelligence
-                            organizations.
+                        <p class="text-gray-400 text-xl leading-relaxed max-w-md font-medium">
+                            Comprehensive security intelligence platform for professionals and organizationz
                         </p>
                     </div>
 
                     <div
                         class="lg:w-5/12 w-full bg-[#1e2d3d]/40 backdrop-blur-md rounded-3xl p-8 border border-white/10 shadow-2xl">
                         <div class="flex items-center justify-between mb-8">
-                            <h2 class="text-sm font-bold text-blue-400 uppercase tracking-widest">Active Monitoring</h2>
-                            <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <h2 class="text-sm font-bold text-blue-400 uppercase tracking-widest">Real time Security
+                                Dashboard</h2>
+                            {{-- <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> --}}
                         </div>
                         <div class="grid grid-cols-3 gap-6 text-center">
                             <div class="space-y-1">
                                 <span
                                     class="block text-4xl font-black text-white">{{ number_format($totalIncidents) }}</span>
                                 <span
-                                    class="text-[9px] uppercase text-gray-400 font-extrabold tracking-widest">Incidents</span>
+                                    class="text-[9px] uppercase text-gray-400 font-extrabold tracking-widest">Incidents
+                                    this week</span>
                             </div>
                             <div class="space-y-1 border-x border-white/5">
                                 <span
                                     class="block text-4xl font-black text-blue-500">{{ number_format($highRiskAlerts) }}</span>
-                                <span
-                                    class="text-[9px] uppercase text-gray-400 font-extrabold tracking-widest">Critical</span>
+                                <span class="text-[9px] uppercase text-gray-400 font-extrabold tracking-widest">High
+                                    risk alerts</span>
                             </div>
                             <div class="space-y-1">
                                 <span
                                     class="block text-4xl font-black text-white">{{ number_format($statesAffected) }}</span>
-                                <span
-                                    class="text-[9px] uppercase text-gray-400 font-extrabold tracking-widest">States</span>
+                                <span class="text-[9px] uppercase text-gray-400 font-extrabold tracking-widest">States
+                                    affected</span>
                             </div>
                         </div>
                     </div>
@@ -59,40 +50,42 @@
 
         <div class="py-12 px-6 lg:px-16 -mt-8">
             <div class="max-w-7xl mx-auto">
-                <div
-                    class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+                <div class="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left border-collapse bg-gray-100 border border-black">
                             <thead>
                                 <tr
-                                    class="bg-gray-50/50 text-[#0a1628] uppercase text-[10px] font-black tracking-[0.15em]">
-                                    <th class="px-6 py-5 border-b border-gray-100">No</th>
-                                    <th class="px-6 py-5 border-b border-gray-100">State</th>
-                                    <th class="px-6 py-5 border-b border-gray-100">Neighbourhood</th>
-                                    <th class="px-6 py-5 border-b border-gray-100">Date</th>
-                                    <th class="px-6 py-5 border-b border-gray-100">Incident</th>
-                                    <th class="px-6 py-5 border-b border-gray-100">Associated Risk</th>
-                                    <th class="px-6 py-5 border-b border-gray-100 text-center">Impact</th>
+                                    class="bg-gray-200 text-[#0a1628] uppercase text-[10px] font-black tracking-[0.15em] border-b border-black">
+                                    <th class="px-6 py-5 border-r border-black">No</th>
+                                    <th class="px-6 py-5 border-r border-black">State</th>
+                                    <th class="px-6 py-5 border-r border-black">Neighbourhood</th>
+                                    <th class="px-6 py-5 border-r border-black">Date</th>
+                                    <th class="px-6 py-5 border-r border-black">Incident</th>
+                                    <th class="px-6 py-5 border-r border-black">Associated Risk</th>
+                                    <th class="px-6 py-5 text-center">Impact</th>
                                 </tr>
                             </thead>
-                            <tbody class="text-sm text-gray-600 divide-y divide-gray-50">
+                            <tbody class="text-sm text-gray-800 divide-y divide-black">
                                 @foreach ($incidents as $index => $incident)
-                                    <tr class="hover:bg-blue-50/40 transition-all group">
-                                        <td class="px-6 py-6 font-mono text-gray-400 text-xs">
-                                            {{ $incidents->firstItem() + $index }}</td>
-                                        <td class="px-6 py-6 font-bold text-[#0a1628]">{{ $incident->location }}</td>
-                                        <td class="px-6 py-6 text-gray-500 font-medium">
-                                            {{ $incident->lga ?? 'Unknown' }}</td>
-                                        <td class="px-6 py-6 whitespace-nowrap">
+                                    <tr class="hover:bg-gray-200 transition-all group">
+                                        <td class="px-6 py-6 font-mono text-gray-600 text-xs border-r border-black">
+                                            {{ $incidents->firstItem() + $index }}
+                                        </td>
+                                        <td class="px-6 py-6 font-bold text-[#0a1628] border-r border-black">
+                                            {{ $incident->location }}</td>
+                                        <td class="px-6 py-6 font-medium border-r border-black">
+                                            {{ $incident->lga ?? 'Unknown' }}
+                                        </td>
+                                        <td class="px-6 py-6 whitespace-nowrap border-r border-black">
                                             <span
-                                                class="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-[11px] font-bold">
+                                                class="bg-white border border-black text-gray-900 px-3 py-1 rounded-md text-[11px] font-bold">
                                                 {{ \Carbon\Carbon::parse($incident->eventdateToUse)->format('M d, Y') }}
                                             </span>
                                         </td>
-                                        <td class="px-6 py-6 max-w-sm leading-relaxed text-gray-500">
+                                        <td class="px-6 py-6 max-w-sm leading-relaxed border-r border-black">
                                             {{ $incident->add_notes }}
                                         </td>
-                                        <td class="px-6 py-6 italic text-gray-500">
+                                        <td class="px-6 py-6 italic border-r border-black">
                                             {{ $incident->associated_risks }}
                                         </td>
                                         <td class="px-6 py-6 text-center">
@@ -102,7 +95,7 @@
 
                                                 if ($casualties > 2 || $victims > 5) {
                                                     $bgClass = 'bg-red-600';
-                                                    $label = 'High Impact';
+                                                    $label = 'High';
                                                 } elseif ($casualties > 0 || $victims > 0) {
                                                     $bgClass = 'bg-orange-500';
                                                     $label = 'Medium';
@@ -112,7 +105,7 @@
                                                 }
                                             @endphp
                                             <span
-                                                class="inline-block px-4 py-1.5 rounded-full {{ $bgClass }} text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                                class="inline-block px-4 py-1.5 rounded-full {{ $bgClass }} text-white text-[10px] font-black uppercase tracking-widest shadow-sm border border-black/20">
                                                 {{ $label }}
                                             </span>
                                         </td>
@@ -122,16 +115,21 @@
                         </table>
                     </div>
                 </div>
+                <div class="bg-gray-200 border-t border-black px-6 py-4">
+                    <div class="custom-pagination">
+                        {{ $incidents->links() }}
+                    </div>
+                </div>
 
                 <div class="mt-20 bg-[#0a1628] rounded-[2rem] p-12 text-center relative overflow-hidden shadow-2xl">
                     <div class="absolute top-0 right-0 p-10 opacity-10">
                         <i class="fa-solid fa-shield-halved text-9xl text-white"></i>
                     </div>
-                    <h3 class="text-3xl font-bold text-white relative z-10">Professional Security Access</h3>
+                    <h3 class="text-3xl font-semibold text-white relative z-10">Professional Security Access</h3>
                     <p class="text-gray-400 mt-3 max-w-lg mx-auto relative z-10 font-medium">Join 500+ security
                         directors receiving daily forensic updates and critical regional threat assessments.</p>
                     <div
-                        class="flex flex-wrap justify-center gap-8 mt-8 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] relative z-10">
+                        class="flex flex-wrap justify-center gap-8 mt-8 text-gray-400 text-[10px] font-semibold uppercase tracking-[0.2em] relative z-10">
                         <span class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-500"></i> Real-time
                             alerts</span>
                         <span class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-500"></i> Advanced
@@ -140,7 +138,7 @@
                             Insights</span>
                     </div>
                     <button
-                        class="mt-10 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-12 rounded-xl shadow-xl uppercase tracking-widest text-xs transition-all hover:scale-105 active:scale-95 relative z-10">
+                        class="mt-10 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 px-12 rounded-md shadow-xl uppercase tracking-widest text-xs transition-all hover:scale-105 active:scale-95 relative z-10">
                         Claim Professional Access
                     </button>
                 </div>
@@ -196,5 +194,27 @@
             </div>
         </div>
     </section>
+    <style>
+        /* Targeting Laravel's default Tailwind classes to match your theme */
+        .custom-pagination nav div div span,
+        .custom-pagination nav div div a {
+            @apply border-black text-[11px] font-black uppercase tracking-widest transition-all;
+        }
 
+        /* Active Page Style */
+        .custom-pagination nav div div span[aria-current="page"] span {
+            @apply bg-[#0a1628] border-black text-white !important;
+        }
+
+        /* Hover States for links */
+        .custom-pagination nav div div a:hover {
+            @apply bg-blue-600 text-white border-black !important;
+        }
+
+        /* Mobile handling for the "Previous" and "Next" buttons */
+        .custom-pagination nav flex:first-child a,
+        .custom-pagination nav flex:first-child span {
+            @apply border-black bg-white text-black font-black uppercase text-[10px];
+        }
+    </style>
 </x-layout>

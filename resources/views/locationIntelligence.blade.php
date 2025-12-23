@@ -213,15 +213,21 @@
                                 <td class="py-4 px-4 whitespace-nowrap">{{ $item['incident_count'] }}</td>
                                 <td class="py-4 px-4 whitespace-nowrap">{{ $item['previous_year_count'] }}</td>
                                 @php
-                                    $statusColorClass = 'text-blue-400';
+                                    // Default blue pill for stable/neutral
+                                    $pillClasses = 'bg-blue text-white';
+
                                     if ($item['status'] === 'Escalating') {
-                                        $statusColorClass = 'text-red-500';
+                                        $pillClasses = 'bg-red-500 text-white border-red-500';
                                     } elseif ($item['status'] === 'Improving') {
-                                        $statusColorClass = 'text-green-500';
+                                        $pillClasses = 'bg-green-500 text-white border-green-500';
                                     }
                                 @endphp
-                                <td class="py-4 px-4 font-semibold {{ $statusColorClass }} whitespace-nowrap">
-                                    {{ $item['status'] }}
+
+                                <td class="py-4 px-4 whitespace-nowrap">
+                                    <span
+                                        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold lowercase tracking-wider border {{ $pillClasses }}">
+                                        {{ $item['status'] }}
+                                    </span>
                                 </td>
                             </tr>
                         @empty

@@ -24,21 +24,19 @@ class SecurityHubController extends Controller
             ->whereBetween('eventdateToUse', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->first();
 
-        // 3. Fetch Paginated Incidents for the Table
-        // Mapping: state -> location, neighborhood -> lga, date -> eventdateToUse
         $incidents = tbldataentry::select(
                 'id',
                 'location',
                 'lga',
                 'eventdateToUse',
-                'add_notes', // Used for 'Incident' column
-                'riskindicators',        // Used for 'Associated Risk'
-                'Casualties_count',      // For calculating 'Impact'
+                'add_notes',
+                'riskindicators',
+                'Casualties_count',
                 'victim',
-                'associated_risks'              // For calculating 'Impact'
+                'associated_risks'
             )
             ->orderBy('eventdateToUse', 'desc')
-            ->paginate(20);
+            ->paginate(10);
 
         return view('news', [
             'incidents' => $incidents,
