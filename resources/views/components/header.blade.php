@@ -11,48 +11,44 @@
 
             {{-- Right cluster: Desktop Nav + Login --}}
             <div class="hidden md:flex items-center gap-8">
-                {{-- Home --}}
                 <a href="{{ url('/') }}"
-                    class="text-md font-medium text-gray-300 hover:text-white transition-colors">
-                    Home
-                </a>
+                    class="text-md font-medium text-gray-300 hover:text-white transition-colors">Home</a>
 
-                {{-- Location Intelligence (Broken) --}}
                 <a href="{{ route('locationIntelligence', ['state' => 'lagos']) }}"
                     class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
                     <span>Location</span>
                     <span>Intelligence</span>
                 </a>
 
-                {{-- Risk Index (Broken) --}}
                 <a href="{{ route('securityIntelligence') }}"
                     class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
                     <span>Risk</span>
                     <span>Index</span>
                 </a>
 
-                {{-- Risk Map (Broken) --}}
                 <a href="{{ route('risk-map.show') }}"
                     class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
                     <span>Risk</span>
                     <span>Map</span>
                 </a>
 
-                {{-- News & Insight (Broken) --}}
                 <a href="{{ route('news') }}"
                     class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
-                    <span>News &</span>
+                    <span>News</span>
+                </a>
+
+                <a href="{{ route('insights.index') }}"
+                    class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
                     <span>Insight</span>
                 </a>
 
-                {{-- Login --}}
                 <a href="{{ url('/login') }}"
                     class="inline-block rounded-lg bg-transparent border border-white px-8 py-3 text-md text-white font-semibold hover:bg-blue-500 transition shadow-md">
                     Login
                 </a>
             </div>
 
-            {{-- Hamburger (mobile) using Font Awesome Icon instead of SVG --}}
+            {{-- Hamburger (mobile) --}}
             <button id="menu-toggle"
                 class="md:hidden text-gray-300 p-2 rounded hover:bg-white/10 focus:outline-none transition-colors"
                 aria-controls="mobile-menu" aria-expanded="false" type="button">
@@ -64,25 +60,20 @@
         <div id="mobile-menu" class="hidden md:hidden pb-6 border-t border-white/10 bg-primary">
             <div class="flex flex-col gap-1 pt-4">
                 <a href="{{ url('/') }}"
-                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
-                    Home
-                </a>
+                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Home</a>
                 <a href="{{ route('locationIntelligence', ['state' => 'lagos']) }}"
-                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
-                    Location Intelligence
-                </a>
+                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Location
+                    Intelligence</a>
                 <a href="{{ route('securityIntelligence') }}"
-                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
-                    Risk Index
-                </a>
+                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Risk
+                    Index</a>
                 <a href="{{ route('risk-map.show') }}"
-                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
-                    Risk Map
-                </a>
+                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Risk
+                    Map</a>
                 <a href="{{ route('news') }}"
-                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
-                    News & Insight
-                </a>
+                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">News</a>
+                <a href="{{ route('insights.index') }}"
+                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Insight</a>
 
                 <div class="px-4 mt-4">
                     <a href="{{ url('/login') }}"
@@ -93,4 +84,18 @@
             </div>
         </div>
     </nav>
+
+    {{-- Script to make it work --}}
+    <script>
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+
+            // Toggle visibility
+            menu.classList.toggle('hidden');
+
+            // Update accessibility attributes
+            this.setAttribute('aria-expanded', !isExpanded);
+        });
+    </script>
 </header>

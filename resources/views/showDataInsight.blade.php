@@ -6,12 +6,12 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 min-h-[400px]">
 
                 {{-- LEFT COLUMN: Text Content --}}
-                <div class="flex flex-col justify-center p-10 md:p-14 lg:p-20 bg-[#0E1B2C]">
+                <div class="flex flex-col justify-center p-10 md:p-14 lg:p-20 bg-primary">
 
                     {{-- Dynamic Category Label --}}
                     <div class="flex items-center gap-3 mb-8">
                         <span class="h-px w-10 bg-emerald-500"></span>
-                        <span class="text-emerald-400 font-bold uppercase tracking-[0.2em] text-xs">
+                        <span class="text-white font-semibold uppercase tracking-[0.2em] text-xs">
                             {{ $post->category->name ?? 'Insight' }}
                         </span>
                     </div>
@@ -73,29 +73,32 @@
 
             {{-- 3. RELATED INSIGHTS --}}
             <div class="mt-24 pt-12 border-t border-gray-100">
-                <h3 class="text-2xl font-bold text-gray-900 mb-10 uppercase tracking-wide">Related Insights</h3>
+                <h3 class="text-2xl font-semibold text-gray-900 mb-10 tracking-wide">Related Insights</h3>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
                     @foreach ($relatedCategoryPost as $related)
                         <article
-                            class="flex flex-col justify-between p-6 rounded-2xl bg-[#1E2D3D] shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 min-h-[280px] border border-white/5 group relative">
-                            <div>
-                                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-4 block">
-                                    {{ $related->category->name ?? 'Insight' }}
+                            class="relative flex flex-col p-6 rounded-2xl bg-card shadow-lg border border-white/5 overflow-hidden transition-all duration-300 transform-gpu hover:shadow-2xl hover:bg-[#253646] group min-h-[220px]">
+                            {{-- Reduced min-h from 300px to 220px --}}
+
+                            <div class="relative z-10 pointer-events-none">
+                                <span
+                                    class="text-xs font-bold text-white uppercase tracking-wider mb-2 block opacity-80">
+                                    {{ $related->category->name ?? 'Uncategorized' }}
                                 </span>
+
                                 <h3
-                                    class="text-gray-100 font-medium text-lg leading-snug group-hover:text-blue-400 transition-colors">
+                                    class="text-gray-200 font-medium text-lg leading-snug group-hover:text-blue-400 transition-colors duration-300">
                                     {{ $related->title }}
                                 </h3>
-                                <p class="mt-4 text-gray-400 text-sm leading-relaxed line-clamp-3">
-                                    {{ $related->description }}
-                                </p>
                             </div>
-                            <div class="mt-6">
+
+                            {{-- Reduced mt-2 to mt-6 to bring the button closer to the text --}}
+                            <div class="mt-6 relative z-10">
                                 <a href="{{ route('insight.show', $related->slug ?? $related->id) }}"
-                                    class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white group-hover:bg-blue-600 transition-colors after:absolute after:inset-0">
-                                    <i class="fa-solid fa-arrow-right"></i>
+                                    class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white transition-all duration-300 shadow-md group-hover:bg-[#1976D2] group-hover:scale-110 after:absolute after:inset-0 after:content-['']">
+                                    <i class="fa-solid fa-arrow-right text-base"></i>
                                 </a>
                             </div>
                         </article>

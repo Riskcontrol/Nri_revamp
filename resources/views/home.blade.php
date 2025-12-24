@@ -132,7 +132,7 @@
                 {{-- Right Side: Content --}}
                 <div class="text-center lg:text-left">
                     {{-- Changed text-white to text-gray-900 --}}
-                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900 mb-6">
+                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-gray-900 mb-6">
                         Safety in Your Pocket
                     </h2>
 

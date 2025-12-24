@@ -186,6 +186,61 @@
 
         </section>
 
+        {{-- NEW INSIGHTS SECTION --}}
+        <section class="bg-white py-14 px-6 lg:px-16 border-t border-gray-100">
+            <div class="max-w-7xl mx-auto">
+
+                {{-- Section Header --}}
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                    <div class="max-w-2xl">
+
+                        <h2 class="text-3xl md:text-4xl font-semibold text-[#0a1628] leading-tight">
+                            Latest Insights
+                        </h2>
+                        <p class="text-gray-500 mt-4 text-lg">
+                            In-depth analysis and expert perspectives on Nigeria's strategic security trends.
+                        </p>
+                    </div>
+
+                    <a href="{{ route('insights.index') }}"
+                        class="text-sm font-semibold text-gray-600 hover:text-[#0a1628] transition-colors flex items-center gap-2 group">
+                        View All Insights
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </a>
+                </div>
+
+                {{-- Insights Grid --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    @foreach ($Insights as $insight)
+                        <article
+                            class="relative flex flex-col p-6 rounded-3xl bg-card shadow-md border border-white/5 overflow-hidden transition-all duration-300 transform-gpu hover:shadow-2xl hover:bg-[#162536] group min-h-[200px]">
+
+                            {{-- Text Content --}}
+                            <div class="relative z-10 pointer-events-none flex-grow">
+                                <span
+                                    class="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em] mb-3 block">
+                                    {{ $insight->category->name ?? 'Uncategorized' }}
+                                </span>
+
+                                <h3
+                                    class="text-gray-300 font-medium text-lg leading-snug group-hover:text-blue-400 transition-colors duration-300">
+                                    {{ $insight->title }}
+                                </h3>
+                            </div>
+
+                            {{-- Button - Now tightly coupled with the text --}}
+                            <div class="mt-6 relative z-10">
+                                <a href="{{ route('insight.show', $insight->slug ?? $insight->id) }}"
+                                    class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-600 text-white transition-all duration-300 shadow-md group-hover:bg-blue-500 group-hover:scale-110 after:absolute after:inset-0 after:content-['']">
+                                    <i class="fa-solid fa-arrow-right text-base"></i>
+                                </a>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
         <div class="bg-[#f8fafc] py-20 px-6 lg:px-16 border-t border-gray-100">
             <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div

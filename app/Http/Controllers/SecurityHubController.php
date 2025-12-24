@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\tbldataentry;
 use App\Models\StateNeighbourhoods;
+use App\Models\DataInsights;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+
 
 class SecurityHubController extends Controller
 {
@@ -68,11 +70,15 @@ class SecurityHubController extends Controller
         ->whereBetween('eventdateToUse', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
         ->first();
 
+        $Insights = DataInsights::with('category')->latest()->take(4)->get();
+
+
     return view('news', [
         'incidents' => $incidents,
         'totalIncidents' => $stats->total_incidents ?? 0,
         'highRiskAlerts' => $stats->high_risk_alerts ?? 0,
-        'statesAffected' => $stats->states_affected ?? 0
+        'statesAffected' => $stats->states_affected ?? 0,
+        'Insights'=>$Insights
     ]);
 }
 
