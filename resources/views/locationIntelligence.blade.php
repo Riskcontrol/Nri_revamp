@@ -651,19 +651,26 @@
                         let crimeTableHtml = '';
                         if (data.crimeTable && data.crimeTable.length > 0) {
                             data.crimeTable.forEach(item => {
-                                let statusColorClass = 'text-blue-400';
-                                if (item.status === 'Escalating') statusColorClass =
-                                    'text-white border-red-500';
-                                else if (item.status === 'Improving') statusColorClass =
-                                    'text-white border-green-500';
+                                // Match the logic used in your PHP @php block
+                                let pillClasses = 'bg-blue-500 text-white border-blue-500'; // Default
+
+                                if (item.status === 'Escalating') {
+                                    pillClasses = 'bg-red-500 text-white border-red-500';
+                                } else if (item.status === 'Improving') {
+                                    pillClasses = 'bg-green-500 text-white border-green-500';
+                                }
 
                                 crimeTableHtml += `
-                                    <tr class="border-b border-gray-700">
-                                        <td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td>
-                                        <td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td>
-                                        <td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td>
-                                        <td class="py-4 px-4 font-semibold ${statusColorClass} whitespace-nowrap">${item.status}</td>
-                                    </tr>`;
+                <tr class="border-b border-gray-700">
+                    <td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td>
+                    <td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td>
+                    <td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td>
+                    <td class="py-4 px-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold lowercase tracking-wider border ${pillClasses}">
+                            ${item.status}
+                        </span>
+                    </td>
+                </tr>`;
                             });
                         } else {
                             crimeTableHtml =
