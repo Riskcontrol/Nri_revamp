@@ -1,4 +1,4 @@
-<header class="bg-primary backdrop-blur shadow-lg sticky top-0 z-50 border-b border-white/10">
+<header class="bg-primary backdrop-blur shadow-lg sticky top-0 z-[1001] border-b border-white/10">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between py-4">
 
