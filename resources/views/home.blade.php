@@ -20,7 +20,7 @@
                 {{-- LEFT COLUMN: Text & Buttons --}}
                 <div class="space-y-6 md:col-span-2">
 
-                    <h1 class="text-4xl sm:text-3xl lg:text-4xl font-semibold leading-tight tracking-tight">
+                    <h1 class="text-4xl sm:text-3xl lg:text-5xl font-bold leading-tight tracking-tight">
                         Nigeria’s Most Comprehensive <br class="hidden sm:block" />Security Intelligence Platform
                     </h1>
 
@@ -43,10 +43,10 @@
                             Start Free Trial
                         </button>
 
-                        <button
+                        {{-- <button
                             class="w-full sm:w-auto px-8 py-4 rounded-lg border-2 border-white bg-transparent text-white text-lg font-bold transition hover:bg-white/10">
                             Assess Your Risk
-                        </button>
+                        </button> --}}
                     </div>
 
                 </div>
@@ -57,6 +57,7 @@
                     {{-- 1. National Threat Level --}}
                     <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
                         <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">National Threat Outlook
+                            (2025)
                         </h3>
 
                         @php
@@ -82,7 +83,7 @@
 
                     {{-- 2. Total Incidents --}}
                     <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
-                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Total Incidents 2024
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Total Incidents
                         </h3>
                         <div class="text-xl sm:text-2xl font-medium text-white mt-0.5">
                             {{ number_format($totalIncidents) }}
@@ -200,7 +201,7 @@
     </section>
 
     @include('partials.insight-section')
-    @include('partials.risk-tool2')
+    {{-- @include('partials.risk-tool2') --}}
 
 
 </x-layout>

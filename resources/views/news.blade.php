@@ -7,40 +7,57 @@
 
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-12">
                     <div class="lg:w-1/2 space-y-4">
-                        <h1 class="text-4xl lg:text-5xl font-semibold tracking-tight leading-[1.1] text-primary">
+                        <h1 class="text-3xl lg:text-4xl font-medium tracking-tight leading-[1.1] text-primary">
                             Nigeria Security <br /> Intelligence Hub</span>
                         </h1>
                         <p class="text-gray-900 text-xl leading-relaxed max-w-md font-medium">
-                            Comprehensive security intelligence platform for professionals and organizationz
+                            Comprehensive security intelligence platform for professionals and organization
                         </p>
                     </div>
 
-                    <div
-                        class="lg:w-5/12 w-full bg-primary backdrop-blur-md rounded-3xl p-8 border border-white/10 shadow-2xl">
-                        <div class="flex items-center justify-between mb-8">
-                            <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-widest">Real time Security
-                                Dashboard</h2>
-                            {{-- <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> --}}
+                    <div class="lg:w-5/12 w-full bg-white rounded-2xl p-8 border-2 border-primary shadow-md">
+
+                        {{-- Header --}}
+                        <div class="flex flex-col items-center justify-center mb-8">
+                            <h2 class="text-sm font-semibold text-primary uppercase tracking-widest text-center">
+                                Real time Security Dashboard
+                            </h2>
+
                         </div>
+
+                        {{-- Stats Grid --}}
                         <div class="grid grid-cols-3 gap-6 text-center">
+
+                            {{-- Total Incidents --}}
                             <div class="space-y-1">
-                                <span
-                                    class="block text-4xl font-black text-white">{{ number_format($totalIncidents) }}</span>
-                                <span class="text-[9px] uppercase text-gray-400 font-medium tracking-widest">Incidents
-                                    this week</span>
+                                <span class="block text-4xl font-semibold text-primary">
+                                    {{ number_format($totalIncidents) }}
+                                </span>
+                                <span class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">
+                                    Incidents this week
+                                </span>
                             </div>
-                            <div class="space-y-1 border-x border-white/5">
-                                <span
-                                    class="block text-4xl font-black text-white">{{ number_format($highRiskAlerts) }}</span>
-                                <span class="text-[9px] uppercase text-gray-400 font-medium tracking-widest">High
-                                    risk alerts</span>
+
+                            {{-- High Risk Alerts --}}
+                            <div class="space-y-1 border-x border-gray-100">
+                                <span class="block text-4xl font-semibold text-primary">
+                                    {{ number_format($highRiskAlerts) }}
+                                </span>
+                                <span class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">
+                                    High risk alerts
+                                </span>
                             </div>
+
+                            {{-- States Affected --}}
                             <div class="space-y-1">
-                                <span
-                                    class="block text-4xl font-black text-white">{{ number_format($statesAffected) }}</span>
-                                <span class="text-[9px] uppercase text-gray-400 font-medium tracking-widest">States
-                                    affected</span>
+                                <span class="block text-4xl font-semibold text-primary">
+                                    {{ number_format($statesAffected) }}
+                                </span>
+                                <span class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">
+                                    States affected
+                                </span>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -112,20 +129,22 @@
             </div>
         </div>
 
-        <section class="relative bg-[#0a1628] overflow-hidden">
+        <section class="relative bg-white overflow-hidden">
             <div class="max-w-7xl mx-auto px-6 lg:px-16 py-20 lg:py-28">
                 <div class="flex flex-col lg:flex-row items-center gap-16">
 
                     {{-- Content Side --}}
                     <div class="lg:w-1/2 space-y-8 relative z-10">
                         <div class="space-y-4">
-                            <h2 class="text-white text-3xl lg:text-4xl font-semibold leading-[1.1] tracking-tight">
+                            {{-- Font normal and gray-900 for contrast on white --}}
+                            <h2 class="text-gray-900 text-3xl lg:text-4xl font-normal leading-[1.1] tracking-tight">
                                 Nigeria Security Landscape <br>
-                                <span class="text-white">2018 – 2024 Report</span>
+                                <span class="text-gray-900">2018 – 2024 Report</span>
                             </h2>
                         </div>
 
-                        <p class="text-gray-300 text-lg lg:text-xl leading-relaxed font-medium">
+                        {{-- Font normal and gray-600 for optimal readability --}}
+                        <p class="text-gray-700 text-md lg:text-md leading-relaxed font-medium">
                             Nigeria's security landscape from 2018 to 2024 reveals a counterintuitive reality -
                             incidents increased significantly by 160.8%,
                             yet annual deaths have fallen by 41.0%.
@@ -135,8 +154,9 @@
                         </p>
 
                         <div class="flex flex-wrap gap-4 pt-4">
+                            {{-- Updated button for white background --}}
                             <a href="{{ route('reports.download') }}" target="_blank"
-                                class="inline-flex items-center  border border-white gap-3 bg-transparent hover:bg-primary text-white font-semibold py-4 px-10 rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 uppercase tracking-widest text-sm">
+                                class="inline-flex items-center border border-gray-800 gap-3 bg-transparent hover:bg-gray-800 hover:text-white text-gray-800 font-normal py-4 px-10 rounded-xl shadow-sm transition-all hover:scale-105 active:scale-95 uppercase tracking-widest text-sm">
                                 <span>Download Full Report</span>
                                 <i class="fa-solid fa-cloud-arrow-down animate-bounce"></i>
                             </a>
@@ -144,27 +164,26 @@
                     </div>
 
                     {{-- Image/Graphic Side --}}
-                    <div class="lg:w-1/2 relative">
-                        <div class="relative rounded-md overflow-hidden border border-white/10 shadow-2xl group">
-                            {{-- Overlay Gradient to blend with background --}}
+                    <div class="lg:w-1/2 relative flex justify-center">
+                        {{-- Added max-w-sm to reduce the container size --}}
+                        <div
+                            class="relative rounded-md overflow-hidden border border-gray-100 shadow-xl group max-w-sm">
+                            {{-- Softened gradient for white theme --}}
                             <div
-                                class="absolute inset-0 bg-gradient-to-r from-[#0a1628] via-transparent to-transparent z-10">
+                                class="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-transparent z-10">
                             </div>
 
+                            {{-- Height reduced from 450px to 320px --}}
                             <img src="{{ asset('images/download.png') }}" alt="Security Analysis Visual"
-                                class="w-full h-[450px] object-cover transition-transform duration-700 group-hover:scale-110">
-
-
+                                class="w-full h-[320px] object-cover transition-transform duration-700 group-hover:scale-110">
                         </div>
                     </div>
 
                 </div>
             </div>
 
-            {{-- Background Decoration --}}
-            <div class="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px]"></div>
-            <div class="absolute bottom-0 left-0 -ml-24 -mb-24 w-72 h-72 bg-blue-900/20 rounded-full blur-[100px]">
-            </div>
+            {{-- Background Decoration: Subtly lightened for the white background --}}
+
         </section>
 
         <div class="bg-[#f8fafc] py-20 px-6 lg:px-16 border-t border-gray-100">

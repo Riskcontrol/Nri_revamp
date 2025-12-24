@@ -16,62 +16,27 @@
 
         <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6">
 
-            {{-- Reusable Article Component Logic --}}
-            @php
-                $insights = [
-                    [
-                        'title' => "Northern Nigeria's Peace Deals",
-                        'tag' => 'Insights',
-                        'desc' =>
-                            'Analysis of bandit negotiations and their implications for long-term security stability across affected regions.',
-                    ],
-                    [
-                        'title' => 'Tax Policy Changes',
-                        'tag' => 'Insights',
-                        'desc' =>
-                            "Impact assessment of Nigeria's mandatory TIN policy on business operations and compliance requirements.",
-                    ],
-                    [
-                        'title' => 'Land Administration Issues',
-                        'tag' => 'Insights',
-                        'desc' =>
-                            'Federal-state controversies affecting property rights, business investments, and development projects.',
-                    ],
-                    [
-                        'title' => 'Cross-Border Security Trends',
-                        'tag' => 'Podcasts',
-                        'desc' =>
-                            'Monitoring regional spillovers, migration routes, and supply-chain disruptions shaping operational risk.',
-                    ],
-                ];
-            @endphp
-
-            @foreach ($insights as $item)
+            @foreach ($homeInsights as $insight)
                 <article
-                    class="relative flex flex-col justify-between p-6 rounded-2xl bg-card shadow-lg border border-white/5 overflow-hidden transition-all duration-300 transform-gpu hover:shadow-2xl hover:bg-[#253646] group min-h-[300px]">
+                    class="relative flex flex-col p-6 rounded-2xl bg-card shadow-lg border border-white/5 overflow-hidden transition-all duration-300 transform-gpu hover:shadow-2xl hover:bg-[#253646] group min-h-[220px]">
+                    {{-- Reduced min-h from 300px to 220px --}}
 
                     <div class="relative z-10 pointer-events-none">
-                        <span
-                            class="text-xs font-bold text-white uppercase tracking-wider mb-3 block opacity-80">{{ $item['tag'] }}</span>
+                        <span class="text-xs font-bold text-white uppercase tracking-wider mb-2 block opacity-80">
+                            {{ $insight->category->name ?? 'Uncategorized' }}
+                        </span>
+
                         <h3
-                            class="text-gray-200 font-medium text-xl leading-snug group-hover:text-blue-400 transition-colors duration-300">
-                            {{ $item['title'] }}
+                            class="text-gray-200 font-medium text-lg leading-snug group-hover:text-blue-400 transition-colors duration-300">
+                            {{ $insight->title }}
                         </h3>
-                        <p
-                            class="mt-3 text-gray-400 text-sm leading-relaxed line-clamp-3 group-hover:text-white transition-colors duration-300">
-                            {{ $item['desc'] }}
-                        </p>
                     </div>
 
+                    {{-- Reduced mt-2 to mt-6 to bring the button closer to the text --}}
                     <div class="mt-6 relative z-10">
-                        {{-- The 'after:inset-0' stretches the click area to the whole card WITHOUT causing bounce --}}
-                        <a href="{{ url('/news-insight') }}"
-                            class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white transition-all duration-300 shadow-md group-hover:bg-[#1976D2] group-hover:scale-110 after:absolute after:inset-0 after:content-['']">
-
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
+                        <a href="{{ route('insight.show', $insight->slug ?? $insight->id) }}"
+                            class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white transition-all duration-300 shadow-md group-hover:bg-[#1976D2] group-hover:scale-110 after:absolute after:inset-0 after:content-['']">
+                            <i class="fa-solid fa-arrow-right text-base"></i>
                         </a>
                     </div>
                 </article>

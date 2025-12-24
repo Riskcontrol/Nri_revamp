@@ -64,10 +64,9 @@ Route::prefix('analytics')->group(function () {
 
 Route::get('/risk-map-analytics', [RiskMapAnalyticsController::class, 'index'])->name('risk-map.analytics');
 Route::get('/risk-map-analytics/data', [RiskMapAnalyticsController::class, 'getData']);
-Route::get('/news-insight', function () {
-    return view('news-insight');
-})->name('news-insight');
 
+Route::get('/all-insights', [HomeNewController::class, 'allInsights'])->name('insights.index');
+Route::get('/insight/{id}', [HomeNewController::class, 'showDataInsights'])->name('insight.show');
 Route::get('/news', [SecurityHubController::class, 'index'])->name('news');;
 
 Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])->name('api.calc-risk');

@@ -11,6 +11,8 @@
         "Noto Color Emoji";
 }
 
+@plugin "@tailwindcss/typography";
+
 @theme {
     --color-card: #1e2d3d;
     --color-primary: #0a1628;

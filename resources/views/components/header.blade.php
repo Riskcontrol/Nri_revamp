@@ -5,7 +5,7 @@
             {{-- Logo --}}
             <a href="{{ url('/') }}" class="flex items-center gap-2">
                 <img src="{{ asset('images/nri-logo.png') }}" alt="Nigeria Risk Index Logo"
-                    class="h-30 md:h-30 w-auto object-contain">
+                    class="h-28 md:h-28 w-auto object-contain">
                 <span class="sr-only">Nigeria Risk Index</span>
             </a>
 
