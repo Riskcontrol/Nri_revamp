@@ -708,26 +708,24 @@
             }
 
             insights.forEach(insight => {
+                // MATCHING THE INITIAL RENDER LOGIC: Use text-gray-400 for all
                 let titleColor = 'text-gray-400';
-                let friendlyTitle = insight.type; // Default
+                let friendlyTitle = insight.type;
 
+                // Map technical types to friendly titles as seen in your Blade switch
                 if (insight.type === 'Velocity') {
-                    titleColor = 'text-blue-400';
                     friendlyTitle = 'Activity Pace';
                 } else if (insight.type === 'Emerging Threat') {
-                    titleColor = 'text-red-400';
                     friendlyTitle = 'Rising Risk';
                 } else if (insight.type === 'Lethality') {
-                    titleColor = 'text-orange-400';
                     friendlyTitle = 'Severity Level';
                 } else if (insight.type === 'Forecast') {
-                    titleColor = 'text-green-400';
                     friendlyTitle = 'Future Outlook';
                 }
 
                 container.innerHTML += `
             <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
-                <h4 class="text-xs font-bold ${titleColor} uppercase mb-1 tracking-wider">
+                <h4 class="text-xs font-semibold ${titleColor} uppercase mb-1 tracking-wider">
                     ${friendlyTitle}
                 </h4>
                 <p class="text-white text-md">
