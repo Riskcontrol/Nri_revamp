@@ -37,11 +37,11 @@
                     </p>
 
                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-8">
-                        <button
-                            class="w-full sm:w-auto px-8 py-4 rounded-lg text-white text-lg font-semibold transition hover:brightness-110"
+                        <a href="{{ route('register') }}"
+                            class="w-full sm:w-auto px-8 py-4 rounded-lg text-white text-lg font-semibold transition hover:brightness-110 inline-block text-center"
                             style="background-color: #2196F3;">
                             Start Free Trial
-                        </button>
+                        </a>
 
                         {{-- <button
                             class="w-full sm:w-auto px-8 py-4 rounded-lg border-2 border-white bg-transparent text-white text-lg font-bold transition hover:bg-white/10">

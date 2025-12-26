@@ -9,7 +9,7 @@
                 <span class="sr-only">Nigeria Risk Index</span>
             </a>
 
-            {{-- Right cluster: Desktop Nav + Login --}}
+            {{-- Right cluster: Desktop Nav + Auth --}}
             <div class="hidden md:flex items-center gap-8">
                 <a href="{{ url('/') }}"
                     class="text-md font-medium text-gray-300 hover:text-white transition-colors">Home</a>
@@ -42,10 +42,21 @@
                     <span>Insight</span>
                 </a>
 
-                <a href="{{ url('/login') }}"
-                    class="inline-block rounded-lg bg-transparent border border-white px-8 py-3 text-md text-white font-semibold hover:bg-blue-500 transition shadow-md">
-                    Login
-                </a>
+                {{-- Auth Logic for Desktop --}}
+                @guest
+                    <a href="{{ url('/login') }}"
+                        class="inline-block rounded-lg bg-transparent border border-white px-8 py-3 text-md text-white font-semibold hover:bg-blue-500 transition shadow-md">
+                        Login
+                    </a>
+                @else
+                    <form action="{{ route('logout') }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit"
+                            class="inline-block rounded-lg bg-red-600/10 border border-red-500/50 px-8 py-3 text-md text-red-500 font-semibold hover:bg-red-600 hover:text-white transition shadow-md">
+                            Logout
+                        </button>
+                    </form>
+                @endguest
             </div>
 
             {{-- Hamburger (mobile) --}}
@@ -75,26 +86,32 @@
                 <a href="{{ route('insights.index') }}"
                     class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Insight</a>
 
+                {{-- Auth Logic for Mobile --}}
                 <div class="px-4 mt-4">
-                    <a href="{{ url('/login') }}"
-                        class="block w-full rounded-lg bg-transparent border border-white px-4 py-3 text-white font-medium text-center hover:bg-blue-500 transition shadow-md">
-                        Login
-                    </a>
+                    @guest
+                        <a href="{{ url('/login') }}"
+                            class="block w-full rounded-lg bg-transparent border border-white px-4 py-3 text-white font-medium text-center hover:bg-blue-500 transition shadow-md">
+                            Login
+                        </a>
+                    @else
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="block w-full rounded-lg bg-red-600 border border-red-600 px-4 py-3 text-white font-medium text-center shadow-md">
+                                Logout
+                            </button>
+                        </form>
+                    @endguest
                 </div>
             </div>
         </div>
     </nav>
 
-    {{-- Script to make it work --}}
     <script>
         document.getElementById('menu-toggle').addEventListener('click', function() {
             const menu = document.getElementById('mobile-menu');
             const isExpanded = this.getAttribute('aria-expanded') === 'true';
-
-            // Toggle visibility
             menu.classList.toggle('hidden');
-
-            // Update accessibility attributes
             this.setAttribute('aria-expanded', !isExpanded);
         });
     </script>

@@ -6,11 +6,22 @@ use App\Http\Controllers\LocationIntelligenceController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\SecurityIntelligenceController;
 use App\Http\Controllers\RiskMapController;
-use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\RiskMapAnalyticsController;
 use App\Http\Controllers\SecurityHubController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\LoginController;
 
 
+Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
+    ->name('register')
+    ->middleware('guest');
+
+Route::post('/register', [RegisterController::class, 'register'])
+    ->middleware('guest');
+
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/', [HomeNewController::class, 'getStateRiskReports'])
     ->name('home');
@@ -44,22 +55,6 @@ Route::get('/api/risk-map-data', [RiskMapController::class, 'getMapData'])
      ->name('map.data');
 
 Route::get('/api/risk-map-card-data', [RiskMapController::class, 'getMapCardData'])->name('map.cardData');
-
-Route::prefix('analytics')->group(function () {
-
-    // 1. The View (The Dashboard Page)
-    // URL: domain.com/analytics/dashboard
-    Route::get('/dashboard', [AnalyticsController::class, 'index'])->name('analytics.view');
-
-    // 2. The Filter Options (JSON for Dropdowns)
-    // URL: domain.com/analytics/options
-    Route::get('/options', [AnalyticsController::class, 'getFilterOptions'])->name('analytics.options');
-
-    // 3. The Chart Data (JSON for Visualizations)
-    // URL: domain.com/analytics/data
-    Route::get('/data', [AnalyticsController::class, 'getFilteredStats'])->name('analytics.data');
-
-});
 
 
 Route::get('/risk-map-analytics', [RiskMapAnalyticsController::class, 'index'])->name('risk-map.analytics');

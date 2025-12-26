@@ -14,10 +14,9 @@
 
 
         <div class="border-b border-gray-700">
-            {{-- Flex container to split Tabs (Left) and Buttons (Right) --}}
             <div class="flex flex-col md:flex-row md:items-center md:justify-between">
 
-                {{-- LEFT: TABS --}}
+                {{-- LEFT: TABS (With Interception) --}}
                 <nav class="flex space-x-8 -mb-px overflow-x-auto" aria-label="Tabs">
                     <a href="#" @click.prevent="activeTab = 'overview'"
                         :class="{
@@ -27,31 +26,50 @@
                         class="px-1 pb-4 whitespace-nowrap transition-colors duration-200">
                         Overview
                     </a>
-                    <a href="#" @click.prevent="activeTab = 'analysis'"
+
+                    {{-- Intercepted Analysis Tab --}}
+                    <a href="#"
+                        @click.prevent="
+                    @guest
+openAuthModal();
+                    @else
+                        @if (auth()->user()->access_level < 1)
+                            openAuthModal();
+                        @else
+                            activeTab = 'analysis'
+                        @endif @endguest"
                         :class="{
                             'border-emerald-500 border-b-2 text-base font-semibold text-emerald-400': activeTab === 'analysis',
                             'border-transparent border-b-2 text-base font-medium text-gray-400 hover:border-gray-500 hover:text-gray-200': activeTab !== 'analysis'
                         }"
-                        class="px-1 pb-4 whitespace-nowrap transition-colors duration-200">
+                        class="px-1 pb-4 whitespace-nowrap transition-colors duration-200 flex items-center gap-2">
                         Risk Index Analysis
+                        @if (Auth::guest() || (Auth::check() && Auth::user()->access_level < 1))
+                            <i class="fa-solid fa-lock text-[10px] text-gray-500"></i>
+                        @endif
                     </a>
                 </nav>
 
-                {{-- RIGHT: ACTION BUTTONS --}}
+                {{-- RIGHT: ACTION BUTTONS (With Interception) --}}
                 <div class="flex items-center space-x-4 mt-4 md:mt-0 mb-3 md:mb-2">
-                    {{-- Button 1: Location Intelligence / Risk Map --}}
                     <a href="{{ route('risk-map.show') }}"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-500 transition-all shadow-sm">
-                        <svg class="w-4 h-4 mr-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7">
-                            </path>
-                        </svg>
+                        @click.prevent="
+                    @guest
+openAuthModal();
+                    @else
+                        @if (auth()->user()->access_level < 1)
+                            openAuthModal();
+                        @else
+                            window.location.href = '{{ route('risk-map.show') }}'
+                        @endif @endguest"
+                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 transition-all shadow-sm">
+                        <i class="fa-solid fa-map-location-dot mr-2 text-gray-300"></i>
                         Risk Map
+                        @if (Auth::guest() || (Auth::check() && Auth::user()->access_level < 1))
+                            <i class="fa-solid fa-lock ml-2 text-[10px] text-gray-500"></i>
+                        @endif
                     </a>
                 </div>
-
             </div>
         </div>
 
@@ -368,4 +386,66 @@
         </div>
 
     </div>
+
+    {{-- Reuse the Auth Modal Structure --}}
+    <div id="auth-modal"
+        class="fixed inset-0 z-[2000] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div
+            class="bg-[#1E2D3D] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl relative text-center">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+            <div id="modal-register-state"
+                class="{{ Auth::check() && Auth::user()->access_level < 1 ? 'hidden' : '' }}">
+                <div
+                    class="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-shield-halved text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white">Advanced Analysis Locked</h3>
+                <p class="text-gray-400 mt-2 text-sm leading-relaxed mb-8">
+                    Detailed terrorism analysis and the interactive Risk Map are reserved for professional
+                    organizations.
+                </p>
+                <a href="{{ url('/register') }}"
+                    class="block w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all">
+                    Register for Access
+                </a>
+            </div>
+
+            <div id="modal-success-state"
+                class="{{ Auth::check() && Auth::user()->access_level < 1 ? '' : 'hidden' }}">
+                <div
+                    class="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-envelope-circle-check text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white">Demo Pending Review</h3>
+                <p class="text-gray-400 mt-4 text-sm leading-relaxed">
+                    Thank you! Our analysts are reviewing your request. We will contact you shortly to unlock full
+                    intelligence capabilities for your account.
+                </p>
+                <button onclick="closeAuthModal()"
+                    class="mt-8 w-full border border-white/10 text-white py-3 rounded-xl hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest">
+                    Continue Browsing Overview
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Automatically show success modal after registration if redirected here
+            @if (session('show_demo_popup'))
+                openAuthModal();
+            @endif
+        });
+    </script>
 </x-layout>

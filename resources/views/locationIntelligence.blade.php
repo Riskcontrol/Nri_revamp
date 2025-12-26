@@ -14,25 +14,36 @@
             {{-- State Select --}}
             <div class="flex items-center space-x-2">
                 <label for="state-select" class="text-sm font-medium text-gray-400">State:</label>
-                <select id="state-select"
-                    class="bg-[#131C27] text-white text-sm py-2 px-4 border border-gray-600 rounded-md focus:outline-none focus:border-emerald-500 hover:border-gray-500 transition-colors cursor-pointer">
-                    @foreach ($getStates as $s)
-                        <option value="{{ $s }}" {{ $s == $state ? 'selected' : '' }}>{{ $s }}
-                        </option>
-                    @endforeach
-                </select>
+                <div class="relative">
+                    <select id="state-select" {{-- Add a data attribute to check auth status later --}} data-auth="{{ Auth::check() ? 'true' : 'false' }}"
+                        data-access="{{ Auth::check() && Auth::user()->access_level >= 1 ? 'true' : 'false' }}"
+                        class="bg-[#131C27] text-white text-sm py-2 px-4 border border-gray-600 rounded-md focus:outline-none focus:border-emerald-500 hover:border-gray-500 transition-colors cursor-pointer pr-8">
+                        @foreach ($getStates as $s)
+                            <option value="{{ $s }}" {{ $s == $state ? 'selected' : '' }}>{{ $s }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @guest
+                        <i class="fa-solid fa-lock absolute right-2 top-3 text-[10px] text-gray-500"></i>
+                    @endguest
+                </div>
             </div>
 
             {{-- Year Select --}}
             <div class="flex items-center space-x-2">
                 <label for="year-select" class="text-sm font-medium text-gray-400">Year:</label>
-                <select id="year-select"
-                    class="bg-[#131C27] text-white text-sm py-2 px-4 border border-gray-600 rounded-md focus:outline-none focus:border-emerald-500 hover:border-gray-500 transition-colors cursor-pointer">
-                    @foreach ($availableYears as $y)
-                        <option value="{{ $y }}" {{ $y == $year ? 'selected' : '' }}>{{ $y }}
-                        </option>
-                    @endforeach
-                </select>
+                <div class="relative">
+                    <select id="year-select"
+                        class="bg-[#131C27] text-white text-sm py-2 px-4 border border-gray-600 rounded-md focus:outline-none focus:border-emerald-500 hover:border-gray-500 transition-colors cursor-pointer pr-8">
+                        @foreach ($availableYears as $y)
+                            <option value="{{ $y }}" {{ $y == $year ? 'selected' : '' }}>{{ $y }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @guest
+                        <i class="fa-solid fa-lock absolute right-2 top-3 text-[10px] text-gray-500"></i>
+                    @endguest
+                </div>
             </div>
         </div>
 
@@ -240,15 +251,67 @@
         </div>
     </div>
 
+    <div id="auth-modal"
+        class="fixed inset-0 z-[2000] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-[#1E2D3D] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+            {{-- State 1: Need Registration --}}
+            <div id="modal-register-state">
+                <div class="text-center mb-8">
+                    <div
+                        class="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-shield-halved text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white">Unlock Full Intelligence</h3>
+                    <p class="text-gray-400 mt-2 text-sm leading-relaxed">
+                        Granular state-level analysis and custom date filtering are reserved for verified organizations.
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <a href="{{ url('/register') }}"
+                        class="block w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl text-center transition-all">
+                        Register for Access
+                    </a>
+                    <p class="text-center text-xs text-gray-500">
+                        Already requested a demo? <a href="{{ url('/login') }}"
+                            class="text-blue-400 hover:underline">Login here</a>
+                    </p>
+                </div>
+            </div>
+
+            {{-- State 2: Demo Pending (Success) --}}
+            <div id="modal-success-state" class="hidden">
+                <div class="text-center">
+                    <div
+                        class="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-envelope-circle-check text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white">Request Received</h3>
+                    <p class="text-gray-400 mt-4 text-sm leading-relaxed">
+                        Thank you! We have sent a confirmation to your email. Our team will contact you shortly to
+                        authorize your account and set up your professional demo.
+                    </p>
+                    <button onclick="closeAuthModal()"
+                        class="mt-8 w-full border border-white/10 text-white py-3 rounded-xl hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest">
+                        Continue Browsing
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
     <script>
-        // 1. Global Variables
-        let incidentsTrendChart; // ApexChart Instance
-        let myChart2, attackChart; // Chart.js Instances
+        let incidentsTrendChart;
+        let myChart2, attackChart;
         let map, geojsonLayer, info;
         let lgaGeoJsonData;
         let lgaIncidentData = {};
@@ -689,7 +752,34 @@
                 });
         }
 
+        function openAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
         function handleFilterChange() {
+            const stateSelect = document.getElementById('state-select');
+            const isAuth = stateSelect.getAttribute('data-auth') === 'true';
+            const hasAccess = stateSelect.getAttribute('data-access') === 'true';
+
+
+            if (!isAuth) {
+                stateSelect.value = "{{ $state }}";
+                openAuthModal();
+                return;
+            }
+
+            if (isAuth && !hasAccess) {
+                stateSelect.value = "{{ $state }}";
+                document.getElementById('modal-register-state').classList.add('hidden');
+                document.getElementById('modal-success-state').classList.remove('hidden');
+                openAuthModal();
+                return;
+            }
+
             const primaryState = document.getElementById('state-select').value;
             const selectedYear = document.getElementById('year-select').value;
             document.getElementById('state-name').textContent = primaryState;
@@ -735,9 +825,18 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', initializeCharts);
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+
+            @if (session('show_demo_popup'))
+                document.getElementById('modal-register-state').classList.add('hidden');
+                document.getElementById('modal-success-state').classList.remove('hidden');
+                openAuthModal();
+            @endif
+        });
         document.getElementById('state-select').addEventListener('change', handleFilterChange);
         document.getElementById('year-select').addEventListener('change', handleFilterChange);
         document.getElementById('prevalent-compare-select').addEventListener('change', updatePrevalentComparison);
     </script>
+
 </x-layout>
