@@ -3,15 +3,15 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div class="max-w-4xl mx-auto text-center mb-16 md:mb-20">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-primary mb-2">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-medium tracking-tight text-primary mb-2">
                 Location Intelligence
             </h1>
 
-            <h2 class="text-md sm:text-md md:text-xl font-bold text-gray-600 mb-6">
+            <h2 class="text-lg sm:text-lg md:text-xl font-semibold text-gray-600 mb-6">
                 The Power of 8 years+ proprietary security data
             </h2>
 
-            <p class="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+            <p class="text-lg md:text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
                 Get real-time location intelligence across 36 states backed by security analysts who continuously
                 verify local data, mapped against 8 years of historical trends to give a solid basis for proactive
                 decision making.

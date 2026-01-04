@@ -73,14 +73,26 @@
 
             {{-- 3. RELATED INSIGHTS --}}
             <div class="mt-24 pt-12 border-t border-gray-100">
-                <h3 class="text-2xl font-semibold text-gray-900 mb-10 tracking-wide">Related Insights</h3>
 
+                {{-- Header Section: Flexbox to push items to edges --}}
+                <div class="flex items-center justify-between mb-10">
+                    <h3 class="text-2xl font-medium text-gray-900 tracking-wide">
+                        Related Insights
+                    </h3>
+
+                    <a href="{{ route('insights.index') }}"
+                        class="group flex items-center gap-2 text-sm font-medium text-primary uppercase tracking-wider hover:opacity-80 transition-all">
+                        View More Insights
+                        <i class="fa-solid fa-arrow-right transition-transform group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+
+                {{-- Grid Content --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
                     @foreach ($relatedCategoryPost as $related)
                         <article
                             class="relative flex flex-col p-6 rounded-2xl bg-card shadow-lg border border-white/5 overflow-hidden transition-all duration-300 transform-gpu hover:shadow-2xl hover:bg-[#253646] group min-h-[220px]">
-                            {{-- Reduced min-h from 300px to 220px --}}
 
                             <div class="relative z-10 pointer-events-none">
                                 <span
@@ -94,7 +106,6 @@
                                 </h3>
                             </div>
 
-                            {{-- Reduced mt-2 to mt-6 to bring the button closer to the text --}}
                             <div class="mt-6 relative z-10">
                                 <a href="{{ route('insight.show', $related->slug ?? $related->id) }}"
                                     class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white transition-all duration-300 shadow-md group-hover:bg-[#1976D2] group-hover:scale-110 after:absolute after:inset-0 after:content-['']">

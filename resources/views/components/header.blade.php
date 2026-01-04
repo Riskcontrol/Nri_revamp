@@ -14,11 +14,50 @@
                 <a href="{{ url('/') }}"
                     class="text-md font-medium text-gray-300 hover:text-white transition-colors">Home</a>
 
-                <a href="{{ route('locationIntelligence', ['state' => 'lagos']) }}"
-                    class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
-                    <span>Location</span>
-                    <span>Intelligence</span>
-                </a>
+                {{-- Location Intelligence Dropdown --}}
+                <div class="relative group h-full flex items-center">
+                    {{-- Trigger --}}
+                    <a href="#" onclick="return false;"
+                        class="flex items-center gap-2 text-md font-medium text-gray-300 hover:text-white transition-colors cursor-default">
+
+                        {{-- Preserved Broken Text Format --}}
+                        <div class="flex flex-col text-right leading-tight">
+                            <span>Location</span>
+                            <span>Intelligence</span>
+                        </div>
+
+                        {{-- FontAwesome Icon --}}
+                        <i
+                            class="fa-solid fa-chevron-down text-xs transition-transform duration-200 group-hover:rotate-180"></i>
+                    </a>
+
+                    {{-- Dropdown Menu --}}
+                    <div class="absolute left-0 top-full pt-4 w-56 hidden group-hover:block z-50">
+                        <div class="bg-[#1E2D3D] border border-gray-700 rounded-xl shadow-xl overflow-hidden py-1">
+                            <div
+                                class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-700/50 bg-[#16222E]">
+                                Select a State
+                            </div>
+
+                            <div class="max-h-[400px] overflow-y-auto custom-scrollbar">
+                                @if (isset($headerStates) && count($headerStates) > 0)
+                                    @foreach ($headerStates as $state)
+                                        <a href="{{ route('locationIntelligence', ['state' => $state]) }}"
+                                            class="block px-4 py-2.5 text-sm text-gray-300 hover:bg-[#253646] hover:text-white transition-colors border-b border-gray-700/50 last:border-0">
+                                            {{ $state }}
+                                        </a>
+                                    @endforeach
+                                @else
+                                    {{-- Fallback if provider isn't set up yet --}}
+                                    <a href="{{ route('locationIntelligence', ['state' => 'Lagos']) }}"
+                                        class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/10">Lagos</a>
+                                    <a href="{{ route('locationIntelligence', ['state' => 'Abuja']) }}"
+                                        class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/10">Abuja (FCT)</a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <a href="{{ route('securityIntelligence') }}"
                     class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
@@ -34,11 +73,7 @@
 
                 <a href="{{ route('news') }}"
                     class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
-                    <span>News</span>
-                </a>
-
-                <a href="{{ route('insights.index') }}"
-                    class="flex flex-col text-md font-medium text-gray-300 hover:text-white transition-colors leading-tight">
+                    <span>News &</span>
                     <span>Insight</span>
                 </a>
 
@@ -72,9 +107,14 @@
             <div class="flex flex-col gap-1 pt-4">
                 <a href="{{ url('/') }}"
                     class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Home</a>
-                <a href="{{ route('locationIntelligence', ['state' => 'lagos']) }}"
-                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Location
-                    Intelligence</a>
+
+                {{-- Mobile: Requires selection logic (simplified here to prevent default error) --}}
+                <a href="#"
+                    onclick="alert('Please use the desktop version to select a specific state.'); return false;"
+                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+                    Location Intelligence
+                </a>
+
                 <a href="{{ route('securityIntelligence') }}"
                     class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Risk
                     Index</a>
@@ -82,9 +122,9 @@
                     class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Risk
                     Map</a>
                 <a href="{{ route('news') }}"
-                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">News</a>
-                <a href="{{ route('insights.index') }}"
-                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Insight</a>
+                    class="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">News
+                    & Insight</a>
+
 
                 {{-- Auth Logic for Mobile --}}
                 <div class="px-4 mt-4">

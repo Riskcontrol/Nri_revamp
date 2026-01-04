@@ -6,11 +6,11 @@
         <div class="pb-12 text-center"> {{-- Added text-center here --}}
             <div class="flex flex-col items-center justify-center gap-y-4"> {{-- Changed flex logic --}}
                 <div class="space-y-3">
-                    <h1 class="text-3xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-white">
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-medium tracking-tight text-white">
                         Real-time Security Intelligence
                     </h1>
                     {{-- Added mx-auto to center the max-w-2xl paragraph --}}
-                    <p class="text-md sm:text-base text-gray-400 mx-auto leading-relaxed">
+                    <p class="text-base sm:text-lg text-gray-400 mx-auto leading-relaxed">
                         Track terrorism, armed robbery, and security incidents across Nigeria with actionable
                         intelligence
                     </p>

@@ -5,7 +5,7 @@
         <div class="max-w-7xl mx-auto px-6 lg:px-8 text-center">
             {{-- Decorative Label --}}
 
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-6">Our Latest Insights</h1>
+            <h1 class="text-4xl md:text-5xl font-semibold text-white mb-6">Our Latest Insights</h1>
 
             <p class="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
                 Strategic analysis and deep dives into the security, economic, and geopolitical landscape of Nigeria.

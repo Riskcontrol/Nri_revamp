@@ -7,11 +7,11 @@
 
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-12">
                     <div class="lg:w-1/2 space-y-4">
-                        <h1 class="text-3xl lg:text-4xl font-medium tracking-tight leading-[1.1] text-primary">
-                            Nigeria Security <br /> Intelligence Hub</span>
+                        <h1 class="text-3xl md:text-4xl font-medium tracking-tight leading-[1.1] text-primary">
+                            Nigeria Security News Hub</span>
                         </h1>
-                        <p class="text-gray-900 text-xl leading-relaxed max-w-md font-medium">
-                            Comprehensive security intelligence platform for professionals and organization
+                        <p class="text-gray-500 text-lg leading-relaxed max-w-md font-medium">
+                            Stay informed on the latest security development across Nigeria.
                         </p>
                     </div>
 
@@ -33,7 +33,7 @@
                                 <span class="block text-4xl font-semibold text-primary">
                                     {{ number_format($totalIncidents) }}
                                 </span>
-                                <span class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">
+                                <span class="text-[9px] uppercase text-gray-500 font-semibold tracking-widest">
                                     Incidents this week
                                 </span>
                             </div>
@@ -43,7 +43,7 @@
                                 <span class="block text-4xl font-semibold text-primary">
                                     {{ number_format($highRiskAlerts) }}
                                 </span>
-                                <span class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">
+                                <span class="text-[9px] uppercase text-gray-500 font-semibold tracking-widest">
                                     High risk alerts
                                 </span>
                             </div>
@@ -53,7 +53,7 @@
                                 <span class="block text-4xl font-semibold text-primary">
                                     {{ number_format($statesAffected) }}
                                 </span>
-                                <span class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">
+                                <span class="text-[9px] uppercase text-gray-500 font-semibold tracking-widest">
                                     States affected
                                 </span>
                             </div>
@@ -64,8 +64,32 @@
             </div>
         </div>
 
+
         <div class="py-12 px-6 lg:px-16 -mt-8 bg-primary">
             <div class="max-w-7xl mx-auto">
+                <div class="mb-6 flex justify-start">
+                    <form method="GET" action="{{ url()->current() }}" class="relative">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i class="fa-solid fa-filter text-gray-400"></i>
+                            </div>
+
+                            <select name="region" onchange="this.form.submit()"
+                                class="block w-full p-3 pl-10 text-sm text-white border border-white/10 rounded-lg bg-[#162536] focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400">
+                                <option value="">All Regions</option>
+
+                                {{-- Loop through the Region Map Keys --}}
+                                @foreach (array_keys($regionMap) as $regionName)
+                                    <option value="{{ $regionName }}"
+                                        {{ request('region') == $regionName ? 'selected' : '' }}>
+                                        {{ $regionName }}
+                                    </option>
+                                @endforeach
+
+                            </select>
+                        </div>
+                    </form>
+                </div>
                 <div class="bg-primary border border-white/10 overflow-hidden rounded-xl shadow-2xl">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse bg-primary">
@@ -129,72 +153,64 @@
             </div>
         </div>
 
-        <section class="relative bg-white overflow-hidden">
-            <div class="max-w-7xl mx-auto px-6 lg:px-16 py-20 lg:py-28">
-                <div class="flex flex-col lg:flex-row items-center gap-16">
 
-                    {{-- Content Side --}}
-                    <div class="lg:w-1/2 space-y-8 relative z-10">
-                        <div class="space-y-4">
-                            {{-- Font normal and gray-900 for contrast on white --}}
-                            <h2 class="text-gray-900 text-3xl lg:text-4xl font-normal leading-[1.1] tracking-tight">
-                                Nigeria Security Landscape <br>
-                                <span class="text-gray-900">2018 – 2024 Report</span>
-                            </h2>
-                        </div>
 
-                        {{-- Font normal and gray-600 for optimal readability --}}
-                        <p class="text-gray-700 text-md lg:text-md leading-relaxed font-medium">
-                            Nigeria's security landscape from 2018 to 2024 reveals a counterintuitive reality -
-                            incidents increased significantly by 160.8%,
-                            yet annual deaths have fallen by 41.0%.
-                            This report, based on 25,945 verified incidents,
-                            documents how Nigeria's insecurity has transformed from concentrated, high-casualty
-                            terrorism to widespread, lower-intensity criminality.
-                        </p>
+        <section class="relative w-full min-h-[200px] flex items-center bg-cover bg-center overflow-hidden"
+            style="background-image: url('{{ asset('images/banner.png') }}');">
 
-                        <div class="flex flex-wrap gap-4 pt-4">
-                            {{-- Updated button for white background --}}
-                            <a href="{{ route('reports.download') }}" target="_blank"
-                                class="inline-flex items-center border border-gray-800 gap-3 bg-transparent hover:bg-gray-800 hover:text-white text-gray-800 font-normal py-4 px-10 rounded-xl shadow-sm transition-all hover:scale-105 active:scale-95 uppercase tracking-widest text-sm">
-                                <span>Download Full Report</span>
-                                <i class="fa-solid fa-cloud-arrow-down animate-bounce"></i>
-                            </a>
-                        </div>
+            <div class="absolute inset-0 bg-[#0F172A]/50 mix-blend-multiply"></div>
+
+            <div class="relative z-10 container mx-auto px-6 py-16">
+                <div class="max-w-3xl mx-auto space-y-6">
+
+                    <div class="space-y-2">
+                        <span class="block text-white/90 font-semibold tracking-[0.2em] text-xs md:text-sm uppercase">
+                            2018 – 2024 Report
+                        </span>
+
+                        <h1 class="text-2xl md:text-3xl font-semibold text-white leading-tight">
+                            Security In Nigeria Over the Past 7 Years
+                        </h1>
                     </div>
 
-                    {{-- Image/Graphic Side --}}
-                    <div class="lg:w-1/2 relative flex justify-center">
-                        {{-- Added max-w-sm to reduce the container size --}}
-                        <div
-                            class="relative rounded-md overflow-hidden border border-gray-100 shadow-xl group max-w-sm">
-                            {{-- Softened gradient for white theme --}}
+                    <div class="text-base text-white font-medium leading-relaxed space-y-2">
+                        <p>
+                            Nigeria's security landscape from 2018 to 2024 reveals a
+                            counterintuitive reality - incidents increased significantly by 160.8%,
+                            yet annual deaths have fallen by 41.0%. This report, based
+                            on 25,945 verified incidents, documents how Nigeria's insecurity
+                            has transformed from concentrated, high-casualty terrorism
+                            to widespread, lower-intensity criminality.
+                        </p>
+
+                    </div>
+
+                    <div class="pt-4 flex justify-start">
+                        <a href="{{ route('reports.download') }}" target="_blank"
+                            class="inline-flex items-center gap-4 group">
                             <div
-                                class="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-transparent z-10">
+                                class="w-10 h-10 rounded-full bg-white flex items-center justify-center transition-transform group-hover:scale-110">
+                                <i class="fa-solid fa-arrow-right text-black text-lg"></i>
                             </div>
 
-                            {{-- Height reduced from 450px to 320px --}}
-                            <img src="{{ asset('images/download.png') }}" alt="Security Analysis Visual"
-                                class="w-full h-[320px] object-cover transition-transform duration-700 group-hover:scale-110">
-                        </div>
+                            <span class="text-white font-medium tracking-wide uppercase text-sm group-hover:underline">
+                                Download full report
+                            </span>
+                        </a>
                     </div>
 
                 </div>
             </div>
-
-            {{-- Background Decoration: Subtly lightened for the white background --}}
-
         </section>
-
         {{-- NEW INSIGHTS SECTION --}}
-        <section class="bg-white py-14 px-6 lg:px-16 border-t border-gray-100">
+        <section class="bg-white py-20 px-6 lg:px-16">
             <div class="max-w-7xl mx-auto">
 
                 {{-- Section Header --}}
                 <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                     <div class="max-w-2xl">
 
-                        <h2 class="text-3xl md:text-4xl font-semibold text-[#0a1628] leading-tight">
+                        <h2 class="text-3xl md:text-4xl font-medium text-primary leading-tight">
                             Latest Insights
                         </h2>
                         <p class="text-gray-500 mt-4 text-lg">
@@ -203,7 +219,7 @@
                     </div>
 
                     <a href="{{ route('insights.index') }}"
-                        class="text-sm font-semibold text-gray-600 hover:text-[#0a1628] transition-colors flex items-center gap-2 group">
+                        class="text-sm font-semibold text-gray-600 hover:text-primary transition-colors flex items-center gap-2 group">
                         View All Insights
                         <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                     </a>
@@ -241,54 +257,6 @@
             </div>
         </section>
 
-        <div class="bg-[#f8fafc] py-20 px-6 lg:px-16 border-t border-gray-100">
-            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div
-                    class="group bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100 hover:border-blue-500/30 hover:shadow-xl transition-all">
-                    <div
-                        class="h-14 w-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors">
-                        <i class="fa-solid fa-fingerprint text-2xl text-blue-600 group-hover:text-white"></i>
-                    </div>
-                    <h4 class="text-xl font-bold text-[#0a1628]">Security Intelligence</h4>
-                    <p class="text-gray-500 text-sm mt-3 leading-relaxed">Weekly deep-dives into regional insurgencies
-                        and organized crime patterns.</p>
-                    <button
-                        class="mt-8 w-full bg-[#0a1628] text-white py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-xs uppercase tracking-widest hover:bg-blue-600 transition-all">
-                        <i class="fa-solid fa-lock text-[10px]"></i> Get Weekly Brief
-                    </button>
-                </div>
-
-                <div
-                    class="group bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100 hover:border-blue-500/30 hover:shadow-xl transition-all">
-                    <div
-                        class="h-14 w-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors">
-                        <i class="fa-solid fa-chart-line text-2xl text-blue-600 group-hover:text-white"></i>
-                    </div>
-                    <h4 class="text-xl font-bold text-[#0a1628]">Risk Assessment</h4>
-                    <p class="text-gray-500 text-sm mt-3 leading-relaxed">Dynamic vulnerability scoring for corporate
-                        operations and logistical routes.</p>
-                    <button
-                        class="mt-8 w-full border-2 border-gray-100 text-[#0a1628] py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-all">
-                        <i class="fa-solid fa-file-export text-[10px]"></i> Download Template
-                    </button>
-                </div>
-
-                <div
-                    class="group bg-white p-10 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100 hover:border-blue-500/30 hover:shadow-xl transition-all">
-                    <div
-                        class="h-14 w-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors">
-                        <i class="fa-solid fa-vault text-2xl text-blue-600 group-hover:text-white"></i>
-                    </div>
-                    <h4 class="text-xl font-bold text-[#0a1628]">Intelligence Reports</h4>
-                    <p class="text-gray-500 text-sm mt-3 leading-relaxed">Archived historical data on security trends
-                        spanning the last decade.</p>
-                    <button
-                        class="mt-8 w-full border-2 border-gray-100 text-[#0a1628] py-4 rounded-xl flex items-center justify-center gap-3 font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-all">
-                        Access Premium Archive
-                    </button>
-                </div>
-            </div>
-        </div>
     </section>
     <style>
         /* Targeting Laravel's default Tailwind classes to match your theme */

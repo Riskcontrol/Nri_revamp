@@ -5,9 +5,8 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h1 class="text-center text-2xl md:text-3xl font-bold text-white mb-8">
-            Location Intelligence for <span id="state-name">{{ $state }}</span> in <span
-                id="current-year">{{ $year }}</span>
+        <h1 class="text-center text-2xl font-semibold text-white mb-8">
+            Location Intelligence - <span id="state-name">{{ $state }}</span> State
         </h1>
 
         <div class="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 text-center mb-10">
@@ -169,15 +168,24 @@
 
             <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
-                    <h3 class="text-center sm:text-left text-lg md:text-xl font-semibold  text-gray-400">Prevalent Risk
+                    <h3 class="text-center sm:text-left text-lg md:text-xl font-semibold text-gray-400">Prevalent Risk
                     </h3>
-                    <select id="prevalent-compare-select"
-                        class="bg-[#131C27] text-white text-xs py-1 px-3 border border-gray-600 rounded hover:border-gray-400 focus:outline-none focus:border-emerald-500 transition-colors w-full sm:w-auto">
-                        <option value="" selected>Compare...</option>
-                        @foreach ($getStates as $s)
-                            <option value="{{ $s }}">{{ $s }}</option>
-                        @endforeach
-                    </select>
+
+                    <div class="relative w-full sm:w-auto">
+                        <select id="prevalent-compare-select" data-auth="{{ Auth::check() ? 'true' : 'false' }}"
+                            data-access="{{ Auth::check() && Auth::user()->access_level >= 1 ? 'true' : 'false' }}"
+                            class="bg-[#131C27] text-white text-xs py-1 px-3 border border-gray-600 rounded hover:border-gray-400 focus:outline-none focus:border-emerald-500 transition-colors w-full pr-8 cursor-pointer">
+                            <option value="" selected>Compare...</option>
+                            @foreach ($getStates as $s)
+                                <option value="{{ $s }}">{{ $s }}</option>
+                            @endforeach
+                        </select>
+
+                        @guest
+                            <i
+                                class="fa-solid fa-lock absolute right-2 top-2 text-[10px] text-gray-500 pointer-events-none"></i>
+                        @endguest
+                    </div>
                 </div>
                 <div class="relative h-64 md:h-80">
                     <canvas id="myChart2"></canvas>
@@ -328,7 +336,7 @@
             }
 
             const defaultState = document.getElementById('state-name').textContent || 'Primary State';
-            const defaultYear = document.getElementById('current-year').textContent;
+            // const defaultYear = document.getElementById('current-year').textContent;
 
             // --- Chart 1: Incidents Over Past 12 Months (ApexCharts) ---
             const trendOptions = {
@@ -783,8 +791,34 @@
             const primaryState = document.getElementById('state-select').value;
             const selectedYear = document.getElementById('year-select').value;
             document.getElementById('state-name').textContent = primaryState;
-            document.getElementById('current-year').textContent = selectedYear;
+            // document.getElementById('current-year').textContent = selectedYear;
             updateMainDashboard(primaryState, selectedYear);
+        }
+
+        function handleCompareChange() {
+            const compareSelect = document.getElementById('prevalent-compare-select');
+            const isAuth = compareSelect.getAttribute('data-auth') === 'true';
+            const hasAccess = compareSelect.getAttribute('data-access') === 'true';
+
+            // 1. Check if user is logged in
+            if (!isAuth) {
+                compareSelect.value = ""; // Reset selection
+                openAuthModal();
+                return;
+            }
+
+            // 2. Check if user has permission (Demo/Paid)
+            if (isAuth && !hasAccess) {
+                compareSelect.value = ""; // Reset selection
+                // Show the 'Request Received' / Success state since they are logged in but unauthorized
+                document.getElementById('modal-register-state').classList.add('hidden');
+                document.getElementById('modal-success-state').classList.remove('hidden');
+                openAuthModal();
+                return;
+            }
+
+            // 3. If authorized, proceed with the chart update
+            updatePrevalentComparison();
         }
 
         function renderInsights(insights) {
@@ -836,7 +870,7 @@
         });
         document.getElementById('state-select').addEventListener('change', handleFilterChange);
         document.getElementById('year-select').addEventListener('change', handleFilterChange);
-        document.getElementById('prevalent-compare-select').addEventListener('change', updatePrevalentComparison);
+        document.getElementById('prevalent-compare-select').addEventListener('change', handleCompareChange);
     </script>
 
 </x-layout>

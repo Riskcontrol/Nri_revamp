@@ -1,21 +1,22 @@
 <footer class="bg-[#0a1628] text-white border-t border-white/10">
     <div class="max-w-7xl mx-auto px-6 md:px-8 py-16">
-        {{-- Main Grid --}}
-        <div class="grid gap-12 lg:grid-cols-4">
+
+        {{-- Main Grid: 'items-start' ensures the tops of all columns align perfectly --}}
+        <div class="grid gap-12 lg:grid-cols-4 items-start">
 
             {{-- Brand Column --}}
-            <div class="space-y-8">
-                <a href="{{ url('/') }}" class="flex items-center group">
+            <div class="flex flex-col">
+                <a href="{{ url('/') }}" class="block mb-8 -mt-2 group">
                     <img src="{{ asset('images/nri-logo-white.png') }}" alt="Nigeria Risk Index Logo"
                         class="h-16 w-auto object-contain transition-transform group-hover:scale-105" />
                 </a>
 
-                <p class="text-base leading-relaxed text-gray-300 max-w-xs">
+                <p class="text-base leading-relaxed text-gray-300 max-w-xs mb-8">
                     Comprehensive business risk intelligence for operations in Nigeria. We provide data-driven
                     insights to help businesses protect their assets and personnel.
                 </p>
 
-                {{-- Social Links - Rounded Square style from image --}}
+                {{-- Social Links --}}
                 <div class="flex gap-3">
                     @php
                         $socials = [
@@ -37,7 +38,7 @@
 
             {{-- Use Cases --}}
             <div>
-                <h3 class="text-sm font-bold tracking-[0.15em] text-white uppercase mb-8">Use Cases</h3>
+                <h3 class="text-sm font-semibold tracking-[0.15em] text-white uppercase mb-8">Use Cases</h3>
                 <ul class="space-y-4 text-base">
                     <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Location
                             Intelligence</a></li>
@@ -52,7 +53,7 @@
 
             {{-- Company --}}
             <div>
-                <h3 class="text-sm font-bold tracking-[0.15em] text-white uppercase mb-8">Company</h3>
+                <h3 class="text-sm font-semibold tracking-[0.15em] text-white uppercase mb-8">Company</h3>
                 <ul class="space-y-4 text-base">
                     <li><a class="text-gray-400 hover:text-white transition-colors" href="#">About Us</a></li>
                     <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Insights</a></li>
@@ -64,7 +65,7 @@
             {{-- Newsletter & Contact --}}
             <div class="space-y-8">
                 <div>
-                    <h3 class="text-sm font-bold tracking-[0.15em] text-white uppercase mb-6">Stay Updated</h3>
+                    <h3 class="text-sm font-semibold tracking-[0.15em] text-white uppercase mb-6">Stay Updated</h3>
                     <p class="text-gray-400 mb-6">Get the latest risk alerts in your inbox.</p>
 
                     <form action="#" method="POST" class="relative group">
@@ -81,7 +82,7 @@
                     </form>
                 </div>
 
-                {{-- Contact Info with FontAwesome --}}
+                {{-- Contact Info --}}
                 <ul class="space-y-4">
                     <li class="flex items-center gap-3 text-gray-400 group">
                         <i class="fa-solid fa-envelope text-gray-500 group-hover:text-blue-500 transition-colors"></i>

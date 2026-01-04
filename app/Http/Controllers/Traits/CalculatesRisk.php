@@ -11,8 +11,8 @@ trait CalculatesRisk
 {
     // These severity weights remain static as they are part of the core formula
     protected $WEIGHT_INCIDENT_SEVERITY = 25;
-    protected $WEIGHT_VICTIM_SEVERITY   = 35;
-    protected $WEIGHT_DEATH_SEVERITY    = 40;
+    protected $WEIGHT_VICTIM_SEVERITY   = 30;
+    protected $WEIGHT_DEATH_SEVERITY    = 45;
 
     /**
      * 1. BUILD THE MAP FROM DATABASE

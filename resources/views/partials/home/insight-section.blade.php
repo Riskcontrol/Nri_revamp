@@ -5,7 +5,7 @@
 
         {{-- Centered Heading Section --}}
         <div class="max-w-3xl mx-auto text-center mb-12 md:mb-16">
-            <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-white">
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-medium tracking-tight text-white">
                 Stay Informed with Expert Analysis
             </h2>
             <p class="mt-4 text-base md:text-lg leading-relaxed text-gray-400 max-w-2xl mx-auto">
@@ -46,7 +46,7 @@
 
         <div class="mt-12 flex justify-center">
             <a href="#"
-                class="inline-flex items-center gap-3 border-2 border-gray-500 bg-transparent text-gray-500 font-semibold text-base px-8 py-3.5 rounded-xl transition-all duration-300 hover:bg-white hover:text-gray-600 hover:shadow-xl hover:-translate-y-1 active:translate-y-0 active:scale-95">
+                class="inline-flex items-center gap-3 border-2 border-gray-500 bg-transparent text-gray-500 font-medium text-base px-8 py-3.5 rounded-xl transition-all duration-300 hover:bg-white hover:text-gray-600 hover:shadow-xl hover:-translate-y-1 active:translate-y-0 active:scale-95">
                 View More Insights
             </a>
         </div>
