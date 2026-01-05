@@ -4,7 +4,7 @@
         <section class="max-w-7xl mx-auto bg-gradient-to-br from-[#1E2D3D] to-[#111f3a] rounded-lg shadow-xl py-8 px-6">
 
             <div class="space-y-2 text-center">
-                <h1 id="main-title" class="text-3xl font-bold text-white mt-2">Nigeria Composite Risk Index</h1>
+                <h1 id="main-title" class="text-2xl font-semibold text-white mt-2">Nigeria Composite Risk Index</h1>
                 <p class="text-sm font-medium text-gray-300"> A Data-Driven Approach to Understanding Nigeria's Security
                     Threats
                 </p>

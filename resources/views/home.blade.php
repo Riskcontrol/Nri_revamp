@@ -87,7 +87,7 @@
                     <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
                         <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Total Incidents
                         </h3>
-                        <div class="text-xl sm:text-2xl font-medium text-white mt-0.5">
+                        <div class="text-xl sm:text-2xl font-normal text-white mt-0.5">
                             {{ number_format($totalIncidents) }}
                         </div>
                     </div>
@@ -95,7 +95,7 @@
                     {{-- 3. High Risk States --}}
                     <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
                         <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">High Risk States</h3>
-                        <div class="text-xl sm:text-2xl font-medium text-white mt-0.5">
+                        <div class="text-xl sm:text-2xl font-normal text-white mt-0.5">
                             {{ $highRiskStateCount }}
                         </div>
                     </div>
@@ -103,7 +103,7 @@
                     {{-- 4. Most Affected --}}
                     <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
                         <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Most Affected</h3>
-                        <div class="text-lg sm:text-xl font-medium text-white mt-0.5 truncate">
+                        <div class="text-lg sm:text-xl font-normal text-white mt-0.5 truncate">
                             {{ $top3HighRiskStates }}
                         </div>
                     </div>

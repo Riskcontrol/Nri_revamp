@@ -10,7 +10,7 @@ use App\Http\Controllers\RiskMapAnalyticsController;
 use App\Http\Controllers\SecurityHubController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
-
+use App\Http\Controllers\RiskToolController;
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
     ->name('register')
@@ -48,11 +48,11 @@ Route::get('/get-comparison-risk-counts', [LocationController::class, 'getCompar
 
 
 Route::get('/risk-map', [RiskMapController::class, 'showMapPage'])
-     ->name('risk-map.show'); // We name it 'risk-map.show'
+    ->name('risk-map.show'); // We name it 'risk-map.show'
 
 // THIS IS YOUR API ROUTE (you should already have this)
 Route::get('/api/risk-map-data', [RiskMapController::class, 'getMapData'])
-     ->name('map.data');
+    ->name('map.data');
 
 Route::get('/api/risk-map-card-data', [RiskMapController::class, 'getMapCardData'])->name('map.cardData');
 
@@ -66,3 +66,8 @@ Route::get('/news', [SecurityHubController::class, 'index'])->name('news');;
 
 Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])->name('api.calc-risk');
 Route::get('/download-security-report', [SecurityHubController::class, 'downloadReport'])->name('reports.download');
+
+
+Route::get('/risk-assessment', [RiskToolController::class, 'index'])->name('risk.tool');
+Route::get('/api/risk-analysis', [RiskToolController::class, 'analyze']);
+Route::post('/api/save-lead', [RiskToolController::class, 'saveLead']);

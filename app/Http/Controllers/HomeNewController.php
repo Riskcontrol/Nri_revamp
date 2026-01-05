@@ -245,7 +245,7 @@ class HomeNewController extends Controller
      */
     public function allInsights(Request $request)
     {
-        $insights = DataInsights::with('category')->latest()->paginate(12);
+        $insights = DataInsights::with('category')->where('category_id', 2)->latest()->paginate(12);
         $categories = DataInsightsCategory::orderBy('name', 'asc')->get();
         return view('insights', compact('insights', 'categories'));
     }

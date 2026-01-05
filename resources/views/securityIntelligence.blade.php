@@ -84,7 +84,7 @@ openAuthModal();
                     <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
                         Tracked Security Incidents
                     </h3>
-                    <p class="text-md md:text-md font-medium text-white tracking-tight">
+                    <p class="text-base md:text-base font-normal text-white tracking-tight">
                         {{ number_format($totalIncidents) }}
                     </p>
                 </div>
@@ -95,7 +95,7 @@ openAuthModal();
                     <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
                         Fatalities
                     </h3>
-                    <p class="text-md md:text-md font-medium text-white tracking-tight">
+                    <p class="text-base md:text-base font-normal text-white tracking-tight">
                         {{ number_format($totalDeaths) }}
                     </p>
                 </div>
@@ -107,7 +107,7 @@ openAuthModal();
                         Recurring Risk
                     </h3>
                     {{-- 'leading-tight' prevents multi-line text from pushing the layout too far --}}
-                    <p class="text-md md:text-md font-medium text-white leading-tight">
+                    <p class="text-base md:text-base font-normal text-white leading-tight">
                         {{ $prominentRisks }}
                     </p>
                 </div>
@@ -118,7 +118,7 @@ openAuthModal();
                     <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
                         Hot Zones
                     </h3>
-                    <div class="text-md md:text-md font-medium text-white leading-tight">
+                    <div class="text-base md:text-base font-normal text-white leading-tight">
                         @forelse ($activeRegions as $region)
                             <span>{{ $region['zone'] }}</span>
                             @if (!$loop->last)

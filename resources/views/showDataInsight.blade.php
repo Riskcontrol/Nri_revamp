@@ -53,18 +53,18 @@
                 <article class="text-gray-800 leading-relaxed text-lg">
 
                     {{-- Lead Paragraph (Using the 'description' or 'excerpt' field if you have one) --}}
-                    @if ($post->description)
+                    {{-- @if ($post->description)
                         <p
                             class="text-xl md:text-2xl text-gray-900 font-medium leading-relaxed border-b border-gray-200 pb-10 mb-10">
                             {{ $post->description }}
                         </p>
-                    @endif
+                    @endif --}}
 
                     {{-- TinyMCE Content Area --}}
                     {{-- Note: 'prose' ensures HTML from TinyMCE is styled correctly --}}
                     <div
                         class="prose prose-lg prose-blue max-w-none
-                                prose-img:rounded-2xl prose-headings:text-gray-900">
+                                prose-img:rounded-2xl prose-headings:text-gray-900 text-gray-800">
                         {!! $post->content !!}
                     </div>
 

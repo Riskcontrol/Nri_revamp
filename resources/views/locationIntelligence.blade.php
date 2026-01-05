@@ -56,7 +56,7 @@
                     class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
                     Tracked Incidents ({{ $year }})
                 </h3>
-                <p class="text-md md:text-md font-medium text-white tracking-tight">
+                <p class="text-base md:text-base font-normal text-white tracking-tight">
                     {{ $total_incidents }}
                 </p>
             </div>
@@ -68,7 +68,7 @@
                     Most Prevalent Risk
                 </h3>
                 <div id="most-frequent-risk-content"
-                    class="text-md md:text-md font-medium text-white leading-tight px-2">
+                    class="text-base md:text-base font-normal text-white leading-tight px-2">
                     <p>{{ $mostFrequentRisk->pluck('riskindicators')->implode(', ') ?: 'No data available' }}</p>
                 </div>
             </div>
@@ -79,7 +79,7 @@
                 <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
                     Most Affected LGA
                 </h3>
-                <p class="text-md md:text-md font-medium text-white tracking-wide">
+                <p class="text-base md:text-base font-normal text-white tracking-wide">
                     @if ($mostAffectedLGA)
                         {{ $mostAffectedLGA->lga }}
                     @else
@@ -97,7 +97,7 @@
 
                 {{-- Flex row to place Rank beside the Score --}}
                 <div class="flex items-center justify-center gap-3">
-                    <p id="crime-index-score" class="text-md md:text-md font-medium text-white tracking-tight">
+                    <p id="crime-index-score" class="text-base md:text-base font-normal text-white tracking-tight">
                         {{ $stateCrimeIndexScore }}
                     </p>
 
@@ -145,7 +145,7 @@
                             {{ $friendlyTitle }}
                         </h4>
 
-                        <p class="text-white text-md">
+                        <p class="text-white text-base font-normal">
                             {{ $insight['text'] }}
                         </p>
                     </div>
