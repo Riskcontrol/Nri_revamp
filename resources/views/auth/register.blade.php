@@ -1,4 +1,4 @@
-<x-layout title="Request Intelligence Access">
+<x-layout title="Register | Nigeria Risk Index">
     <div class="min-h-screen bg-[#0E1B2C] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-md w-full space-y-8 bg-[#1E2D3D] p-10 rounded-3xl border border-white/5 shadow-2xl">
             <div class="text-center">
@@ -6,7 +6,7 @@
                 <p class="mt-2 text-sm text-gray-400">Request a professional demo for your organization</p>
             </div>
             @if ($errors->any())
-                <div class="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-xl mb-6 text-sm">
+                <div class="bg-red-500 border border-red-500 text-white p-4 rounded-xl mb-6 text-sm">
                     <ul class="list-disc list-inside">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -55,9 +55,31 @@
                 </button>
             </form>
 
-            <p class="text-center text-xs text-gray-500">
+            <p class="text-center text-base text-gray-500">
                 Already have access? <a href="/login" class="text-blue-400 hover:text-blue-300">Login</a>
             </p>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Select the form specifically by its action
+            const registerForm = document.querySelector('form[action="{{ route('register') }}"]');
+
+            if (registerForm) {
+                registerForm.addEventListener('submit', function() {
+                    const submitBtn = registerForm.querySelector('button[type="submit"]');
+
+                    // 1. Disable the button
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                    // 2. Change text to "Requesting Access..." with a spinner
+                    submitBtn.innerHTML = `
+                    <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                    REQUESTING ACCESS...
+                `;
+                });
+            }
+        });
+    </script>
 </x-layout>

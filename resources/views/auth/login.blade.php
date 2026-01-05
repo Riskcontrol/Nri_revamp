@@ -1,4 +1,4 @@
-<x-layout title="Login | Intelligence Hub">
+<x-layout title="Login | Nigeria Risk Index">
     <div class="min-h-screen bg-[#0E1B2C] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-md w-full space-y-8 bg-[#1E2D3D] p-10 rounded-3xl border border-white/5 shadow-2xl">
             <div class="text-center">
@@ -7,7 +7,7 @@
             </div>
 
             @if ($errors->any())
-                <div class="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-xl text-xs">
+                <div class="bg-red-500 border border-red-500 text-white p-4 rounded-xl text-xs">
                     Invalid credentials. Please check your email and password.
                 </div>
             @endif
@@ -43,10 +43,31 @@
                 </button>
             </form>
 
-            <p class="text-center text-xs text-gray-500">
+            <p class="text-center text-base text-gray-500">
                 Don't have an account? <a href="{{ route('register') }}"
-                    class="text-blue-400 hover:text-blue-300">Request Demo Access</a>
+                    class="text-blue-400 hover:text-blue-300">Register Now</a>
             </p>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.querySelector('form');
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', function() {
+                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+
+                    // 1. Disable the button so it can't be clicked again
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                    // 2. Change the text to give user feedback
+                    submitBtn.innerHTML = `
+                    <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                    SIGNING IN...
+                `;
+                });
+            }
+        });
+    </script>
 </x-layout>
