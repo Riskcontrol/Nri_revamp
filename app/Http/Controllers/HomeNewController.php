@@ -24,8 +24,8 @@ class HomeNewController extends Controller
         // 1. Fetch data for the weighted trait
         // We now include 'riskindicators' to allow for weighted severity
         $data = tbldataentry::selectRaw('location, riskindicators, yy, COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
-                                ->groupBy('location', 'riskindicators', 'yy')
-                                ->get();
+            ->groupBy('location', 'riskindicators', 'yy')
+            ->get();
 
         // 2. Calculate state risk reports using the Trait
         $stateRiskReports = $this->calculateWeightedStateRisk($data);
@@ -37,27 +37,27 @@ class HomeNewController extends Controller
 
         $highRiskStateCount = $highRiskStates->count();
 
-      $top3HighRiskStates = $data
-        ->filter(function ($row) {
-            $indicator = strtolower(trim($row->riskindicators));
-            // Specifically tracking the most severe threat indicators
-            return in_array($indicator, ['terrorism', 'kidnapping']);
-        })
-        ->groupBy('location')
-        ->map(function ($rows, $location) {
-            $deaths = $rows->sum('total_deaths');
-            $injuries = $rows->sum('total_injuries');
+        $top3HighRiskStates = $data
+            ->filter(function ($row) {
+                $indicator = strtolower(trim($row->riskindicators));
+                // Specifically tracking the most severe threat indicators
+                return in_array($indicator, ['terrorism', 'kidnapping']);
+            })
+            ->groupBy('location')
+            ->map(function ($rows, $location) {
+                $deaths = $rows->sum('total_deaths');
+                $injuries = $rows->sum('total_injuries');
 
-            // The Human Toll formula: Fatalities are the primary weight
-            return [
-                'location' => $location,
-                'human_toll' => ($deaths * 1.0) + ($injuries * 0.5)
-            ];
-        })
-        ->sortByDesc('human_toll')
-        ->take(3)
-        ->pluck('location')
-        ->implode(', ');
+                // The Human Toll formula: Fatalities are the primary weight
+                return [
+                    'location' => $location,
+                    'human_toll' => ($deaths * 1.0) + ($injuries * 0.5)
+                ];
+            })
+            ->sortByDesc('human_toll')
+            ->take(3)
+            ->pluck('location')
+            ->implode(', ');
 
         // 4. Trending Risk Factors
         $trendingRiskFactors = tbldataentry::selectRaw('riskindicators, COUNT(*) as frequency, SUM(victim) as total_victims, SUM(Casualties_count) as total_casualties')
@@ -77,13 +77,21 @@ class HomeNewController extends Controller
 
         // 7. Current Threat Level calculation
         // Based on the highest normalized ratio produced by the trait
-        $highestNormalized = collect($stateRiskReports)->max('normalized_ratio');
+        // $highestNormalized = collect($stateRiskReports)->max('normalized_ratio');
+        // This will list only the ratios, e.g. ["Abia" => 2.12, "Lagos" => 15.5, ...]
+        // dd(collect($stateRiskReports)->pluck('normalized_ratio', 'location'));
 
-        if ($highestNormalized <= 25) {
+        $maxScore = collect($stateRiskReports)->max('normalized_ratio');
+        $avgScore = collect($stateRiskReports)->avg('normalized_ratio');
+
+        $compositeNationalScore = ($maxScore * 0.5) + ($avgScore * 0.5);
+        // dd($compositeNationalScore);
+
+        if ($compositeNationalScore <= 4.0) {
             $currentThreatLevel = 'LOW';
-        } elseif ($highestNormalized <= 50) {
-            $currentThreatLevel = 'ELEVATED'; // Matches 'Medium' logic in Blade
-        } elseif ($highestNormalized <= 75) {
+        } elseif ($compositeNationalScore <= 6.0) {
+            $currentThreatLevel = 'MEDIUM';
+        } elseif ($compositeNationalScore <= 8.5) {
             $currentThreatLevel = 'HIGH';
         } else {
             $currentThreatLevel = 'CRITICAL';
@@ -140,7 +148,7 @@ class HomeNewController extends Controller
         $query = DB::table('business_risk_data')
             ->where('location', $state)
             ->where('year', $year)
-            ->where(function($q) use ($industry) {
+            ->where(function ($q) use ($industry) {
                 $q->where('industry', $industry)->orWhere('industry', 'LIKE', "%$industry%");
             });
 
@@ -168,7 +176,7 @@ class HomeNewController extends Controller
         $totalReduction = min($reduction, 0.50);
         $finalScore = round($baseRisk * (1 - $totalReduction));
 
-        $label = match(true) {
+        $label = match (true) {
             $finalScore >= 75 => 'Critical',
             $finalScore >= 50 => 'High',
             $finalScore >= 25 => 'Medium',
@@ -243,11 +251,21 @@ class HomeNewController extends Controller
     }
 
     // --- Helper Methods Supporting map data ---
-    private function getMaxYear() { return tbldataentry::where('riskfactors', 'Violent Threats')->max('eventyear'); }
-    private function getMaxMonth($maxYear) { return tbldataentry::where('riskfactors', 'Violent Threats')->where('eventyear', $maxYear)->max('eventmonth'); }
-    private function getViolentIndicators() { return Tblriskindicators::where('factors', 'Violent Threats')->pluck('indicators')->toArray(); }
+    private function getMaxYear()
+    {
+        return tbldataentry::where('riskfactors', 'Violent Threats')->max('eventyear');
+    }
+    private function getMaxMonth($maxYear)
+    {
+        return tbldataentry::where('riskfactors', 'Violent Threats')->where('eventyear', $maxYear)->max('eventmonth');
+    }
+    private function getViolentIndicators()
+    {
+        return Tblriskindicators::where('factors', 'Violent Threats')->pluck('indicators')->toArray();
+    }
 
-    private function getDataByStateWithoutMonth($maxYear, $indicators = null) {
+    private function getDataByStateWithoutMonth($maxYear, $indicators = null)
+    {
         $indicators = is_null($indicators) ? [] : (is_array($indicators) ? $indicators : [$indicators]);
         return DB::table(DB::raw('(SELECT DISTINCT location FROM tbldataentry) as locations'))
             ->leftJoin('tbldataentry', function ($join) use ($maxYear, $indicators) {
@@ -255,14 +273,17 @@ class HomeNewController extends Controller
                     ->whereIn('tbldataentry.riskindicators', $indicators)
                     ->where('tbldataentry.eventyear', $maxYear);
             })
-            ->select('locations.location',
+            ->select(
+                'locations.location',
                 DB::raw('COALESCE(SUM(tbldataentry.Casualties_count), 0) as sum_casualties'),
                 DB::raw('COALESCE(SUM(tbldataentry.victim), 0) as sum_victims'),
-                DB::raw('COALESCE(COUNT(tbldataentry.location), 0) as incident_count'))
+                DB::raw('COALESCE(COUNT(tbldataentry.location), 0) as incident_count')
+            )
             ->groupBy('locations.location')->get();
     }
 
-    private function calculateData($data) {
+    private function calculateData($data)
+    {
         // This remains for backward compatibility with existing map markers
         $reports = [];
         $AllIncidentCount = $data->sum('incident_count');
@@ -271,8 +292,8 @@ class HomeNewController extends Controller
 
         foreach ($data as $item) {
             $totalRatio = ($AllIncidentCount != 0 ? ($item->incident_count / $AllIncidentCount) * 25 : 0) +
-                          ($AllvictimCount != 0 ? ($item->sum_victims / $AllvictimCount) * 35 : 0) +
-                          ($AlldeathThreatsCount != 0 ? ($item->sum_casualties / $AlldeathThreatsCount) * 40 : 0);
+                ($AllvictimCount != 0 ? ($item->sum_victims / $AllvictimCount) * 35 : 0) +
+                ($AlldeathThreatsCount != 0 ? ($item->sum_casualties / $AlldeathThreatsCount) * 40 : 0);
 
             $reports[$item->location] = [
                 'location' => $item->location,
@@ -285,16 +306,22 @@ class HomeNewController extends Controller
         return $reports;
     }
 
-    private function getStartEndTime($maxYear, $maxMonth, $eventday, $maxYearEnd, $maxMonthEnd, $eventdayEnd) {
+    private function getStartEndTime($maxYear, $maxMonth, $eventday, $maxYearEnd, $maxMonthEnd, $eventdayEnd)
+    {
         $startDate = $maxYear . "-" . ($maxMonth ?: '01') . "-" . ($eventday ?: '01');
         $endDate = ($maxYearEnd ?: $maxYear) . "-" . ($maxMonthEnd ?: '12') . "-" . ($eventdayEnd ?: '28');
         return date('d F Y', strtotime($startDate)) . ' - ' . date('d F Y', strtotime($endDate));
     }
 
-    private function leafletData($maxYear) {
+    private function leafletData($maxYear)
+    {
         return tbldataentry::where('yy', $maxYear)->get()->map(fn($entry) => [
-            'state' => $entry->location, 'latitude' => $entry->latitude, 'longitude' => $entry->longitude,
-            'color' => 'red', 'riskindicators' => $entry->riskindicators, 'impact' => $entry->impact
+            'state' => $entry->location,
+            'latitude' => $entry->latitude,
+            'longitude' => $entry->longitude,
+            'color' => 'red',
+            'riskindicators' => $entry->riskindicators,
+            'impact' => $entry->impact
         ]);
     }
 }

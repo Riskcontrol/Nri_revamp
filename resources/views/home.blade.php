@@ -63,19 +63,21 @@
                         @php
                             $level = strtolower($currentThreatLevel);
 
-                            if (str_contains($level, 'high') || str_contains($level, 'critical')) {
+                            if (str_contains($level, 'critical')) {
+                                $pillClasses = 'bg-red-600 text-white border-transparent shadow-sm animate-pulse';
+                            } elseif (str_contains($level, 'high')) {
                                 $pillClasses = 'bg-red-100 text-red-700 border-red-200';
-                            } elseif (str_contains($level, 'medium')) {
-                                $pillClasses = 'bg-orange-100 text-orange-700 border-orange-200';
+                            } elseif (str_contains($level, 'elevated') || str_contains($level, 'medium')) {
+                                $pillClasses = 'bg-orange-600 text-white border-transparent';
                             } else {
-                                // Normal solid green for Low
+                                // LOW: Green (Safe)
                                 $pillClasses = 'bg-green-600 text-white border-transparent';
                             }
                         @endphp
 
                         <div class="flex items-center mt-2">
                             <span
-                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border {{ $pillClasses }}">
+                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium uppercase tracking-widest border {{ $pillClasses }}">
                                 {{ $currentThreatLevel }}
                             </span>
                         </div>
