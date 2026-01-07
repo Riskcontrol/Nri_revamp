@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\tbldataentry;
 use App\Models\StateInsight;
 use App\Models\tblriskindicators;
@@ -9,12 +10,13 @@ use Illuminate\Support\Facades\DB;
 use App\Models\CorrectionFactorForStates;
 use App\Http\Controllers\Traits\CalculatesRisk;
 use App\Http\Controllers\Traits\GeneratesInsights;
+use Illuminate\Support\Facades\Log;
 
 class LocationController extends Controller
 {
-   use CalculatesRisk, GeneratesInsights;
+    use CalculatesRisk, GeneratesInsights;
 
-  private function getCrimeIndexIndicators()
+    private function getCrimeIndexIndicators()
     {
         try {
             return tblriskindicators::where('author', 'crimeIndex')
@@ -41,239 +43,239 @@ class LocationController extends Controller
         return $factors;
     }
 
-public function getTotalIncident($state)
-{
+    public function getTotalIncident($state)
+    {
 
-    $year = now()->year;
-    $availableYears = range(now()->year, 2018);
-    $states =StateInsight::all();
+        $year = now()->year;
+        $availableYears = range(now()->year, 2018);
+        $states = StateInsight::all();
 
-    $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
+        $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
             ->count();
 
 
-    $mostFrequentRisk = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
-                                    ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-                                    ->where('yy', $year)
-                                    ->groupBy('riskindicators')
-                                    ->orderByDesc('occurrences')
-                                    ->take(2)
-                                    ->get();
+        $mostFrequentRisk = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
+            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+            ->where('yy', $year)
+            ->groupBy('riskindicators')
+            ->orderByDesc('occurrences')
+            ->take(2)
+            ->get();
 
 
-    $currentMonth = date('m');
-    $currentYear = date('Y');
+        $currentMonth = date('m');
+        $currentYear = date('Y');
 
 
-$months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 
-$now = now(); // Carbon instance of current date
-$pairs = collect(range(0, 11))
-    ->map(fn($i) => $now->copy()->subMonths($i))
-    ->reverse() // Order from oldest to newest month
-    ->values();
+        $now = now(); // Carbon instance of current date
+        $pairs = collect(range(0, 11))
+            ->map(fn($i) => $now->copy()->subMonths($i))
+            ->reverse() // Order from oldest to newest month
+            ->values();
 
-$wanted = $pairs->map(fn($d) => [
-    'yy' => (int)$d->format('Y'),
-    'month_pro' => $d->format('M'),
-    'label' => $d->format('M') . ' ' . $d->format('Y'),
-])->values();
+        $wanted = $pairs->map(fn($d) => [
+            'yy' => (int)$d->format('Y'),
+            'month_pro' => $d->format('M'),
+            'label' => $d->format('M') . ' ' . $d->format('Y'),
+        ])->values();
 
-// Map the raw data to an associative array for easy lookup
-$monthlyDataRaw = tbldataentry::selectRaw('yy, month_pro, COUNT(*) as total_incidents')
-    ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-    ->where(function($q) use ($wanted) {
-        foreach ($wanted as $w) {
-            $q->orWhere(function($qq) use ($w){
-                $qq->where('yy', $w['yy'])->where('month_pro', $w['month_pro']);
+        // Map the raw data to an associative array for easy lookup
+        $monthlyDataRaw = tbldataentry::selectRaw('yy, month_pro, COUNT(*) as total_incidents')
+            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+            ->where(function ($q) use ($wanted) {
+                foreach ($wanted as $w) {
+                    $q->orWhere(function ($qq) use ($w) {
+                        $qq->where('yy', $w['yy'])->where('month_pro', $w['month_pro']);
+                    });
+                }
+            })
+            ->groupBy('yy', 'month_pro')
+            ->get()
+            ->keyBy(function ($row) {
+                return $row->month_pro . ' ' . $row->yy;
             });
-        }
-    })
-    ->groupBy('yy', 'month_pro')
-    ->get()
-    ->keyBy(function($row){
-        return $row->month_pro.' '.$row->yy;
-    });
 
-// Prepare the final labels (ensuring the correct 12-month order)
-$chartLabels = $wanted->pluck('label')->values()->toArray();
+        // Prepare the final labels (ensuring the correct 12-month order)
+        $chartLabels = $wanted->pluck('label')->values()->toArray();
 
-// Prepare the final counts (using the correct labels to ensure correct order)
-$incidentCounts = $wanted->pluck('label')->map(function($lbl) use ($monthlyDataRaw) {
-    // Look up the count using the generated label as the key
-    $count = $monthlyDataRaw[$lbl]->total_incidents ?? 0;
-    return (int)$count;
-})->values()->toArray();
+        // Prepare the final counts (using the correct labels to ensure correct order)
+        $incidentCounts = $wanted->pluck('label')->map(function ($lbl) use ($monthlyDataRaw) {
+            // Look up the count using the generated label as the key
+            $count = $monthlyDataRaw[$lbl]->total_incidents ?? 0;
+            return (int)$count;
+        })->values()->toArray();
 
 
-    // Fetch the top 5 most frequent risk indicators and their counts
-    $topRiskIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
-                                     ->whereRaw('LOWER(location) = ?', [strtolower($state)]) // Filter by state
-                                     ->where('yy', $year)
-                                     ->groupBy('riskindicators')
-                                     ->orderByDesc('occurrences')
-                                     ->take(5)
-                                     ->get();
+        // Fetch the top 5 most frequent risk indicators and their counts
+        $topRiskIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
+            ->whereRaw('LOWER(location) = ?', [strtolower($state)]) // Filter by state
+            ->where('yy', $year)
+            ->groupBy('riskindicators')
+            ->orderByDesc('occurrences')
+            ->take(5)
+            ->get();
 
-    $topRiskLabels = $topRiskIndicators->pluck('riskindicators')->toArray();
-    $topRiskCounts = $topRiskIndicators->pluck('occurrences')->toArray();
+        $topRiskLabels = $topRiskIndicators->pluck('riskindicators')->toArray();
+        $topRiskCounts = $topRiskIndicators->pluck('occurrences')->toArray();
 
 
         $yearlyData = tbldataentry::selectRaw('yy, COUNT(*) as total_incidents')
-        ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-        ->where('yy', '>=', 2018)
-        ->groupBy('yy')
-        ->orderBy('yy', 'asc')
-        ->get();
+            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+            ->where('yy', '>=', 2018)
+            ->groupBy('yy')
+            ->orderBy('yy', 'asc')
+            ->get();
 
 
-    $yearLabels = $yearlyData->pluck('yy')->toArray();
-    $yearCounts = $yearlyData->pluck('total_incidents')->toArray();
+        $yearLabels = $yearlyData->pluck('yy')->toArray();
+        $yearCounts = $yearlyData->pluck('total_incidents')->toArray();
 
-$motiveData = tbldataentry::join('motives_specific', 'tbldataentry.motive_specific', '=', 'motives_specific.id')
-        ->select('motives_specific.name', DB::raw('COUNT(*) as occurrences'))
-        ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
-        ->where('tbldataentry.yy', $year)
+        $motiveData = tbldataentry::join('motives_specific', 'tbldataentry.motive_specific', '=', 'motives_specific.id')
+            ->select('motives_specific.name', DB::raw('COUNT(*) as occurrences'))
+            ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
+            ->where('tbldataentry.yy', $year)
 
-        // --- ADD THIS LINE to ignore the 'Others' category ---
-        ->whereRaw('LOWER(motives_specific.name) != ?', ['others'])
+            // --- ADD THIS LINE to ignore the 'Others' category ---
+            ->whereRaw('LOWER(motives_specific.name) != ?', ['others'])
 
-        ->groupBy('motives_specific.name')
-        ->orderByDesc('occurrences')
-        ->take(5) // This now gets the Top 5 *specific* motives
-        ->get();
+            ->groupBy('motives_specific.name')
+            ->orderByDesc('occurrences')
+            ->take(5) // This now gets the Top 5 *specific* motives
+            ->get();
 
-$motiveLabels = $motiveData->pluck('name')->toArray();
-$motiveCounts = $motiveData->pluck('occurrences')->toArray();
-
-
-$attackData = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
-        ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
-        ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
-        ->where('tbldataentry.yy', $year)
-
-        // --- ADD THIS LINE to ignore the 'Others' category ---
-        ->whereRaw('LOWER(attack_group.name) != ?', ['others'])
-
-        ->groupBy('attack_group.name')
-        ->orderByDesc('occurrences')
-        ->take(5) // This now gets the Top 5 *specific* motives
-        ->get();
-
-$attackLabels = $attackData->pluck('name')->toArray();
-$attackCounts = $attackData->pluck('occurrences')->toArray();
-
-// dd($attackData->toArray());
+        $motiveLabels = $motiveData->pluck('name')->toArray();
+        $motiveCounts = $motiveData->pluck('occurrences')->toArray();
 
 
-   // Get the most frequent LGA for the given state
-$mostAffectedLGA = tbldataentry::select('lga', DB::raw('COUNT(*) as occurrences'))
-        ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-        ->where('yy', $year)
-        ->where('lga', '!=', '')
-        ->groupBy('lga')
-        ->orderByDesc('occurrences')
-        ->first();
+        $attackData = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
+            ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
+            ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
+            ->where('tbldataentry.yy', $year)
+
+            // --- ADD THIS LINE to ignore the 'Others' category ---
+            ->whereRaw('LOWER(attack_group.name) != ?', ['others'])
+
+            ->groupBy('attack_group.name')
+            ->orderByDesc('occurrences')
+            ->take(5) // This now gets the Top 5 *specific* motives
+            ->get();
+
+        $attackLabels = $attackData->pluck('name')->toArray();
+        $attackCounts = $attackData->pluck('occurrences')->toArray();
+
+        // dd($attackData->toArray());
 
 
-
-     // Fetch the most recent 5 incidents for the given state
-   $recentIncidents = tbldataentry::select('lga','add_notes','riskindicators','impact','datecreated')
-        ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-        ->orderBy('datecreated', 'desc') // Order in the database
-        ->limit(5) // Get only 5
-        ->get();
-
-    // Sort incidents by datecreated (we'll use Carbon to compare dates)
-    $recentIncidents = $recentIncidents->sortByDesc(function($incident) {
-        return \Carbon\Carbon::createFromFormat('M d, Y', $incident->datecreated)->timestamp;
-    });
-
-
-    $recentIncidents = $recentIncidents->take(5);
-
-$getStates = StateInsight::pluck('state');
-
-$crimeIndicators = $this->getCrimeIndexIndicators();
-
-    $stateCrimeIndexScore = 0;
-    $crimeTable = [];
-
-    if ($crimeIndicators->isNotEmpty()) {
-
-        // --- Get Correction Factors for THIS state ---
-        $correction = $this->getStateCorrectionFactors($state);
-
-        // --- Get STATE-SPECIFIC Totals (for Crime only) ---
-        $stateCrimeTotals = tbldataentry::selectRaw('COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
+        // Get the most frequent LGA for the given state
+        $mostAffectedLGA = tbldataentry::select('lga', DB::raw('COUNT(*) as occurrences'))
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
-            ->whereIn('riskindicators', $crimeIndicators)
+            ->where('lga', '!=', '')
+            ->groupBy('lga')
+            ->orderByDesc('occurrences')
             ->first();
 
-        // --- Get NATIONAL Totals (for Crime only) ---
-        $nationalCrimeTotals = tbldataentry::selectRaw('COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
-            ->where('yy', $year)
-            ->whereIn('riskindicators', $crimeIndicators)
-            ->first();
 
-        // --- Manually Calculate the State's Risk Score ---
-        $incidentRatio = $nationalCrimeTotals->total_incidents != 0 ?
-            ($stateCrimeTotals->total_incidents / $nationalCrimeTotals->total_incidents) * 25 * $correction->incident_correction : 0;
 
-        $victimRatio = $nationalCrimeTotals->total_victims != 0 ?
-            ($stateCrimeTotals->total_victims / $nationalCrimeTotals->total_victims) * 35 * $correction->victim_correction : 0;
-
-        $deathThreatsRatio = $nationalCrimeTotals->total_deaths != 0 ?
-            ($stateCrimeTotals->total_deaths / $nationalCrimeTotals->total_deaths) * 40 * $correction->casualty_correction : 0;
-
-        $stateCrimeIndexScore = round($incidentRatio + $victimRatio + $deathThreatsRatio, 2);
-
-        // --- Get STATE-SPECIFIC breakdown for the table (Current Year) ---
-        $currentStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
+        // Fetch the most recent 5 incidents for the given state
+        $recentIncidents = tbldataentry::select('lga', 'add_notes', 'riskindicators', 'impact', 'datecreated')
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->whereIn('riskindicators', $crimeIndicators)
-            ->groupBy('riskindicators')
-            ->get()
-            ->keyBy('riskindicators');
+            ->orderBy('datecreated', 'desc') // Order in the database
+            ->limit(5) // Get only 5
+            ->get();
 
-        // --- Get STATE-SPECIFIC breakdown for the table (Previous Year) ---
-        $previousStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year - 1) // Previous year
-            ->whereIn('riskindicators', $crimeIndicators)
-            ->groupBy('riskindicators')
-            ->get()
-            ->keyBy('riskindicators');
+        // Sort incidents by datecreated (we'll use Carbon to compare dates)
+        $recentIncidents = $recentIncidents->sortByDesc(function ($incident) {
+            return \Carbon\Carbon::createFromFormat('M d, Y', $incident->datecreated)->timestamp;
+        });
 
-        // --- Build the final table ---
-        foreach ($crimeIndicators as $indicator) {
-            $currentCount = $currentStateIndicators->get($indicator)->incident_count ?? 0;
-            $previousCount = $previousStateIndicators->get($indicator)->incident_count ?? 0;
 
-            if ($currentCount > 0) { // Only show indicators with data
-                $status = 'Stable';
-                if ($currentCount > $previousCount) {
-                    $status = 'Escalating';
-                } elseif ($currentCount < $previousCount) {
-                    $status = 'Improving';
+        $recentIncidents = $recentIncidents->take(5);
+
+        $getStates = StateInsight::pluck('state');
+
+        $crimeIndicators = $this->getCrimeIndexIndicators();
+
+        $stateCrimeIndexScore = 0;
+        $crimeTable = [];
+
+        if ($crimeIndicators->isNotEmpty()) {
+
+            // --- Get Correction Factors for THIS state ---
+            $correction = $this->getStateCorrectionFactors($state);
+
+            // --- Get STATE-SPECIFIC Totals (for Crime only) ---
+            $stateCrimeTotals = tbldataentry::selectRaw('COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
+                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year)
+                ->whereIn('riskindicators', $crimeIndicators)
+                ->first();
+
+            // --- Get NATIONAL Totals (for Crime only) ---
+            $nationalCrimeTotals = tbldataentry::selectRaw('COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
+                ->where('yy', $year)
+                ->whereIn('riskindicators', $crimeIndicators)
+                ->first();
+
+            // --- Manually Calculate the State's Risk Score ---
+            $incidentRatio = $nationalCrimeTotals->total_incidents != 0 ?
+                ($stateCrimeTotals->total_incidents / $nationalCrimeTotals->total_incidents) * 25 * $correction->incident_correction : 0;
+
+            $victimRatio = $nationalCrimeTotals->total_victims != 0 ?
+                ($stateCrimeTotals->total_victims / $nationalCrimeTotals->total_victims) * 35 * $correction->victim_correction : 0;
+
+            $deathThreatsRatio = $nationalCrimeTotals->total_deaths != 0 ?
+                ($stateCrimeTotals->total_deaths / $nationalCrimeTotals->total_deaths) * 40 * $correction->casualty_correction : 0;
+
+            $stateCrimeIndexScore = round($incidentRatio + $victimRatio + $deathThreatsRatio, 2);
+
+            // --- Get STATE-SPECIFIC breakdown for the table (Current Year) ---
+            $currentStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
+                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year)
+                ->whereIn('riskindicators', $crimeIndicators)
+                ->groupBy('riskindicators')
+                ->get()
+                ->keyBy('riskindicators');
+
+            // --- Get STATE-SPECIFIC breakdown for the table (Previous Year) ---
+            $previousStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
+                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year - 1) // Previous year
+                ->whereIn('riskindicators', $crimeIndicators)
+                ->groupBy('riskindicators')
+                ->get()
+                ->keyBy('riskindicators');
+
+            // --- Build the final table ---
+            foreach ($crimeIndicators as $indicator) {
+                $currentCount = $currentStateIndicators->get($indicator)->incident_count ?? 0;
+                $previousCount = $previousStateIndicators->get($indicator)->incident_count ?? 0;
+
+                if ($currentCount > 0) { // Only show indicators with data
+                    $status = 'Stable';
+                    if ($currentCount > $previousCount) {
+                        $status = 'Escalating';
+                    } elseif ($currentCount < $previousCount) {
+                        $status = 'Improving';
+                    }
+
+                    $crimeTable[] = [
+                        'indicator_name' => $indicator,
+                        'incident_count' => $currentCount,
+                        'previous_year_count' => $previousCount,
+                        'status' => $status,
+                    ];
                 }
-
-                $crimeTable[] = [
-                    'indicator_name' => $indicator,
-                    'incident_count' => $currentCount,
-                    'previous_year_count' => $previousCount,
-                    'status' => $status,
-                ];
             }
+            $crimeTable = collect($crimeTable)->sortByDesc('incident_count')->values()->all();
         }
-        $crimeTable = collect($crimeTable)->sortByDesc('incident_count')->values()->all();
-    }
 
-    // --- 3. START INSIGHT GENERATION ---
+        // --- 3. START INSIGHT GENERATION ---
         $trendInsights = $this->calculateTrendInsights($state, $year);
         $lethalityInsight = $this->calculateLethalityInsights($state, $year);
         $forecastInsight = $this->calculateForecast($state);
@@ -294,196 +296,196 @@ $crimeIndicators = $this->getCrimeIndexIndicators();
         $stateRankOrdinal = $rankingData['ordinal'];
 
 
-    return view('locationIntelligence', compact('total_incidents', 'availableYears', 'year', 'state', 'mostFrequentRisk','chartLabels','incidentCounts','topRiskLabels','topRiskCounts', 'yearLabels','yearCounts', 'attackLabels','attackCounts', 'mostAffectedLGA','recentIncidents','getStates','stateCrimeIndexScore','crimeTable','automatedInsights','stateRank','stateRankOrdinal'));
-}
+        return view('locationIntelligence', compact('total_incidents', 'availableYears', 'year', 'state', 'mostFrequentRisk', 'chartLabels', 'incidentCounts', 'topRiskLabels', 'topRiskCounts', 'yearLabels', 'yearCounts', 'attackLabels', 'attackCounts', 'mostAffectedLGA', 'recentIncidents', 'getStates', 'stateCrimeIndexScore', 'crimeTable', 'automatedInsights', 'stateRank', 'stateRankOrdinal'));
+    }
 
 
 
-public function getStateData(Request $request, $state, $year)
-{
-    $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
+    public function getStateData(Request $request, $state, $year)
+    {
+        $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
             ->count();
 
-    $mostFrequentRisk = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
-        ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-        ->where('yy', $year)
-        ->groupBy('riskindicators')
-        ->orderByDesc('occurrences')
-       ->take(2)
-        ->get();
-
-    $mostAffectedLGA = tbldataentry::select('lga', DB::raw('COUNT(*) as occurrences'))
-        ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-        ->where('yy', $year)
-        ->where('lga', '!=', '')
-        ->groupBy('lga')
-        ->orderByDesc('occurrences')
-        ->first();
-
-
-
-  $recentIncidents = tbldataentry::select('lga','add_notes','riskindicators','impact','datecreated') // <-- ADDED 'datecreated'
-
-    ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-
-    // To ensure you get the most recent, you should also order by datecreated DESC
-
-    ->orderBy('datecreated', 'desc')
-
-    ->limit(5)
-
-    ->get();
-    // Top 5 risks
-    $topRiskIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
-        ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-        ->where('yy', $year)
-        ->groupBy('riskindicators')
-        ->orderByDesc('occurrences')
-        ->take(5)
-        ->get();
-
-    $topRiskLabels = $topRiskIndicators->pluck('riskindicators')->values();
-    $topRiskCounts = $topRiskIndicators->pluck('occurrences')->values();
-
-
-    $months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    $now = now(); // Carbon
-    $pairs = collect(range(0,11))
-        ->map(fn($i) => $now->copy()->subMonths($i))
-        ->reverse()
-        ->values();
-
-    $wanted = $pairs->map(fn($d) => [
-        'yy' => (int)$d->format('Y'),
-        'month_pro' => $months[(int)$d->format('n') - 1],
-        'label' => $months[(int)$d->format('n') - 1] . ' ' . $d->format('Y'),
-    ])->values();
-
-    $monthlyData = tbldataentry::selectRaw('yy, month_pro, COUNT(*) as total_incidents')
-        ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-        ->where(function($q) use ($wanted) {
-            foreach ($wanted as $w) {
-                $q->orWhere(function($qq) use ($w){
-                    $qq->where('yy', $w['yy'])->where('month_pro', $w['month_pro']);
-                });
-            }
-        })
-        ->groupBy('yy','month_pro')
-        ->get()
-        ->keyBy(function($row){
-            return $row->month_pro.' '.$row->yy;
-        });
-
-    $chartLabels = $wanted->pluck('label')->values();
-    $incidentCounts = $chartLabels->map(fn($lbl) => (int)($monthlyData[$lbl]->total_incidents ?? 0))->values();
-
-    // B) Year series from 2018
-    $yearlyData = tbldataentry::selectRaw('yy, COUNT(*) as total_incidents')
-        ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-        ->where('yy', '>=', 2018)
-        ->groupBy('yy')
-        ->orderBy('yy','asc')
-        ->get();
-
-    $yearLabels = $yearlyData->pluck('yy')->values();
-    $yearCounts = $yearlyData->pluck('total_incidents')->values();
-
-
-
-$attackData = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
-        ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
-        ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
-        ->where('tbldataentry.yy', $year)
-
-        // --- ADD THIS LINE to ignore the 'Others' category ---
-        ->whereRaw('LOWER(attack_group.name) != ?', ['others'])
-
-        ->groupBy('attack_group.name')
-        ->orderByDesc('occurrences')
-        ->take(5) // This now gets the Top 5 *specific* motives
-        ->get();
-
-$attackLabels = $attackData->pluck('name')->toArray();
-$attackCounts = $attackData->pluck('occurrences')->toArray();
-
-// Get the list of all crime indicators
-    $crimeIndicators = $this->getCrimeIndexIndicators();
-
-    $stateCrimeIndexScore = 0;
-    $crimeTable = [];
-
-    if ($crimeIndicators->isNotEmpty()) {
-
-
-        $correction = $this->getStateCorrectionFactors($state);
-
-
-        $stateCrimeTotals = tbldataentry::selectRaw('COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
+        $mostFrequentRisk = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
-            ->whereIn('riskindicators', $crimeIndicators)
+            ->groupBy('riskindicators')
+            ->orderByDesc('occurrences')
+            ->take(2)
+            ->get();
+
+        $mostAffectedLGA = tbldataentry::select('lga', DB::raw('COUNT(*) as occurrences'))
+            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+            ->where('yy', $year)
+            ->where('lga', '!=', '')
+            ->groupBy('lga')
+            ->orderByDesc('occurrences')
             ->first();
 
-        // Get NATIONAL Totals (for Crime only)
-        $nationalCrimeTotals = tbldataentry::selectRaw('COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
-            ->where('yy', $year)
-            ->whereIn('riskindicators', $crimeIndicators)
-            ->first();
 
-        // Manually Calculate the State's Risk Score
-        $incidentRatio = $nationalCrimeTotals->total_incidents != 0 ?
-            ($stateCrimeTotals->total_incidents / $nationalCrimeTotals->total_incidents) * 25 * $correction->incident_correction : 0;
 
-        $victimRatio = $nationalCrimeTotals->total_victims != 0 ?
-            ($stateCrimeTotals->total_victims / $nationalCrimeTotals->total_victims) * 35 * $correction->victim_correction : 0;
+        $recentIncidents = tbldataentry::select('lga', 'add_notes', 'riskindicators', 'impact', 'datecreated') // <-- ADDED 'datecreated'
 
-        $deathThreatsRatio = $nationalCrimeTotals->total_deaths != 0 ?
-            ($stateCrimeTotals->total_deaths / $nationalCrimeTotals->total_deaths) * 40 * $correction->casualty_correction : 0;
+            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
 
-        $stateCrimeIndexScore = round($incidentRatio + $victimRatio + $deathThreatsRatio, 2);
+            // To ensure you get the most recent, you should also order by datecreated DESC
 
-        // Get STATE-SPECIFIC breakdown for the table (Current Year)
-        $currentStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
+            ->orderBy('datecreated', 'desc')
+
+            ->limit(5)
+
+            ->get();
+        // Top 5 risks
+        $topRiskIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
-            ->whereIn('riskindicators', $crimeIndicators)
             ->groupBy('riskindicators')
-            ->get()
-            ->keyBy('riskindicators');
+            ->orderByDesc('occurrences')
+            ->take(5)
+            ->get();
 
-        // Get STATE-SPECIFIC breakdown for the table (Previous Year)
-        $previousStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
+        $topRiskLabels = $topRiskIndicators->pluck('riskindicators')->values();
+        $topRiskCounts = $topRiskIndicators->pluck('occurrences')->values();
+
+
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $now = now(); // Carbon
+        $pairs = collect(range(0, 11))
+            ->map(fn($i) => $now->copy()->subMonths($i))
+            ->reverse()
+            ->values();
+
+        $wanted = $pairs->map(fn($d) => [
+            'yy' => (int)$d->format('Y'),
+            'month_pro' => $months[(int)$d->format('n') - 1],
+            'label' => $months[(int)$d->format('n') - 1] . ' ' . $d->format('Y'),
+        ])->values();
+
+        $monthlyData = tbldataentry::selectRaw('yy, month_pro, COUNT(*) as total_incidents')
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year - 1) // Previous year
-            ->whereIn('riskindicators', $crimeIndicators)
-            ->groupBy('riskindicators')
-            ->get()
-            ->keyBy('riskindicators');
-
-        // Build the final table
-        foreach ($crimeIndicators as $indicator) {
-            $currentCount = $currentStateIndicators->get($indicator)->incident_count ?? 0;
-            $previousCount = $previousStateIndicators->get($indicator)->incident_count ?? 0;
-
-            if ($currentCount > 0) { // Only show indicators with data
-                $status = 'Stable';
-                if ($currentCount > $previousCount) {
-                    $status = 'Escalating';
-                } elseif ($currentCount < $previousCount) {
-                    $status = 'Improving';
+            ->where(function ($q) use ($wanted) {
+                foreach ($wanted as $w) {
+                    $q->orWhere(function ($qq) use ($w) {
+                        $qq->where('yy', $w['yy'])->where('month_pro', $w['month_pro']);
+                    });
                 }
+            })
+            ->groupBy('yy', 'month_pro')
+            ->get()
+            ->keyBy(function ($row) {
+                return $row->month_pro . ' ' . $row->yy;
+            });
 
-                $crimeTable[] = [
-                    'indicator_name' => $indicator,
-                    'incident_count' => $currentCount,
-                    'previous_year_count' => $previousCount,
-                    'status' => $status,
-                ];
+        $chartLabels = $wanted->pluck('label')->values();
+        $incidentCounts = $chartLabels->map(fn($lbl) => (int)($monthlyData[$lbl]->total_incidents ?? 0))->values();
+
+        // B) Year series from 2018
+        $yearlyData = tbldataentry::selectRaw('yy, COUNT(*) as total_incidents')
+            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+            ->where('yy', '>=', 2018)
+            ->groupBy('yy')
+            ->orderBy('yy', 'asc')
+            ->get();
+
+        $yearLabels = $yearlyData->pluck('yy')->values();
+        $yearCounts = $yearlyData->pluck('total_incidents')->values();
+
+
+
+        $attackData = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
+            ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
+            ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
+            ->where('tbldataentry.yy', $year)
+
+            // --- ADD THIS LINE to ignore the 'Others' category ---
+            ->whereRaw('LOWER(attack_group.name) != ?', ['others'])
+
+            ->groupBy('attack_group.name')
+            ->orderByDesc('occurrences')
+            ->take(5) // This now gets the Top 5 *specific* motives
+            ->get();
+
+        $attackLabels = $attackData->pluck('name')->toArray();
+        $attackCounts = $attackData->pluck('occurrences')->toArray();
+
+        // Get the list of all crime indicators
+        $crimeIndicators = $this->getCrimeIndexIndicators();
+
+        $stateCrimeIndexScore = 0;
+        $crimeTable = [];
+
+        if ($crimeIndicators->isNotEmpty()) {
+
+
+            $correction = $this->getStateCorrectionFactors($state);
+
+
+            $stateCrimeTotals = tbldataentry::selectRaw('COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
+                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year)
+                ->whereIn('riskindicators', $crimeIndicators)
+                ->first();
+
+            // Get NATIONAL Totals (for Crime only)
+            $nationalCrimeTotals = tbldataentry::selectRaw('COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
+                ->where('yy', $year)
+                ->whereIn('riskindicators', $crimeIndicators)
+                ->first();
+
+            // Manually Calculate the State's Risk Score
+            $incidentRatio = $nationalCrimeTotals->total_incidents != 0 ?
+                ($stateCrimeTotals->total_incidents / $nationalCrimeTotals->total_incidents) * 25 * $correction->incident_correction : 0;
+
+            $victimRatio = $nationalCrimeTotals->total_victims != 0 ?
+                ($stateCrimeTotals->total_victims / $nationalCrimeTotals->total_victims) * 35 * $correction->victim_correction : 0;
+
+            $deathThreatsRatio = $nationalCrimeTotals->total_deaths != 0 ?
+                ($stateCrimeTotals->total_deaths / $nationalCrimeTotals->total_deaths) * 40 * $correction->casualty_correction : 0;
+
+            $stateCrimeIndexScore = round($incidentRatio + $victimRatio + $deathThreatsRatio, 2);
+
+            // Get STATE-SPECIFIC breakdown for the table (Current Year)
+            $currentStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
+                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year)
+                ->whereIn('riskindicators', $crimeIndicators)
+                ->groupBy('riskindicators')
+                ->get()
+                ->keyBy('riskindicators');
+
+            // Get STATE-SPECIFIC breakdown for the table (Previous Year)
+            $previousStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
+                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year - 1) // Previous year
+                ->whereIn('riskindicators', $crimeIndicators)
+                ->groupBy('riskindicators')
+                ->get()
+                ->keyBy('riskindicators');
+
+            // Build the final table
+            foreach ($crimeIndicators as $indicator) {
+                $currentCount = $currentStateIndicators->get($indicator)->incident_count ?? 0;
+                $previousCount = $previousStateIndicators->get($indicator)->incident_count ?? 0;
+
+                if ($currentCount > 0) { // Only show indicators with data
+                    $status = 'Stable';
+                    if ($currentCount > $previousCount) {
+                        $status = 'Escalating';
+                    } elseif ($currentCount < $previousCount) {
+                        $status = 'Improving';
+                    }
+
+                    $crimeTable[] = [
+                        'indicator_name' => $indicator,
+                        'incident_count' => $currentCount,
+                        'previous_year_count' => $previousCount,
+                        'status' => $status,
+                    ];
+                }
             }
+            $crimeTable = collect($crimeTable)->sortByDesc('incident_count')->values()->all();
         }
-        $crimeTable = collect($crimeTable)->sortByDesc('incident_count')->values()->all();
-    }
 
         $trendInsights = $this->calculateTrendInsights($state, $year);
         $lethalityInsight = $this->calculateLethalityInsights($state, $year);
@@ -499,26 +501,26 @@ $attackCounts = $attackData->pluck('occurrences')->toArray();
 
         $rankingData = $this->calculateRankAndScore($state, $year);
 
-    return response()->json([
-        'total_incidents' => $total_incidents,
-        'mostFrequentRisk' => $mostFrequentRisk,
-        'mostAffectedLGA'  => $mostAffectedLGA,
-        'recentIncidents'  => $recentIncidents,
-        'chartLabels'     => $chartLabels,
-        'incidentCounts'  => $incidentCounts,
-        'topRiskLabels'   => $topRiskLabels,
-        'topRiskCounts'   => $topRiskCounts,
-        'yearLabels'      => $yearLabels,
-        'yearCounts'      => $yearCounts,
-        'attackLabels'    => $attackLabels,
-        'attackCounts'    => $attackCounts,
-        'stateCrimeIndexScore' => $stateCrimeIndexScore,
-        'stateRank' => $rankingData['rank'],
-        'stateRankOrdinal' => $rankingData['ordinal'],
-        'crimeTable'           => $crimeTable,
-        'automatedInsights' => $automatedInsights
-    ]);
-}
+        return response()->json([
+            'total_incidents' => $total_incidents,
+            'mostFrequentRisk' => $mostFrequentRisk,
+            'mostAffectedLGA'  => $mostAffectedLGA,
+            'recentIncidents'  => $recentIncidents,
+            'chartLabels'     => $chartLabels,
+            'incidentCounts'  => $incidentCounts,
+            'topRiskLabels'   => $topRiskLabels,
+            'topRiskCounts'   => $topRiskCounts,
+            'yearLabels'      => $yearLabels,
+            'yearCounts'      => $yearCounts,
+            'attackLabels'    => $attackLabels,
+            'attackCounts'    => $attackCounts,
+            'stateCrimeIndexScore' => $stateCrimeIndexScore,
+            'stateRank' => $rankingData['rank'],
+            'stateRankOrdinal' => $rankingData['ordinal'],
+            'crimeTable'           => $crimeTable,
+            'automatedInsights' => $automatedInsights
+        ]);
+    }
     public function getTotalIncidentsOnly($state, $year)
     {
         // Count all records for the given state.
@@ -679,8 +681,8 @@ $attackCounts = $attackData->pluck('occurrences')->toArray();
             $nat_d = $nat->d ?: 1;
 
             $score = (($i_count / $nat->i) * 25 * $f_i) +
-                     (($v_count / $nat_v) * 35 * $f_v) +
-                     (($d_count / $nat_d) * 40 * $f_d);
+                (($v_count / $nat_v) * 35 * $f_v) +
+                (($d_count / $nat_d) * 40 * $f_d);
 
             $scores[$stateName] = round($score, 2);
         }
@@ -705,9 +707,15 @@ $attackCounts = $attackData->pluck('occurrences')->toArray();
         $ordinal = 'th';
         if (!in_array(($rank % 100), [11, 12, 13])) {
             switch ($rank % 10) {
-                case 1: $ordinal = 'st'; break;
-                case 2: $ordinal = 'nd'; break;
-                case 3: $ordinal = 'rd'; break;
+                case 1:
+                    $ordinal = 'st';
+                    break;
+                case 2:
+                    $ordinal = 'nd';
+                    break;
+                case 3:
+                    $ordinal = 'rd';
+                    break;
             }
         }
 
@@ -718,7 +726,4 @@ $attackCounts = $attackData->pluck('occurrences')->toArray();
             'total_states' => count($scores)
         ];
     }
-
 }
-
-

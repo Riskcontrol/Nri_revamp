@@ -14,17 +14,14 @@
             <div class="flex items-center space-x-2">
                 <label for="state-select" class="text-sm font-medium text-gray-400">State:</label>
                 <div class="relative">
-                    <select id="state-select" {{-- Add a data attribute to check auth status later --}} data-auth="{{ Auth::check() ? 'true' : 'false' }}"
-                        data-access="{{ Auth::check() && Auth::user()->access_level >= 1 ? 'true' : 'false' }}"
+                    <select id="state-select"
                         class="bg-[#131C27] text-white text-sm py-2 px-4 border border-gray-600 rounded-md focus:outline-none focus:border-emerald-500 hover:border-gray-500 transition-colors cursor-pointer pr-8">
                         @foreach ($getStates as $s)
                             <option value="{{ $s }}" {{ $s == $state ? 'selected' : '' }}>{{ $s }}
                             </option>
                         @endforeach
                     </select>
-                    @guest
-                        <i class="fa-solid fa-lock absolute right-2 top-3 text-[10px] text-gray-500"></i>
-                    @endguest
+
                 </div>
             </div>
 
@@ -39,9 +36,7 @@
                             </option>
                         @endforeach
                     </select>
-                    @guest
-                        <i class="fa-solid fa-lock absolute right-2 top-3 text-[10px] text-gray-500"></i>
-                    @endguest
+
                 </div>
             </div>
         </div>
@@ -172,8 +167,7 @@
                     </h3>
 
                     <div class="relative w-full sm:w-auto">
-                        <select id="prevalent-compare-select" data-auth="{{ Auth::check() ? 'true' : 'false' }}"
-                            data-access="{{ Auth::check() && Auth::user()->access_level >= 1 ? 'true' : 'false' }}"
+                        <select id="prevalent-compare-select"
                             class="bg-[#131C27] text-white text-xs py-1 px-3 border border-gray-600 rounded hover:border-gray-400 focus:outline-none focus:border-emerald-500 transition-colors w-full pr-8 cursor-pointer">
                             <option value="" selected>Compare...</option>
                             @foreach ($getStates as $s)
@@ -181,10 +175,7 @@
                             @endforeach
                         </select>
 
-                        @guest
-                            <i
-                                class="fa-solid fa-lock absolute right-2 top-2 text-[10px] text-gray-500 pointer-events-none"></i>
-                        @endguest
+
                     </div>
                 </div>
                 <div class="relative h-64 md:h-80">
@@ -769,25 +760,6 @@
         }
 
         function handleFilterChange() {
-            const stateSelect = document.getElementById('state-select');
-            const isAuth = stateSelect.getAttribute('data-auth') === 'true';
-            const hasAccess = stateSelect.getAttribute('data-access') === 'true';
-
-
-            if (!isAuth) {
-                stateSelect.value = "{{ $state }}";
-                openAuthModal();
-                return;
-            }
-
-            if (isAuth && !hasAccess) {
-                stateSelect.value = "{{ $state }}";
-                document.getElementById('modal-register-state').classList.add('hidden');
-                document.getElementById('modal-success-state').classList.remove('hidden');
-                openAuthModal();
-                return;
-            }
-
             const primaryState = document.getElementById('state-select').value;
             const selectedYear = document.getElementById('year-select').value;
             document.getElementById('state-name').textContent = primaryState;
@@ -796,28 +768,6 @@
         }
 
         function handleCompareChange() {
-            const compareSelect = document.getElementById('prevalent-compare-select');
-            const isAuth = compareSelect.getAttribute('data-auth') === 'true';
-            const hasAccess = compareSelect.getAttribute('data-access') === 'true';
-
-            // 1. Check if user is logged in
-            if (!isAuth) {
-                compareSelect.value = ""; // Reset selection
-                openAuthModal();
-                return;
-            }
-
-            // 2. Check if user has permission (Demo/Paid)
-            if (isAuth && !hasAccess) {
-                compareSelect.value = ""; // Reset selection
-                // Show the 'Request Received' / Success state since they are logged in but unauthorized
-                document.getElementById('modal-register-state').classList.add('hidden');
-                document.getElementById('modal-success-state').classList.remove('hidden');
-                openAuthModal();
-                return;
-            }
-
-            // 3. If authorized, proceed with the chart update
             updatePrevalentComparison();
         }
 

@@ -37,14 +37,17 @@
                     <div class="relative mt-1">
                         <select id="year" name="year"
                             class="block w-full sm:w-40 appearance-none rounded-md border border-gray-600 bg-[#2b3a4a] py-3 pl-3 pr-10 text-base text-white shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
-                            <option selected>2025</option>
-                            <option>2024</option>
-                            <option>2023</option>
-                            <option>2022</option>
-                            <option>2021</option>
-                            <option>2020</option>
-                            <option>2019</option>
-                            <option>2018</option>
+
+                            @php
+                                $currentYear = date('Y');
+                                $startYear = 2018;
+                            @endphp
+
+                            @foreach (range($currentYear, $startYear) as $y)
+                                <option value="{{ $y }}" {{ $y == $currentYear ? 'selected' : '' }}>
+                                    {{ $y }}
+                                </option>
+                            @endforeach
                         </select>
                         <div
                             class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">

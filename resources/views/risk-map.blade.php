@@ -17,10 +17,10 @@
                             <div class="relative">
                                 <label for="filter-year"
                                     class="block text-xs font-medium text-gray-400 mb-1 uppercase">Year</label>
-                                <select id="filter-year" name="year" onmousedown="return checkAccess(event)"
+                                <select id="filter-year" name="year"
                                     class="block w-full bg-gray-700 border-gray-600 text-white rounded-md p-2 text-sm focus:ring-blue-500 cursor-pointer">
                                     @php
-                                        $currentYear = 2025;
+                                        $currentYear = date('Y');
                                         $startYear = 2018;
                                     @endphp
                                     @for ($year = $currentYear; $year >= $startYear; $year--)
@@ -29,14 +29,13 @@
                                         </option>
                                     @endfor
                                 </select>
-
                             </div>
 
                             {{-- Risk Index Filter --}}
                             <div class="relative">
                                 <label for="filter-risk"
                                     class="block text-xs font-medium text-gray-400 mb-1 uppercase">Risk Index</label>
-                                <select id="filter-risk" name="risk_type" onmousedown="return checkAccess(event)"
+                                <select id="filter-risk" name="risk_type"
                                     class="block w-full bg-gray-700 border-gray-600 text-white rounded-md p-2 text-sm focus:ring-blue-500 cursor-pointer">
                                     <option value="Terrorism">Terrorism</option>
                                     <option value="Kidnapping">Kidnapping</option>
@@ -44,7 +43,6 @@
                                     <option value="Homicide">Homicide</option>
                                     <option value="Property-Risk">Property Risk</option>
                                 </select>
-
                             </div>
 
                             {{-- Comparison Mode --}}
@@ -52,17 +50,16 @@
                                 <label class="block text-xs font-medium text-gray-400 mb-1 uppercase">Comparison
                                     Mode</label>
                                 <div class="flex items-center space-x-3 bg-gray-700 p-2 rounded-md">
-                                    <button id="toggle-comparison" onclick="checkAccess(event)"
+                                    <button id="toggle-comparison"
                                         class="px-3 py-1 text-xs font-bold text-white bg-gray-600 rounded hover:bg-gray-500 transition">OFF</button>
                                     <button id="clear-selection"
                                         class="hidden text-xs text-red-400 hover:text-red-300 underline">Clear</button>
-                                    @guest <i class="fa-solid fa-lock text-[10px] text-gray-500"></i> @endguest
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="md:w-48">
-                        <button id="apply-filters" onclick="checkAccess(event)"
+                        <button id="apply-filters"
                             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 text-sm">
                             Apply Filters
                         </button>
@@ -115,68 +112,9 @@
         </div>
     </div>
 
-    <div id="auth-modal"
-        class="fixed inset-0 z-[2000] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div
-            class="bg-[#1E2D3D] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl relative text-center">
-            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-
-            <div id="modal-register-state" class="{{ Auth::check() ? 'hidden' : '' }}">
-                <h3 class="text-2xl font-bold text-white mb-4">Interactive Map Locked</h3>
-                <p class="text-gray-400 mb-8">Granular LGA data and comparison filters are reserved for professional
-                    organizations.</p>
-                <a href="{{ url('/register') }}"
-                    class="block w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl">Register for
-                    Access</a>
-            </div>
-
-            <div id="modal-success-state" class="{{ Auth::check() && Auth::user()->access_level < 1 ? '' : 'hidden' }}">
-                <h3 class="text-2xl font-bold text-white mb-4">Verification Pending</h3>
-                <p class="text-gray-400">Our analysts are reviewing your organization's request. We will contact you
-                    shortly to authorize full map access.</p>
-                <button onclick="closeAuthModal()"
-                    class="mt-8 w-full border border-white/10 text-white py-3 rounded-xl">Continue Browsing</button>
-            </div>
-        </div>
-    </div>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        function hasProfessionalAccess() {
-            // These values are injected by Blade from the server session
-            const isAuth = {{ Auth::check() ? 'true' : 'false' }};
-            const accessLevel = {{ Auth::check() ? Auth::user()->access_level : 0 }};
-            return isAuth && accessLevel >= 1;
-        }
-
-        function checkAccess(event) {
-            if (!hasProfessionalAccess()) {
-                // Stop the click/mousedown from completing
-                if (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-
-                // Show your custom modal
-                openAuthModal();
-
-                // Return false to stop dropdowns specifically
-                return false;
-            }
-            return true;
-        }
-
-        function openAuthModal() {
-            document.getElementById('auth-modal').classList.remove('hidden');
-        }
-
-        // Function to close modal
-        function closeAuthModal() {
-            document.getElementById('auth-modal').classList.add('hidden');
-        }
         document.addEventListener("DOMContentLoaded", function() {
 
             // --- 1. SET UP STATE ---
@@ -209,15 +147,6 @@
                 subdomains: 'abcd',
                 maxZoom: 19
             }).addTo(map);
-
-            [yearSelect, riskSelect, toggleBtn].forEach(el => {
-                el.addEventListener('mousedown', (e) => {
-                    if (!hasProfessionalAccess()) {
-                        e.preventDefault(); // Stop the dropdown from opening
-                        openAuthModal();
-                    }
-                });
-            });
 
             // --- 4. COMPARISON LOGIC ---
             toggleBtn.addEventListener('click', () => {
@@ -305,7 +234,7 @@
                                 },
                                 tooltip: {
                                     enabled: true,
-                                    backgroundColor: 'rgba(17, 24, 39, 0.95)', // Dark tailwind-style grey
+                                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
                                     titleColor: '#fff',
                                     titleFont: {
                                         size: 14,
@@ -319,14 +248,12 @@
                                     cornerRadius: 8,
                                     borderColor: '#4b5563',
                                     borderWidth: 1,
-                                    displayColors: false, // Removes the little square icon
+                                    displayColors: false,
                                     callbacks: {
-                                        // Change the main label text
                                         label: function(context) {
                                             const item = selectedStates[context.dataIndex];
                                             return ` Current Tracked Incidents: ${item.count}`;
                                         },
-                                        // Add extra info at the bottom of the tooltip
                                         afterBody: function(context) {
                                             const item = selectedStates[context[0].dataIndex];
                                             return [
@@ -365,8 +292,6 @@
                 };
             }
 
-
-
             function onEachFeature(feature, layer) {
                 const props = feature.properties;
                 const stateName = props.name || 'Unknown State';
@@ -399,9 +324,8 @@
                 let filterName = props.filter_risk_type === 'All' ? 'Composite' :
                     props.filter_risk_type === 'Property-Risk' ? 'Property' : props.filter_risk_type;
 
-                if (hasProfessionalAccess()) {
-                    // 3. Refined Popup HTML
-                    const popupContent = `
+                // 3. Refined Popup HTML - Always show (Auth removed)
+                const popupContent = `
         <div class="p-4 antialiased text-gray-200 bg-[#1E2D3D] rounded-lg shadow-2xl border border-gray-700" style="width: 320px;">
             <div class="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
                 <h3 class="text-lg font-bold text-white tracking-tight">${stateName}</h3>
@@ -446,20 +370,14 @@
         </div>
     `;
 
-                    layer.bindPopup(popupContent, {
-                        closeButton: false,
-                        offset: L.point(0, -10),
-                        className: 'custom-leaflet-popup'
-                    });
-                }
+                layer.bindPopup(popupContent, {
+                    closeButton: false,
+                    offset: L.point(0, -10),
+                    className: 'custom-leaflet-popup'
+                });
 
                 // 4. Click Logic & Selection Styling
                 layer.on('click', function(e) {
-                    if (!hasProfessionalAccess()) {
-                        L.DomEvent.stopPropagation(e); // Stop the map from zooming
-                        openAuthModal();
-                        return;
-                    }
                     if (isComparisonMode) {
                         layer.closePopup();
                         L.DomEvent.stopPropagation(e);
@@ -474,8 +392,8 @@
                             selectedStates.push({
                                 name: stateName,
                                 count: props.incidents_count,
-                                score: props.composite_index_score, // Pass the score
-                                lga: props.most_affected_lga || 'N/A', // Pass the LGA
+                                score: props.composite_index_score,
+                                lga: props.most_affected_lga || 'N/A',
                                 prevCount: props.incidents_prev_year
                             });
                             layer.setStyle({
@@ -485,18 +403,16 @@
                                 fillOpacity: 0.8,
                                 dashArray: ''
                             });
-                            layer.bringToFront(); // Bring selected state border to top
+                            layer.bringToFront();
                         }
                         updateComparisonChart();
                     }
                 });
-
-
             }
 
             // --- 6. DATA FETCHING ---
             function fetchMapData() {
-                resetComparison(); // Clear chart if we change filters
+                resetComparison();
                 loader.style.display = 'flex';
                 applyButton.disabled = true;
                 applyButton.textContent = 'Applying...';
@@ -531,8 +447,6 @@
             fetchMapData(); // Initial load
         });
     </script>
-
-
 
     {{-- CSS for legend and state labels --}}
     <style>

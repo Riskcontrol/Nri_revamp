@@ -7,45 +7,69 @@ use Illuminate\Support\Facades\DB;
 
 class RiskToolController extends Controller
 {
-    // app/Http/Controllers/RiskToolController.php
+    public function index()
+    {
+        // Get unique states and LGAs for the dropdowns
+        $states = DB::table('tbldataentry')
+            ->select('location as state', 'lga')
+            ->whereNotNull('location')
+            ->whereNotNull('lga')
+            ->distinct()
+            ->get()
+            ->groupBy('state')
+            ->map(fn($items) => $items->pluck('lga')->unique()->values());
+
+        return view('risk-tool', compact('states'));
+    }
+
     public function analyze(Request $request)
     {
-        $state = $request->input('state');
         $lga = $request->input('lga');
         $currentYear = 2024;
         $lastYear = 2023;
 
-        // Aggregates for the LGA
-        $lgaStats = DB::table('incidents')
+        // 1. Basic Stats
+        $stats = DB::table('tbldataentry')
             ->where('lga', $lga)
-            ->selectRaw('count(*) as total, sum(Casualties_count) as casualties')
+            ->selectRaw('count(*) as total, sum(CAST(Casualties_count AS UNSIGNED)) as casualties')
             ->first();
 
-        // Distribution for Chart
-        $distribution = DB::table('incidents')
+        // 2. Trend (YoY)
+        $thisYear = DB::table('tbldataentry')->where('lga', $lga)->where('eventyear', $currentYear)->count();
+        $prevYear = DB::table('tbldataentry')->where('lga', $lga)->where('eventyear', $lastYear)->count();
+        $trend = ($prevYear > 0) ? round((($thisYear - $prevYear) / $prevYear) * 100, 1) : 0;
+
+        // 3. Distribution for Chart
+        $distribution = DB::table('tbldataentry')
             ->where('lga', $lga)
             ->select('riskindicators as label', DB::raw('count(*) as value'))
             ->groupBy('riskindicators')
+            ->orderBy('value', 'desc')
             ->get();
 
-        // Trend calculation
-        $thisYearCount = DB::table('incidents')->where('lga', $lga)->where('eventyear', $currentYear)->count();
-        $lastYearCount = DB::table('incidents')->where('lga', $lga)->where('eventyear', $lastYear)->count();
-        $trend = ($lastYearCount > 0) ? (($thisYearCount - $lastYearCount) / $lastYearCount) * 100 : 0;
-
-        // Advisory (The gated content)
-        $advisory = DB::table('incidents')
+        // 4. Detailed Advisory & Latest Incident Note
+        $report = DB::table('tbldataentry')
             ->where('lga', $lga)
             ->whereNotNull('business_advisory')
-            ->value('business_advisory') ?? "Standard security protocols advised for this region.";
+            ->orderBy('eventdateToUse', 'desc')
+            ->first();
 
         return response()->json([
-            'total' => $lgaStats->total,
-            'casualties' => $lgaStats->casualties ?? 0,
-            'trend' => round($trend, 1),
-            'score' => min(95, ($lgaStats->total * 2)), // Simplified scoring
+            'total' => $stats->total,
+            'casualties' => $stats->casualties ?? 0,
+            'trend' => $trend,
+            'score' => $this->calculateRiskScore($stats->total, $stats->casualties, $trend),
             'distribution' => $distribution,
-            'advisory' => $advisory
+            'advisory' => $report->business_advisory ?? "No specific local advisory available for this period.",
+            'recent_note' => $report->add_notes ?? "Monitoring active in this corridor.",
+            'impact_level' => $report->impact ?? 'Low'
         ]);
+    }
+
+    private function calculateRiskScore($total, $casualties, $trend)
+    {
+        // Logic: Weighting incident volume (40%), lethality (40%), and trend (20%)
+        $score = ($total * 1.5) + ($casualties * 3) + ($trend > 0 ? 10 : 0);
+        return min(100, round($score));
     }
 }
