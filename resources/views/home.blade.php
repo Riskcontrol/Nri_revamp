@@ -119,7 +119,7 @@
     @include('partials.home.app-section')
 
     @include('partials.home.insight-section')
-    {{-- @include('partials.home.risk-tool2') --}}
+    @include('partials.home.risk-tool')
 
 
 </x-layout>

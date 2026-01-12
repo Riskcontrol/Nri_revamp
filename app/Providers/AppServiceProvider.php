@@ -6,6 +6,10 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
 use App\Models\StateInsight;
+use App\Services\GroqAIService;
+use App\Services\SpreadsheetProcessorService;
+use Illuminate\Support\Facades\Gate; // <--- ADD THIS LINE
+use App\Models\User;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(GroqAIService::class);
+        $this->app->singleton(SpreadsheetProcessorService::class);
     }
 
     /**
@@ -22,11 +27,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Share 'headerStates' with the header component specifically
-        // We cache it for 24 hours (86400 seconds) to avoid database queries on every page load
+        Gate::define('admin-access', function (User $user) {
+            // Returns true if access_level is 1 (Admin) or higher
+            // Adjust this logic if you have different levels (e.g. > 0)
+            return $user->admin_access >= 1;
+        });
+
         View::composer('components.header', function ($view) {
             $states = Cache::remember('header_states_list', 86400, function () {
-                // Adjust the query if you need to fetch from a different model like tbldataentry
                 return StateInsight::orderBy('state', 'asc')->pluck('state');
             });
 

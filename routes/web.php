@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeNewController;
 use App\Http\Controllers\LocationIntelligenceController;
@@ -10,7 +11,10 @@ use App\Http\Controllers\RiskMapAnalyticsController;
 use App\Http\Controllers\SecurityHubController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\FileProcessorController;
 use App\Http\Controllers\RiskToolController;
+use App\Http\Controllers\DataImportController;
+
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
     ->name('register')
@@ -65,6 +69,66 @@ Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'
 Route::get('/download-security-report', [SecurityHubController::class, 'downloadReport'])->name('reports.download');
 
 
-Route::get('/risk-assessment', [RiskToolController::class, 'index'])->name('risk.tool');
-Route::get('/api/risk-analysis', [RiskToolController::class, 'analyze']);
-Route::post('/api/save-lead', [RiskToolController::class, 'saveLead']);
+
+// Keep the name the same so your form works automatically
+Route::post('/api/risk-analysis', [HomeNewController::class, 'analyze'])->name('risk-tool.analyze');
+// Allows both POST (from your form) and GET (if you want to test via URL parameters)
+Route::match(['get', 'post'], '/download-risk-report', [HomeNewController::class, 'downloadReport'])->name('report.download');
+// Admin Dashboard Route
+Route::get('/admin/dashboard', function () {
+    return view('admin.dashboard');
+})->name('admin.dashboard');
+
+// In routes/web.php
+
+
+
+// ... inside your 'admin' prefix or middleware group ...
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'can:admin-access'])->group(function () {
+
+    // Existing Dashboard Route
+    Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
+
+    // --- User Management ---
+    Route::get('/users', [AdminController::class, 'users'])->name('users.index');
+    Route::delete('/users/{user}', [AdminController::class, 'destroyUser'])->name('users.destroy');
+    // Optional: Add edit/update if needed later
+
+    // --- Insight Management ---
+    Route::get('/insights', [AdminController::class, 'insights'])->name('insights.index');
+    Route::get('/insights/{id}/edit', [AdminController::class, 'editInsight'])->name('insights.edit');
+    Route::put('/insights/{id}', [AdminController::class, 'updateInsight'])->name('insights.update');
+    Route::delete('/insights/{id}', [AdminController::class, 'destroyInsight'])->name('insights.destroy');
+});
+
+Route::get('/file-processor', [FileProcessorController::class, 'index'])
+    ->name('file-processor.index');
+
+Route::post('/file-processor/process', [FileProcessorController::class, 'process'])
+    ->name('file-processor.process');
+
+
+
+// Data Import Routes
+Route::prefix('data')->name('data.')->group(function () {
+
+    // Main upload page with history
+    Route::get('/import', [DataImportController::class, 'index'])
+        ->name('import.index');
+
+    // Process file upload
+    Route::post('/import', [DataImportController::class, 'import'])
+        ->name('import.store');
+
+    // View import details
+    Route::get('/import/{id}', [DataImportController::class, 'show'])
+        ->name('import.show');
+
+    // Download failed rows
+    Route::get('/import/{id}/failed-rows', [DataImportController::class, 'downloadFailedRows'])
+        ->name('import.download-failed');
+
+    // Export imported incidents
+    Route::get('/import/{id}/export', [DataImportController::class, 'exportImportedIncidents'])
+        ->name('import.export-incidents');
+});

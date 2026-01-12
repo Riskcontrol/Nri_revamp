@@ -34,5 +34,11 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+        'api_url' => env('GROQ_API_URL'),
+        'timeout' => env('GROQ_TIMEOUT', 30),
+        'retry_attempts' => env('GROQ_RETRY_ATTEMPTS', 2),
+    ],
 
 ];

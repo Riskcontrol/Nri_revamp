@@ -10,7 +10,9 @@ use App\Models\tblriskindicators;
 use App\Models\DataInsights;
 use App\Models\DataInsightsCategory;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Traits\CalculatesRisk; // Import the Trait
+use App\Http\Controllers\Traits\CalculatesRisk;
+use PDF;
+use Illuminate\Support\Str;
 
 class HomeNewController extends Controller
 {
@@ -97,22 +99,14 @@ class HomeNewController extends Controller
             $currentThreatLevel = 'CRITICAL';
         }
 
-        $assessmentScope = $highRiskStateCount >= 5 ? 'Nationwide Assessment' : 'Regional Assessment';
-        $validUntil = $latestIncidentTime ? Carbon::parse($latestIncidentTime->audittimecreated)->addHours(24)->format('M d, Y h:i A') : 'N/A';
-        $keyConcerns = implode(', ', $trendingRiskFactors->pluck('riskindicators')->take(3)->toArray());
 
         // 8. Prepare Map and Dropdown Data
         $riskData = $this->riskIndex($request);
-        $calculatorStates = tbldataentry::select('location')->distinct()->orderBy('location')->pluck('location');
-
-        try {
-            $calculatorIndustries = DB::table('business_risk_industries')->orderBy('name')->pluck('name');
-        } catch (\Exception $e) {
-            $calculatorIndustries = ['Oil & Gas', 'Banking', 'Telecoms', 'Manufacturing', 'FMCG', 'Logistics'];
-        }
 
         // 9. Fetch Insights
         $homeInsights = DataInsights::with('category')->latest()->take(4)->get();
+
+        $states = collect(config('nigeria'));
 
         // 10. Pass all data to view
         return view('home', array_merge(
@@ -124,12 +118,8 @@ class HomeNewController extends Controller
                 'auditedTime',
                 'totalIncidents',
                 'currentThreatLevel',
-                'assessmentScope',
-                'validUntil',
-                'keyConcerns',
                 'homeInsights',
-                'calculatorStates',
-                'calculatorIndustries'
+                'states',
             ),
             $riskData
         ));
@@ -323,5 +313,183 @@ class HomeNewController extends Controller
             'riskindicators' => $entry->riskindicators,
             'impact' => $entry->impact
         ]);
+    }
+
+    // Risk tool logic
+    public function analyze(Request $request)
+    {
+        $lga = $request->input('lga');
+        $state = $request->input('state');
+        $year = $request->input('year', date('Y'));
+
+        // 1. LGA Specific Stats
+        $stats = DB::table('tbldataentry')
+            ->where('lga', $lga)
+            ->where('eventyear', $year)
+            ->selectRaw('count(*) as total, sum(COALESCE(CAST(Casualties_count AS UNSIGNED), 0)) as casualties')
+            ->first();
+
+        // 2. Trend Logic (Compared to previous year)
+        $prevYearCount = DB::table('tbldataentry')
+            ->where('lga', $lga)
+            ->where('eventyear', $year - 1)
+            ->count();
+        $trend = ($prevYearCount > 0) ? round((($stats->total - $prevYearCount) / $prevYearCount) * 100, 1) : 0;
+
+        // 3. Top Risk Factor
+        $topIndicator = DB::table('tbldataentry')
+            ->where('lga', $lga)
+            ->where('eventyear', $year)
+            ->select('riskindicators', DB::raw('count(*) as count'))
+            ->groupBy('riskindicators')
+            ->orderBy('count', 'desc')
+            ->first();
+
+        // 4. COMPARATIVE BENCHMARK (State Average)
+        $stateAvg = DB::table('tbldataentry')
+            ->where('location', $state)
+            ->where('eventyear', $year)
+            ->selectRaw('count(*) / count(distinct lga) as avg_val')
+            ->value('avg_val') ?? 0;
+
+        // 5. Recent Incidents
+        $recent = DB::table('tbldataentry')
+            ->where('location', $state)
+            ->orderBy('eventdateToUse', 'desc')
+            ->limit(2)
+            ->get(['eventdateToUse', 'add_notes as incident_description', 'lga']);
+
+        $score = $this->calculateRiskScore($stats->total, $stats->casualties, $trend);
+
+        return response()->json([
+            'success' => true,
+            'score' => $score,
+            'total' => $stats->total,
+            'casualties' => $stats->casualties ?? 0,
+            'top_indicator' => $topIndicator->riskindicators ?? 'N/A',
+            'impact_level' => $this->getImpactLabel($score),
+            'state_avg' => round($stateAvg, 1),
+            'comparison' => ($stats->total > $stateAvg) ? 'higher' : 'lower',
+            'recent_incidents' => $recent
+        ]);
+    }
+
+    private function getImpactLabel($score)
+    {
+        if ($score >= 75) return 'Critical';
+        if ($score >= 50) return 'High';
+        if ($score >= 25) return 'Moderate';
+        return 'Low';
+    }
+    private function calculateRiskScore($total, $casualties, $trend)
+    {
+        // Logic: Weighting incident volume (40%), lethality (40%), and trend (20%)
+        $score = ($total * 1.5) + ($casualties * 3) + ($trend > 0 ? 10 : 0);
+        return min(100, round($score));
+    }
+
+
+
+    public function downloadReport(Request $request)
+    {
+        $request->validate([
+            'state' => 'required',
+            'lga' => 'required',
+            'email' => 'required|email'
+        ]);
+
+        $state = $request->state;
+        $lga = $request->lga;
+        $year = $request->year ?? date('Y');
+
+        // 1. RISK BREAKDOWN (No changes needed here)
+        $riskDistribution = DB::table('tbldataentry')
+            ->where('lga', $lga)
+            ->where('eventyear', '>=', $year - 1)
+            ->select('riskindicators', DB::raw('count(*) as count'))
+            ->groupBy('riskindicators')
+            ->orderByDesc('count')
+            ->take(5)
+            ->get();
+
+        if ($riskDistribution->isEmpty()) {
+            // If accessed via AJAX/Fetch, return JSON error
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'No data available for this selection'], 422);
+            }
+            // If accessed via browser, redirect back
+            return back()->with('error', 'No data available to generate report.');
+        }
+
+        // 2. LETHALITY (No changes needed here)
+        $casualties = DB::table('tbldataentry')
+            ->where('lga', $lga)
+            ->where('eventyear', $year)
+            ->selectRaw('
+                SUM(CASE WHEN Casualties_count REGEXP "^[0-9]+$" THEN Casualties_count ELSE 0 END) as deaths,
+                SUM(CASE WHEN victim REGEXP "^[0-9]+$" THEN victim ELSE 0 END) as kidnaps
+            ')
+            ->first();
+
+        // 3. HOTSPOTS (UPDATED: Now joins with state_neighbourhoods)
+        $hotspots = DB::table('tbldataentry')
+            ->leftJoin('state_neighbourhoods', 'tbldataentry.neighbourhood', '=', 'state_neighbourhoods.id')
+            ->where('tbldataentry.lga', $lga)
+            ->where('tbldataentry.eventyear', $year)
+            ->whereNotNull('state_neighbourhoods.neighbourhood_name') // Ensure we have a name
+            ->select('state_neighbourhoods.neighbourhood_name', DB::raw('count(*) as incidents'))
+            ->groupBy('state_neighbourhoods.neighbourhood_name')
+            ->orderByDesc('incidents')
+            ->take(4)
+            ->get();
+
+        // 4. NARRATIVE LOG (UPDATED: Fetches the name instead of ID)
+        $incidents = DB::table('tbldataentry')
+            ->leftJoin('state_neighbourhoods', 'tbldataentry.neighbourhood', '=', 'state_neighbourhoods.id')
+            ->where('tbldataentry.lga', $lga)
+            ->where('tbldataentry.eventyear', $year)
+            ->orderBy('tbldataentry.eventdateToUse', 'desc')
+            ->take(5)
+            ->get([
+                'tbldataentry.eventdate',
+                'tbldataentry.riskindicators',
+                'tbldataentry.add_notes',
+                'state_neighbourhoods.neighbourhood_name' // Get the real name
+            ]);
+
+        // 5. Generate Dynamic Advisory
+        $topRisk = $riskDistribution->first()->riskindicators ?? 'General Insecurity';
+        $advisory = $this->getDynamicAdvisory($topRisk);
+
+        // 6. Generate PDF
+        $pdf = PDF::loadView('reports.risk_profile', compact(
+            'state',
+            'lga',
+            'year',
+            'riskDistribution',
+            'casualties',
+            'hotspots',
+            'incidents',
+            'advisory'
+        ));
+
+        return $pdf->download(Str::slug("Risk_Report_{$lga}_{$year}") . '.pdf');
+    }
+
+    // Helper to make the report "Smart"
+    private function getDynamicAdvisory($risk)
+    {
+        $advisories = [
+            'Kidnapping' => "High kidnap risk detected. Organizations should implement journey management plans, avoid night travel, and utilize convoy security for expatriates.",
+            'Terrorism' => "Terrorism threat elevated. Avoid crowded public spaces, government installations, and strengthen perimeter security at all operational bases.",
+            'Social Unrest' => "Civil unrest likely. Monitor local news for protest announcements, maintain low profile, and prepare business continuity plans for supply chain disruptions.",
+            'Armed Robbery' => "Criminality high. Upgrade physical security (lighting, perimeter walls), reduce cash handling, and conduct staff security awareness training."
+        ];
+
+        foreach ($advisories as $key => $advice) {
+            if (stripos($risk, $key) !== false) return $advice;
+        }
+
+        return "Maintain situational awareness and subscribe to real-time alerts. Ensure all emergency contacts are up to date.";
     }
 }

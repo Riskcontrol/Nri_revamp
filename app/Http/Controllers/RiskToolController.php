@@ -25,47 +25,68 @@ class RiskToolController extends Controller
     public function analyze(Request $request)
     {
         $lga = $request->input('lga');
-        $currentYear = 2024;
-        $lastYear = 2023;
+        $state = $request->input('state');
+        $year = $request->input('year', date('Y'));
 
-        // 1. Basic Stats
+        // 1. LGA Specific Stats
         $stats = DB::table('tbldataentry')
             ->where('lga', $lga)
-            ->selectRaw('count(*) as total, sum(CAST(Casualties_count AS UNSIGNED)) as casualties')
+            ->where('eventyear', $year)
+            ->selectRaw('count(*) as total, sum(COALESCE(CAST(Casualties_count AS UNSIGNED), 0)) as casualties')
             ->first();
 
-        // 2. Trend (YoY)
-        $thisYear = DB::table('tbldataentry')->where('lga', $lga)->where('eventyear', $currentYear)->count();
-        $prevYear = DB::table('tbldataentry')->where('lga', $lga)->where('eventyear', $lastYear)->count();
-        $trend = ($prevYear > 0) ? round((($thisYear - $prevYear) / $prevYear) * 100, 1) : 0;
-
-        // 3. Distribution for Chart
-        $distribution = DB::table('tbldataentry')
+        // 2. Trend Logic (Compared to previous year)
+        $prevYearCount = DB::table('tbldataentry')
             ->where('lga', $lga)
-            ->select('riskindicators as label', DB::raw('count(*) as value'))
+            ->where('eventyear', $year - 1)
+            ->count();
+        $trend = ($prevYearCount > 0) ? round((($stats->total - $prevYearCount) / $prevYearCount) * 100, 1) : 0;
+
+        // 3. Top Risk Factor
+        $topIndicator = DB::table('tbldataentry')
+            ->where('lga', $lga)
+            ->where('eventyear', $year)
+            ->select('riskindicators', DB::raw('count(*) as count'))
             ->groupBy('riskindicators')
-            ->orderBy('value', 'desc')
-            ->get();
-
-        // 4. Detailed Advisory & Latest Incident Note
-        $report = DB::table('tbldataentry')
-            ->where('lga', $lga)
-            ->whereNotNull('business_advisory')
-            ->orderBy('eventdateToUse', 'desc')
+            ->orderBy('count', 'desc')
             ->first();
+
+        // 4. COMPARATIVE BENCHMARK (State Average)
+        $stateAvg = DB::table('tbldataentry')
+            ->where('location', $state)
+            ->where('eventyear', $year)
+            ->selectRaw('count(*) / count(distinct lga) as avg_val')
+            ->value('avg_val') ?? 0;
+
+        // 5. Recent Incidents
+        $recent = DB::table('tbldataentry')
+            ->where('location', $state)
+            ->orderBy('eventdateToUse', 'desc')
+            ->limit(2)
+            ->get(['eventdateToUse', 'add_notes as incident_description', 'lga']);
+
+        $score = $this->calculateRiskScore($stats->total, $stats->casualties, $trend);
 
         return response()->json([
+            'success' => true,
+            'score' => $score,
             'total' => $stats->total,
             'casualties' => $stats->casualties ?? 0,
-            'trend' => $trend,
-            'score' => $this->calculateRiskScore($stats->total, $stats->casualties, $trend),
-            'distribution' => $distribution,
-            'advisory' => $report->business_advisory ?? "No specific local advisory available for this period.",
-            'recent_note' => $report->add_notes ?? "Monitoring active in this corridor.",
-            'impact_level' => $report->impact ?? 'Low'
+            'top_indicator' => $topIndicator->riskindicators ?? 'N/A',
+            'impact_level' => $this->getImpactLabel($score),
+            'state_avg' => round($stateAvg, 1),
+            'comparison' => ($stats->total > $stateAvg) ? 'higher' : 'lower',
+            'recent_incidents' => $recent
         ]);
     }
 
+    private function getImpactLabel($score)
+    {
+        if ($score >= 75) return 'Critical';
+        if ($score >= 50) return 'High';
+        if ($score >= 25) return 'Moderate';
+        return 'Low';
+    }
     private function calculateRiskScore($total, $casualties, $trend)
     {
         // Logic: Weighting incident volume (40%), lethality (40%), and trend (20%)
