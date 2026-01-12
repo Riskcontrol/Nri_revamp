@@ -68,7 +68,7 @@
                             } elseif (str_contains($level, 'high')) {
                                 $pillClasses = 'bg-red-100 text-red-700 border-red-200';
                             } elseif (str_contains($level, 'elevated') || str_contains($level, 'medium')) {
-                                $pillClasses = 'bg-orange-600 text-white border-transparent';
+                                $pillClasses = 'bg-[#FFB020] text-white border-transparent';
                             } else {
                                 // LOW: Green (Safe)
                                 $pillClasses = 'bg-green-600 text-white border-transparent';

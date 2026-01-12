@@ -5,14 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\tbldataentry;
 use Illuminate\Http\Request;
 use App\Models\CorrectionFactorForStates;
-use Carbon\Carbon;
+// use Carbon\Carbon;
 use App\Models\tblriskindicators;
 use App\Models\DataInsights;
 use App\Models\DataInsightsCategory;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Traits\CalculatesRisk;
-use PDF;
+// use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 
 class HomeNewController extends Controller
 {
@@ -69,10 +71,10 @@ class HomeNewController extends Controller
             ->get();
 
         // 5. Recent incidents & Audited Time
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         $recentIncidentsCount = tbldataentry::where('audittimecreated', '>=', $now->subDay())->count();
         $latestIncidentTime = tbldataentry::latest('audittimecreated')->first();
-        $auditedTime = $latestIncidentTime ? \Carbon\Carbon::parse($latestIncidentTime->audittimecreated)->format('h:i:s A') : 'N/A';
+        $auditedTime = $latestIncidentTime ? Carbon::parse($latestIncidentTime->audittimecreated)->format('h:i:s A') : 'N/A';
 
         // 6. Total incidents for current scope (2025)
         $totalIncidents = tbldataentry::where('yy', 2025)->count();
@@ -462,7 +464,7 @@ class HomeNewController extends Controller
         $advisory = $this->getDynamicAdvisory($topRisk);
 
         // 6. Generate PDF
-        $pdf = PDF::loadView('reports.risk_profile', compact(
+        $pdf = Pdf::loadView('reports.risk_profile', compact(
             'state',
             'lga',
             'year',
