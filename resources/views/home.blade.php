@@ -41,10 +41,10 @@
                             Start Free Trial
                         </a>
 
-                        {{-- <button
-                            class="w-full sm:w-auto px-8 py-4 rounded-lg border-2 border-white bg-transparent text-white text-lg font-bold transition hover:bg-white/10">
-                            Assess Your Risk
-                        </button> --}}
+                        <button onclick="toggleRiskModal(true)"
+                            class="w-full sm:w-auto px-8 py-4 rounded-lg border-2 border-white bg-transparent text-white text-lg font-semibold transition hover:bg-white/10">
+                            Get Your Risk Snapshot
+                        </button>
                     </div>
 
                 </div>
