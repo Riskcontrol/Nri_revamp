@@ -3,6 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\DataImport;
+use App\Models\tbldataentry;
+use App\Models\StateNeighbourhoods;
+use App\Models\tbllga;
+use App\Models\tblriskfactors;
+use App\Models\tblriskindicators;
+use App\Models\Motive;
+use App\Models\MotivesSpecific;
+use App\Models\AttackGroup;
+use App\Models\AttackSubGroup;
+use App\Models\TargetType;
+use App\Models\TargetSubType;
+use App\Models\WeaponType;
+use App\Models\WeaponSubType;
+use App\Models\DayPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -12,24 +26,16 @@ use Carbon\Carbon;
 
 class DataImportController extends Controller
 {
-    /**
-     * Display upload form and recent imports
-     */
     public function index()
     {
-        $recentImports = DataImport::with('user')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-
+        $recentImports = DataImport::orderBy('created_at', 'desc')->paginate(20);
         return view('dataanalyst.data-upload', compact('recentImports'));
     }
 
-    /**
-     * Handle file import
-     */
     public function import(Request $request)
     {
-        // Validate the request
+        Log::info('=== IMPORT STARTED ===');
+
         $request->validate([
             'incident_file' => 'required|file|mimes:xlsx,xls,xlsm,xlsb|max:10240',
         ]);
@@ -38,7 +44,8 @@ class DataImportController extends Controller
         $file = $request->file('incident_file');
         $fileName = $file->getClientOriginalName();
 
-        // Create import record
+        Log::info('File received', ['name' => $fileName]);
+
         $import = DataImport::create([
             'sheet_name' => $fileName,
             'user_id' => auth()->id(),
@@ -46,13 +53,14 @@ class DataImportController extends Controller
             'rows_inserted' => 0,
             'rows_failed' => 0,
             'total_rows' => 0,
-            'failed_rows' => [],
+            'failed_rows' => json_encode([]), // Store as JSON string initially
         ]);
+
+        Log::info('Import record created', ['id' => $import->id]);
 
         DB::beginTransaction();
 
         try {
-            // Process the Excel file
             $theCollection = Excel::toArray(collect([]), $file);
 
             if (empty($theCollection) || empty($theCollection[0])) {
@@ -62,17 +70,25 @@ class DataImportController extends Controller
             $headers = $theCollection[0][0];
             $rows = $theCollection[0];
 
-            // Process rows
+            Log::info('Excel parsed', [
+                'total_rows' => count($rows),
+                'headers' => $headers
+            ]);
+
             $processedData = $this->processExcelRows($rows, $headers);
+            Log::info('Rows processed', ['count' => count($processedData)]);
+
             $import->update(['total_rows' => count($processedData)]);
 
-            // Import the data using your existing logic
             $result = $this->importIncidents($processedData, $import);
 
-            // Calculate processing time
+            Log::info('Import completed', [
+                'success' => $result['success_count'],
+                'failed' => $result['failed_count']
+            ]);
+
             $processingTime = round(microtime(true) - $startTime, 2);
 
-            // Update import record
             $import->update([
                 'rows_inserted' => $result['success_count'],
                 'rows_failed' => $result['failed_count'],
@@ -84,19 +100,19 @@ class DataImportController extends Controller
             DB::commit();
 
             return redirect()->route('data.import.show', $import->id)
-                ->with('successAlert', "Import completed: {$result['success_count']} succeeded, {$result['failed_count']} failed out of " . count($processedData) . " total rows.");
+                ->with('successAlert', "Import completed: {$result['success_count']} succeeded, {$result['failed_count']} failed.");
         } catch (\Exception $e) {
             DB::rollBack();
+
+            Log::error('Import failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
 
             $import->update([
                 'status' => 'failed',
                 'failed_rows' => json_encode([['error' => $e->getMessage()]])
-            ]);
-
-            Log::error('Import failed', [
-                'import_id' => $import->id,
-                'file' => $fileName,
-                'error' => $e->getMessage()
             ]);
 
             return redirect()->route('data.import.index')
@@ -104,35 +120,32 @@ class DataImportController extends Controller
         }
     }
 
-    /**
-     * Show detailed import information
-     */
     public function show($id)
     {
-        $import = DataImport::with('user')->findOrFail($id);
-        $failedRows = $import->failed_rows ?? [];
+        $import = DataImport::findOrFail($id);
 
-        // Get imported incidents
+        $failedRows = json_decode($import->failed_rows, true);
+        if (!is_array($failedRows)) {
+            $failedRows = [];
+        }
+
+        // Query by import_id for reliable results
         $importedIncidents = DB::table('tbldataentry')
-            ->whereDate('auditdatecreated', $import->created_at->toDateString())
+            ->where('import_id', $import->id)
             ->orderBy('eventid', 'desc')
             ->paginate(50);
 
         return view('dataanalyst.import-details', compact('import', 'failedRows', 'importedIncidents'));
     }
 
-    /**
-     * Process Excel rows into structured array
-     */
     private function processExcelRows($rows, $headers)
     {
         $processedData = [];
         $emptyRowCount = 0;
 
         foreach ($rows as $index => $row) {
-            if ($index === 0) continue; // Skip header
+            if ($index === 0) continue;
 
-            // Check for empty rows
             if (empty(array_filter($row, fn($cell) => !is_null($cell) && trim($cell) !== ''))) {
                 $emptyRowCount++;
                 if ($emptyRowCount >= 3) break;
@@ -154,29 +167,159 @@ class DataImportController extends Controller
         return $processedData;
     }
 
-    /**
-     * Import incidents - use your existing add_incidents_file logic here
-     */
     private function importIncidents($dataRows, $import)
     {
+        Log::info('Starting incident import', ['total' => count($dataRows)]);
+
         $successCount = 0;
         $failedCount = 0;
         $errors = [];
 
-        // You can copy your existing add_incidents_file logic here
-        // For now, I'll provide a simplified structure
-
-        foreach ($dataRows as $row) {
+        foreach ($dataRows as $data) {
             try {
-                // Your existing validation and insertion logic
-                // If successful:
+                $error = ['row_num' => $data['row_num']];
+                $hasError = false;
+
+                // Date
+                $date = null;
+                if (!empty($data['year']) && !empty($data['month']) && !empty($data['day'])) {
+                    try {
+                        $date = Carbon::createFromFormat('d M Y', $data['day'] . ' ' . $data['month'] . ' ' . $data['year']);
+                    } catch (\Exception $e) {
+                        $error['date'] = 'Invalid date format';
+                        $hasError = true;
+                    }
+                } else {
+                    $error['date'] = 'Date is required';
+                    $hasError = true;
+                }
+
+                // State
+                $lat_long = null;
+                if (!empty($data['state'])) {
+                    $lat_long = tbllga::where('State', 'LIKE', '%' . $data['state'] . '%')->first();
+                    if (!$lat_long) {
+                        $error['state'] = 'Invalid state';
+                        $hasError = true;
+                    }
+                } else {
+                    $error['state'] = 'State is required';
+                    $hasError = true;
+                }
+
+                // Risk Factor
+                $riskfactorName = null;
+                if (!empty($data['risk_factor'])) {
+                    $normalized = str_replace('threats', '', strtolower($data['risk_factor']));
+                    $riskfactor = tblriskfactors::where('name', 'LIKE', '%' . $normalized . '%')->first();
+                    if (!$riskfactor) {
+                        $error['risk_factor'] = 'Invalid risk factor';
+                        $hasError = true;
+                    } else {
+                        $riskfactorName = $riskfactor->name;
+                    }
+                } else {
+                    $error['risk_factor'] = 'Risk factor is required';
+                    $hasError = true;
+                }
+
+                // Risk Indicator
+                $riskindicatorValue = null;
+                if (!empty($data['risk_indicator']) && $riskfactorName) {
+                    $riskindicator = tblriskindicators::where('indicators', $data['risk_indicator'])
+                        ->where('factors', $riskfactorName)
+                        ->first();
+                    if (!$riskindicator) {
+                        $error['risk_indicator'] = 'Invalid risk indicator';
+                        $hasError = true;
+                    } else {
+                        $riskindicatorValue = $riskindicator->indicators;
+                    }
+                } else if (empty($data['risk_indicator'])) {
+                    $error['risk_indicator'] = 'Risk indicator is required';
+                    $hasError = true;
+                }
+
+                // Impact
+                $impact_value = '';
+                if (!empty($data['impact'])) {
+                    $impacts = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High'];
+                    foreach ($impacts as $key => $val) {
+                        if (str_contains(strtolower($data['impact']), $key)) {
+                            $impact_value = $val;
+                            break;
+                        }
+                    }
+                    if (!$impact_value) {
+                        $error['impact'] = 'Invalid impact';
+                        $hasError = true;
+                    }
+                } else {
+                    $error['impact'] = 'Impact is required';
+                    $hasError = true;
+                }
+
+                // Caption
+                if (empty($data['caption'])) {
+                    $error['caption'] = 'Caption is required';
+                    $hasError = true;
+                }
+
+                if ($hasError) {
+                    $failedCount++;
+                    $errors[] = $error;
+                    Log::warning('Row validation failed', $error);
+                    continue;
+                }
+
+                // Insert to database
+                $unique_code = Carbon::now()->format('YmdHisu');
+
+                $insertData = [
+                    'import_id' => $import->id, // ADD THIS LINE
+                    'eventid' => $unique_code,
+                    'location' => $lat_long->State,
+                    'lga' => $lat_long->LGA ?? '',
+                    'eventdate' => $date->format('m/d/Y'),
+                    'eventdateToUse' => $date->format('Y-m-d'),
+                    'dd' => $date->format('d'),
+                    'eventday' => $date->format('d'),
+                    'week' => $date->format('W'),
+                    'mm' => $date->format('m'),
+                    'eventmonth' => $date->format('m'),
+                    'YY' => $date->format('Y'),
+                    'eventyear' => $date->format('Y'),
+                    'riskfactors' => $riskfactorName,
+                    'riskindicators' => $riskindicatorValue,
+                    'impact' => $impact_value,
+                    'caption' => $data['caption'],
+                    'author' => auth()->user()->email ?? 'system',
+                    'datecreated' => Carbon::now()->format('M d, Y'),
+                    'auditauthor' => auth()->user()->email ?? 'system',
+                    'auditdatecreated' => Carbon::now()->format('M d, Y'),
+                    'audittimecreated' => Carbon::now()->format('h:i:s a'),
+                    'latitude' => $data['latitude'] ?? '',
+                    'longitude' => $data['longitude'] ?? '',
+                    'Casualties_count' => !empty($data['deaths_count']) ? (int)$data['deaths_count'] : null,
+                    'Injuries_count' => !empty($data['injuries_count']) ? (int)$data['injuries_count'] : null,
+                    'victim' => $data['victim'] ?? null,
+                ];
+
+                DB::table('tbldataentry')->insert($insertData);
+
                 $successCount++;
+                Log::info('Row inserted', ['row' => $data['row_num'], 'eventid' => $unique_code]);
             } catch (\Exception $e) {
                 $failedCount++;
                 $errors[] = [
-                    'row_num' => $row['row_num'],
+                    'row_num' => $data['row_num'] ?? 'N/A',
                     'error' => $e->getMessage()
                 ];
+                Log::error('Row insert failed', [
+                    'row' => $data['row_num'] ?? 'N/A',
+                    'error' => $e->getMessage(),
+                    'line' => $e->getLine()
+                ]);
             }
         }
 
@@ -187,28 +330,22 @@ class DataImportController extends Controller
         ];
     }
 
-    /**
-     * Download failed rows as Excel
-     */
     public function downloadFailedRows($id)
     {
         $import = DataImport::findOrFail($id);
-        $failedRows = $import->failed_rows ?? [];
+        $failedRows = json_decode($import->failed_rows, true) ?? [];
 
-        // Create a simple CSV for now
         $filename = "failed_rows_{$id}.csv";
         $handle = fopen('php://temp', 'w');
 
-        // Write headers
-        fputcsv($handle, ['Row Number', 'Errors']);
+        fputcsv($handle, ['Row Number', 'Field', 'Error Message']);
 
-        // Write data
         foreach ($failedRows as $row) {
-            $errors = collect($row)->except('row_num')->map(function ($v, $k) {
-                return "$k: $v";
-            })->implode('; ');
-
-            fputcsv($handle, [$row['row_num'] ?? 'N/A', $errors]);
+            $rowNum = $row['row_num'] ?? 'N/A';
+            foreach ($row as $field => $error) {
+                if ($field === 'row_num') continue;
+                fputcsv($handle, [$rowNum, ucfirst(str_replace('_', ' ', $field)), $error]);
+            }
         }
 
         rewind($handle);
@@ -220,28 +357,27 @@ class DataImportController extends Controller
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
     }
 
-    /**
-     * Export imported incidents
-     */
     public function exportImportedIncidents($id)
     {
         $import = DataImport::findOrFail($id);
 
+        // Query by import_id for reliable results
         $incidents = DB::table('tbldataentry')
-            ->whereDate('auditdatecreated', $import->created_at->toDateString())
+            ->where('import_id', $import->id)
             ->get();
+
+        if ($incidents->isEmpty()) {
+            return redirect()->back()->with('errorAlert', 'No incidents found to export');
+        }
 
         $filename = "imported_incidents_{$id}.csv";
         $handle = fopen('php://temp', 'w');
 
-        // Get column names from first record
-        if ($incidents->count() > 0) {
-            $columns = array_keys((array)$incidents->first());
-            fputcsv($handle, $columns);
+        $columns = array_keys((array)$incidents->first());
+        fputcsv($handle, $columns);
 
-            foreach ($incidents as $incident) {
-                fputcsv($handle, (array)$incident);
-            }
+        foreach ($incidents as $incident) {
+            fputcsv($handle, (array)$incident);
         }
 
         rewind($handle);

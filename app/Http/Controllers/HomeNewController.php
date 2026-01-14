@@ -15,6 +15,8 @@ use App\Http\Controllers\Traits\CalculatesRisk;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class HomeNewController extends Controller
 {
@@ -348,11 +350,14 @@ class HomeNewController extends Controller
             ->first();
 
         // 4. COMPARATIVE BENCHMARK (State Average)
-        $stateAvg = DB::table('tbldataentry')
-            ->where('location', $state)
-            ->where('eventyear', $year)
-            ->selectRaw('count(*) / count(distinct lga) as avg_val')
-            ->value('avg_val') ?? 0;
+        $cacheKey = "state_avg_{$state}_{$year}";
+        $stateAvg = Cache::remember($cacheKey, 3600, function () use ($state, $year) {
+            return DB::table('tbldataentry')
+                ->where('location', $state)
+                ->where('eventyear', $year)
+                ->selectRaw('count(*) / count(distinct lga) as avg_val')
+                ->value('avg_val') ?? 0;
+        });
 
         // 5. Recent Incidents
         $recent = DB::table('tbldataentry')
@@ -394,104 +399,277 @@ class HomeNewController extends Controller
 
     public function downloadReport(Request $request)
     {
-        $request->validate([
-            'state' => 'required',
-            'lga' => 'required',
-            'email' => 'required|email'
-        ]);
+        // Increase execution time at PHP level instead
+        set_time_limit(120);
+        ini_set('max_execution_time', 120);
 
-        $state = $request->state;
-        $lga = $request->lga;
-        $year = $request->year ?? date('Y');
-
-        // 1. RISK BREAKDOWN (No changes needed here)
-        $riskDistribution = DB::table('tbldataentry')
-            ->where('lga', $lga)
-            ->where('eventyear', '>=', $year - 1)
-            ->select('riskindicators', DB::raw('count(*) as count'))
-            ->groupBy('riskindicators')
-            ->orderByDesc('count')
-            ->take(5)
-            ->get();
-
-        if ($riskDistribution->isEmpty()) {
-            // If accessed via AJAX/Fetch, return JSON error
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'No data available for this selection'], 422);
-            }
-            // If accessed via browser, redirect back
-            return back()->with('error', 'No data available to generate report.');
-        }
-
-        // 2. LETHALITY (No changes needed here)
-        $casualties = DB::table('tbldataentry')
-            ->where('lga', $lga)
-            ->where('eventyear', $year)
-            ->selectRaw('
-                SUM(CASE WHEN Casualties_count REGEXP "^[0-9]+$" THEN Casualties_count ELSE 0 END) as deaths,
-                SUM(CASE WHEN victim REGEXP "^[0-9]+$" THEN victim ELSE 0 END) as kidnaps
-            ')
-            ->first();
-
-        // 3. HOTSPOTS (UPDATED: Now joins with state_neighbourhoods)
-        $hotspots = DB::table('tbldataentry')
-            ->leftJoin('state_neighbourhoods', 'tbldataentry.neighbourhood', '=', 'state_neighbourhoods.id')
-            ->where('tbldataentry.lga', $lga)
-            ->where('tbldataentry.eventyear', $year)
-            ->whereNotNull('state_neighbourhoods.neighbourhood_name') // Ensure we have a name
-            ->select('state_neighbourhoods.neighbourhood_name', DB::raw('count(*) as incidents'))
-            ->groupBy('state_neighbourhoods.neighbourhood_name')
-            ->orderByDesc('incidents')
-            ->take(4)
-            ->get();
-
-        // 4. NARRATIVE LOG (UPDATED: Fetches the name instead of ID)
-        $incidents = DB::table('tbldataentry')
-            ->leftJoin('state_neighbourhoods', 'tbldataentry.neighbourhood', '=', 'state_neighbourhoods.id')
-            ->where('tbldataentry.lga', $lga)
-            ->where('tbldataentry.eventyear', $year)
-            ->orderBy('tbldataentry.eventdateToUse', 'desc')
-            ->take(5)
-            ->get([
-                'tbldataentry.eventdate',
-                'tbldataentry.riskindicators',
-                'tbldataentry.add_notes',
-                'state_neighbourhoods.neighbourhood_name' // Get the real name
+        try {
+            // Validate
+            $validated = $request->validate([
+                'state' => 'required|string',
+                'lga' => 'required|string',
+                'email' => 'required|email',
+                'year' => 'nullable|integer|min:2018|max:' . date('Y')
             ]);
 
-        // 5. Generate Dynamic Advisory
-        $topRisk = $riskDistribution->first()->riskindicators ?? 'General Insecurity';
-        $advisory = $this->getDynamicAdvisory($topRisk);
+            $state = $validated['state'];
+            $lga = $validated['lga'];
+            $year = $validated['year'] ?? date('Y');
 
-        // 6. Generate PDF
-        $pdf = Pdf::loadView('reports.risk_profile', compact(
-            'state',
-            'lga',
-            'year',
-            'riskDistribution',
-            'casualties',
-            'hotspots',
-            'incidents',
-            'advisory'
-        ));
+            \Log::info("PDF Generation Started", ['lga' => $lga, 'year' => $year]);
 
-        return $pdf->download(Str::slug("Risk_Report_{$lga}_{$year}") . '.pdf');
+            // ============================================
+            // Get Data with Caching
+            // ============================================
+            $cacheKey = "pdf_data_{$lga}_{$year}";
+
+            $reportData = Cache::remember($cacheKey, 1800, function () use ($lga, $year) {
+
+                $baseData = DB::table('tbldataentry as t')
+                    ->leftJoin('state_neighbourhoods as sn', 't.neighbourhood', '=', 'sn.id')
+                    ->where('t.lga', $lga)
+                    ->where('t.eventyear', $year)
+                    ->select(
+                        't.riskindicators',
+                        't.Casualties_count',
+                        't.victim',
+                        't.eventdate',
+                        't.add_notes',
+                        't.eventdateToUse',
+                        'sn.neighbourhood_name'
+                    )
+                    ->get();
+
+                if ($baseData->isEmpty()) {
+                    return null;
+                }
+
+                // Process data
+                $riskDistribution = $baseData
+                    ->groupBy('riskindicators')
+                    ->map(fn($group) => (object)[
+                        'riskindicators' => $group->first()->riskindicators ?? 'Unknown',
+                        'count' => $group->count()
+                    ])
+                    ->sortByDesc('count')
+                    ->take(5)
+                    ->values();
+
+                $casualties = (object)[
+                    'deaths' => $baseData->sum(function ($row) {
+                        return is_numeric($row->Casualties_count) ? (int)$row->Casualties_count : 0;
+                    }),
+                    'kidnaps' => $baseData->sum(function ($row) {
+                        return is_numeric($row->victim) ? (int)$row->victim : 0;
+                    })
+                ];
+
+                $hotspots = $baseData
+                    ->filter(fn($row) => !empty($row->neighbourhood_name))
+                    ->groupBy('neighbourhood_name')
+                    ->map(fn($group, $name) => (object)[
+                        'neighbourhood_name' => $name,
+                        'incidents' => $group->count()
+                    ])
+                    ->sortByDesc('incidents')
+                    ->take(4)
+                    ->values();
+
+                $incidents = $baseData
+                    ->sortByDesc('eventdateToUse')
+                    ->take(5)
+                    ->values();
+
+                return [
+                    'riskDistribution' => $riskDistribution,
+                    'casualties' => $casualties,
+                    'hotspots' => $hotspots,
+                    'incidents' => $incidents,
+                    'topRisk' => $riskDistribution->first()->riskindicators ?? 'General Insecurity'
+                ];
+            });
+
+            // Check if no data
+            if (!$reportData) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "No data available for {$lga} in {$year}."
+                ], 422);
+            }
+
+            // ============================================
+            // Generate Simple Advisory
+            // ============================================
+            $topRisk = $reportData['topRisk'];
+            $mitigation = $this->getMitigationAdvice($topRisk);
+
+            $advisory = "Security Advisory: Based on {$year} data for {$lga}, the primary risk factor is {$topRisk}. {$mitigation}";
+
+            // ============================================
+            // Generate PDF (FIXED)
+            // ============================================
+            $pdf = Pdf::loadView('reports.risk_profile', [
+                'state' => $state,
+                'lga' => $lga,
+                'year' => $year,
+                'riskDistribution' => $reportData['riskDistribution'],
+                'casualties' => $reportData['casualties'],
+                'hotspots' => $reportData['hotspots'],
+                'incidents' => $reportData['incidents'],
+                'advisory' => $advisory
+            ]);
+
+            // CORRECTED: Only use valid methods
+            $pdf->setPaper('a4', 'portrait');
+            $pdf->setOption('isRemoteEnabled', false);
+
+            \Log::info("PDF generated successfully");
+
+            return $pdf->download(Str::slug("Risk_Report_{$lga}_{$year}") . '.pdf');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation Error', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid input data',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('PDF Generation Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    // Helper to make the report "Smart"
-    private function getDynamicAdvisory($risk)
+    private function getSmartAdvisoryOptimized($lga, $state, $topRisk, $year)
     {
-        $advisories = [
-            'Kidnapping' => "High kidnap risk detected. Organizations should implement journey management plans, avoid night travel, and utilize convoy security for expatriates.",
+        // Cache advisory components separately
+        $advisoryCacheKey = "advisory_{$lga}_{$year}";
+
+        return Cache::remember($advisoryCacheKey, 3600, function () use ($lga, $state, $topRisk, $year) {
+
+            // SINGLE QUERY for all advisory data
+            $advisoryData = DB::table('tbldataentry')
+                ->where('lga', $lga)
+                ->where('eventyear', '>=', $year - 1) // Get 2 years of data
+                ->selectRaw('
+                COUNT(*) as total_incidents,
+                eventyear,
+                QUARTER(eventdateToUse) as quarter,
+                COUNT(DISTINCT lga) as lga_count
+            ')
+                ->groupBy('eventyear', 'quarter')
+                ->get();
+
+            // Calculate trend from aggregated data
+            $currentYear = $advisoryData->where('eventyear', $year)->sum('total_incidents');
+            $previousYear = $advisoryData->where('eventyear', $year - 1)->sum('total_incidents');
+
+            $trendText = $this->calculateTrendText($currentYear, $previousYear);
+
+            // State benchmark (simplified)
+            $stateAvgCacheKey = "state_avg_{$state}_{$year}";
+            $stateAverage = Cache::remember($stateAvgCacheKey, 7200, function () use ($state, $year) {
+                return DB::table('tbldataentry')
+                    ->where('location', $state)
+                    ->where('eventyear', $year)
+                    ->selectRaw('COUNT(*) / COUNT(DISTINCT lga) as avg_val')
+                    ->value('avg_val') ?? 0;
+            });
+
+            $lgaTotal = $currentYear;
+            $benchmarkText = $this->calculateBenchmarkText($lgaTotal, $stateAverage);
+
+            $mitigation = $this->getMitigationAdvice($topRisk);
+
+            return "Advisory: {$trendText} {$benchmarkText} Given the prevalence of {$topRisk}, we recommend: {$mitigation}";
+        });
+    }
+
+    // Helper methods for cleaner code
+    private function calculateTrendText($current, $previous)
+    {
+        if ($previous > 0) {
+            $percentChange = (($current - $previous) / $previous) * 100;
+            if ($percentChange > 20) {
+                return "Data indicates a sharp escalation in activity, with incidents rising by " . round($percentChange) . "% over the last year.";
+            } elseif ($percentChange < -20) {
+                return "The security environment shows signs of stabilization, with a " . abs(round($percentChange)) . "% decrease in recorded incidents.";
+            }
+            return "Activity levels remain consistent with the previous year.";
+        }
+        return $current > 0
+            ? "Recent data indicates emergence of security incidents."
+            : "No significant incident trends recorded.";
+    }
+
+    private function calculateBenchmarkText($lgaTotal, $stateAverage)
+    {
+        if ($lgaTotal > ($stateAverage * 1.5)) {
+            return "This LGA is a high-priority zone, with incident volumes significantly above the state average.";
+        } elseif ($lgaTotal < ($stateAverage * 0.5)) {
+            return "Relative to the wider state, this area remains a lower-risk environment.";
+        }
+        return "Security risk levels are comparable to the state average.";
+    }
+    private function getMitigationAdvice($risk)
+    {
+        // Order matters: We list specific/high-severity items first.
+        $strategies = [
+            // --- VIOLENT THREATS ---
             'Terrorism' => "Terrorism threat elevated. Avoid crowded public spaces, government installations, and strengthen perimeter security at all operational bases.",
-            'Social Unrest' => "Civil unrest likely. Monitor local news for protest announcements, maintain low profile, and prepare business continuity plans for supply chain disruptions.",
-            'Armed Robbery' => "Criminality high. Upgrade physical security (lighting, perimeter walls), reduce cash handling, and conduct staff security awareness training."
+            'Insurgency' => "High insurgency risk. Suspend non-essential travel to remote areas and coordinate movement with state security forces.",
+            'Militancy' => "Militant activity detected. Secure oil/gas infrastructure and maintain a safe standoff distance from waterways and creeks.",
+            'Kidnapping' => "High kidnap risk. Implement strict journey management, vary travel routes/times, and utilize convoy security for high-profile staff.",
+            'Piracy' => "Maritime threat. Ensure vessels maintain secure anchorage watches, harden decks, and adhere strictly to BMP West Africa guidelines.",
+            'Armed Robbery' => "Criminality high. Upgrade physical security (lighting, perimeter walls), reduce cash handling, and conduct staff security awareness training.",
+            'Communal' => "Inter-communal tension. Avoid areas with boundary disputes and maintain strict neutrality in local community engagements.",
+            'Homicide' => "Violent crime spike. Avoid high-risk neighborhoods after dark and ensure all staff accommodation has reinforced access control.",
+
+            // --- POLITICAL THREATS ---
+            'Electoral' => "Election-related volatility. Avoid political rallies, campaign offices, and wearing partisan colors. Prepare for potential movement restrictions.",
+            'Protest' => "Civil unrest likely. Monitor local news for gathering points, maintain a low profile, and prepare business continuity plans for supply chain disruptions.",
+            'Civil Disturbance' => "Public disorder risk. Direct staff to shelter in place if unrest erupts. secure glass frontages and movable assets.",
+            'Labour' => "Strike action possible. Engage with union representatives proactively and prepare contingency staffing plans.",
+            'Corruption' => "Regulatory risk. Enforce strict anti-bribery compliance (FCPA/UKBA) and conduct internal audits on procurement processes.",
+            'Impeachment' => "Political instability. Monitor legislative developments and prepare for potential governance vacuums or spontaneous demonstrations.",
+
+            // --- PERSONAL THREATS ---
+            'LEA Brutality' => "Law enforcement misconduct risk. Ensure all vehicle documentation is perfect. Instruct staff to remain compliant, calm, and use dashcams where legal.",
+            'Trafficking' => "Human/Organ trafficking risk. Vet all domestic staff and travel agencies thoroughly. Report suspicious recruitment offers immediately.",
+            'Assault' => "Personal safety risk. Carry out personal security training for staff and advise against walking alone in unlit or isolated areas.",
+            'Rape' => "Gender-based violence risk. Review secure transportation for late shifts and ensure workplace harassment reporting lines are active.",
+            'Suicide' => "Mental health indicator. Enhance employee welfare programs and provide access to confidential counseling services.",
+
+            // --- PROPERTY THREATS ---
+            'Cyber' => "Digital threat. Strengthen firewalls, enforce 2FA, and conduct regular phishing simulations for all employees.",
+            'Arson' => "Fire sabotage risk. Install surveillance cameras around perimeters and ensure fire suppression systems are serviced and accessible.",
+            'Sabotage' => "Infrastructure threat. Increase physical guarding around critical assets (generators, servers) and vet maintenance contractors.",
+            'Burglary' => "Intrusion risk. Reinforce locks, install motion-sensor lighting, and test intrusion detection alarms regularly.",
+            'Fraud' => "Financial crime risk. Implement multi-level approval processes for transactions and verify all vendor account changes via phone.",
+            'Theft' => "Property crime. Implement asset tagging, clear desk policies, and access control logs for storage areas.",
+
+            // --- SAFETY RISKS ---
+            'Natural Disaster' => "Environmental hazard. Review evacuation plans for floods/storms and ensure emergency supplies (food/water/power) are stocked.",
+            'Epidemic' => "Health crisis. Activate hygiene protocols, stockpile PPE, and prepare remote work infrastructure for non-essential staff.",
+            'Accident' => "Transportation/Industrial risk. Enforce strict HSE compliance, mandate seatbelt usage, and conduct regular fleet maintenance checks.",
+            'Fire' => "Fire outbreak risk. Conduct fire drills, clear emergency exits of obstructions, and inspect electrical wiring for faults.",
+            'Route' => "Travel safety risk. Use route planning software to avoid known ambush points and travel only during daylight hours."
         ];
 
-        foreach ($advisories as $key => $advice) {
+        // Loop through strategies to find a match
+        foreach ($strategies as $key => $advice) {
+            // Case-insensitive check (stripos)
             if (stripos($risk, $key) !== false) return $advice;
         }
 
-        return "Maintain situational awareness and subscribe to real-time alerts. Ensure all emergency contacts are up to date.";
+        // Generic Fallback if the specific risk isn't found
+        return "Maintain heightened situational awareness, monitor local news channels, and ensure emergency communication lines are active.";
     }
 }

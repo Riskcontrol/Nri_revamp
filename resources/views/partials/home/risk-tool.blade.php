@@ -1,6 +1,6 @@
 <section class="bg-[#f8fafc] py-16 md:py-24">
     <div class="max-w-7xl mx-auto px-4 text-center">
-        <h6 class="text-sm md:text-base font-bold tracking-tight text-[#10b981] mb-6">
+        <h6 class="text-sm md:text-base font-semibold tracking-tight text-[#10b981] mb-6">
             Nigeria Risk Assessment Calculator
         </h6>
         <h1 class="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-[#0f172a] mb-8">
@@ -12,7 +12,7 @@
         </p>
 
         <button onclick="toggleRiskModal(true)"
-            class="inline-flex items-center gap-2 bg-card hover:bg-[#111a2e] text-white font-bold text-sm px-6 py-6 rounded-lg shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 uppercase tracking-wider">
+            class="inline-flex items-center gap-2 bg-card hover:bg-[#111a2e] text-white font-semibold text-sm px-6 py-6 rounded-lg shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 uppercase tracking-wider">
             <span>Start Risk Assessment</span>
             <i class="fa-solid fa-arrow-right text-xs"></i>
         </button>
@@ -34,7 +34,7 @@
                 <div class="w-full md:w-1/3 bg-[#0f172a] p-8 text-white flex flex-col">
                     <div>
                         <h2 class="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">Filters</h2>
-                        <h1 class="text-2xl font-black mb-8 leading-tight">DEFINE PARAMETERS</h1>
+                        <h1 class="text-2xl font-semibold mb-8 leading-tight">Define Parameters</h1>
                         <div class="space-y-6">
                             <div>
                                 <label class="text-[10px] text-slate-400 font-bold uppercase">State</label>
@@ -47,14 +47,14 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="text-[10px] text-slate-400 font-bold uppercase">LGA</label>
+                                <label class="text-[10px] text-slate-400 font-semibold uppercase">LGA</label>
                                 <select id="calc_lga" disabled
                                     class="w-full mt-1 bg-slate-800 border-slate-700 rounded-lg p-3 text-sm disabled:opacity-50">
                                     <option value="">Select State first</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="text-[10px] text-slate-400 font-bold uppercase">Year</label>
+                                <label class="text-[10px] text-slate-400 font-semibold uppercase">Year</label>
                                 <select id="calc_year"
                                     class="w-full mt-1 bg-slate-800 border-slate-700 rounded-lg p-3 text-sm">
                                     @for ($y = date('Y'); $y >= 2018; $y--)
@@ -65,7 +65,7 @@
                         </div>
                     </div>
                     <button onclick="calculateRisk()" id="btn-calculate"
-                        class="w-full mt-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-[#0f172a] font-black rounded-xl flex justify-center items-center gap-2">
+                        class="w-full mt-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-[#0f172a] font-medium rounded-xl flex justify-center items-center gap-2">
                         <span>GENERATE REPORT</span>
                     </button>
                 </div>
@@ -104,12 +104,12 @@
                                     </svg>
                                     <span id="res-score" class="text-3xl font-black">0</span>
                                 </div>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase">Risk Score</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Risk Range</span>
                             </div>
                             <div class="md:col-span-2 grid grid-cols-2 gap-4">
                                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Impact</p>
-                                    <p id="res-impact" class="text-xl font-black text-emerald-600">LOW</p>
+                                    <p class="text-[10px] font-semibold text-slate-400 uppercase">Impact</p>
+                                    <p id="res-impact" class="text-xl font-semibold">LOW</p>
                                 </div>
                                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                                     <p class="text-[10px] font-bold text-slate-400 uppercase">Prevalent Risk</p>
@@ -126,7 +126,7 @@
                             </div>
                         </div>
 
-                        {{-- Lead Magnet Section --}}
+
                         {{-- Lead Magnet Section --}}
                         <div
                             class="bg-slate-900 rounded-3xl p-8 text-white mb-8 text-center shadow-lg relative overflow-hidden">
@@ -310,6 +310,36 @@
                 return;
             }
             // ----------------------------
+            const impactElement = document.getElementById('res-impact');
+            const scoreRing = document.getElementById('score-ring');
+            impactElement.innerText = data.impact_level;
+            impactElement.className = 'text-xl font-semibold';
+
+            // Define colors
+            const colorCritical = '#dc2626'; // red-600
+            const colorHigh = '#f97316'; // orange-500
+            const colorModerate = '#eab308'; // yellow-500
+            const colorLow = '#059669'; // emerald-600
+
+            // Apply color based on impact level to both TEXT and RING
+            if (data.score >= 75) {
+                // CRITICAL
+                impactElement.classList.add('text-red-600');
+                scoreRing.style.stroke = colorCritical;
+            } else if (data.score >= 50) {
+                // HIGH
+                impactElement.classList.add('text-orange-500');
+                scoreRing.style.stroke = colorHigh;
+            } else if (data.score >= 25) {
+                // MODERATE
+                impactElement.classList.add('text-yellow-500');
+                scoreRing.style.stroke = colorModerate;
+            } else {
+                // LOW
+                impactElement.classList.add('text-emerald-600');
+                scoreRing.style.stroke = colorLow;
+            }
+
             document.getElementById('result-placeholder').classList.add('hidden');
             document.getElementById('result-data').classList.remove('hidden');
 
@@ -342,29 +372,27 @@
             alert("Please enter a valid email address.");
             return;
         }
-        if (!state || !lga) {
-            alert("Please generate a risk score first.");
-            return;
-        }
 
-        // Switch to Processing State
+        // Switch UI immediately
         const inputContainer = document.getElementById('lead-input-container');
         const processContainer = document.getElementById('lead-process-container');
-
         inputContainer.classList.add('hidden');
         processContainer.classList.remove('hidden');
         processContainer.classList.add('flex');
 
-        // Reset UI to "Loading" look (in case it was used before)
+        // Set initial state
         document.getElementById('process-icon-loading').classList.remove('hidden');
         document.getElementById('process-icon-success').classList.add('hidden');
-        document.getElementById('btn-reset-lead').classList.add('hidden'); // Hide reset button while loading
+        document.getElementById('btn-reset-lead').classList.add('hidden');
         document.getElementById('process-title').innerText = "Generating Report...";
-
         document.getElementById('process-year').innerText = year;
         document.getElementById('process-loc').innerText = lga;
 
         try {
+            // ADD TIMEOUT to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 50000); // 30 second timeout
+
             const response = await fetch("{{ route('report.download') }}", {
                 method: 'POST',
                 headers: {
@@ -377,10 +405,19 @@
                     state,
                     lga,
                     year
-                })
+                }),
+                signal: controller.signal
             });
 
-            if (!response.ok) throw new Error("Generation failed");
+            clearTimeout(timeoutId);
+            const contentType = response.headers.get('content-type');
+            console.log('Response Status:', response.status);
+            console.log('Content-Type:', contentType);
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Generation failed");
+            }
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
@@ -392,19 +429,24 @@
             a.remove();
             window.URL.revokeObjectURL(url);
 
-            // --- SUCCESS STATE ---
+            // Success state
             document.getElementById('process-icon-loading').classList.add('hidden');
             document.getElementById('process-icon-success').classList.remove('hidden');
             document.getElementById('process-title').innerText = "Download Started!";
             document.getElementById('process-desc').innerText = "Check your downloads folder.";
-
-            // Show the Reset Button
             document.getElementById('btn-reset-lead').classList.remove('hidden');
 
         } catch (error) {
             console.error(error);
-            alert("Error generating report. Please try again.");
-            resetLeadForm(); // Go back to start on error
+
+            // Show specific error message
+            if (error.name === 'AbortError') {
+                alert("Request timed out. Please try again.");
+            } else {
+                alert(error.message || "Error generating report. Please try again.");
+            }
+
+            resetLeadForm();
         }
     }
 

@@ -25,10 +25,8 @@
                     </h1>
 
                     <p class="text-white text-xl sm:text-xl leading-relaxed mt-4">
-                        Get real-time alerts on security incidents across all 36 states.<br> Transform threat data into
-                        strategic decisions with predictive analytics, <br> location-based risk assessments, and
-                        verified
-                        incident reports.
+                        Monitor verified security incidents in all 36 states and the FCT<br> Stop guessing and start
+                        planning with tools that track trends <br> and predict future risks for your specific location.
                     </p>
 
                     <p class="text-[#FDA557] text-lg sm:text-xl mt-6 font-semibold">

@@ -63,13 +63,13 @@
                             class="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">
                             Download Failed Rows
                         </a>
-                        <form action="{{ route('data.import.reprocess', $import->id) }}" method="POST" class="inline">
+                        {{-- <form action="{{ route('data.import.reprocess', $import->id) }}" method="POST" class="inline">
                             @csrf
                             <button type="submit"
                                 class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                                 Reprocess Failed Rows
                             </button>
-                        </form>
+                        </form> --}}
                     </div>
                 </div>
 
@@ -169,7 +169,7 @@
                                     <td class="px-4 py-3 max-w-xs truncate" title="{{ $incident->caption }}">
                                         {{ $incident->caption }}
                                     </td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
+                                    {{-- <td class="px-4 py-3 whitespace-nowrap">
                                         <a href="{{ route('incidents.show', $incident->eventid) }}"
                                             class="text-blue-600 hover:text-blue-800">
                                             View
@@ -179,7 +179,7 @@
                                             class="text-green-600 hover:text-green-800">
                                             Edit
                                         </a>
-                                    </td>
+                                    </td> --}}
                                 </tr>
                             @empty
                                 <tr>
