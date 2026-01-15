@@ -399,12 +399,12 @@ class HomeNewController extends Controller
 
     public function downloadReport(Request $request)
     {
-        // Increase execution time at PHP level instead
-        set_time_limit(120);
-        ini_set('max_execution_time', 120);
+        // Extend all relevant timeouts
+        set_time_limit(180);
+        ini_set('max_execution_time', 180);
+        ini_set('memory_limit', '512M'); // Increase if needed
 
         try {
-            // Validate
             $validated = $request->validate([
                 'state' => 'required|string',
                 'lga' => 'required|string',
@@ -419,13 +419,72 @@ class HomeNewController extends Controller
             \Log::info("PDF Generation Started", ['lga' => $lga, 'year' => $year]);
 
             // ============================================
-            // Get Data with Caching
+            // OPTIMIZED: Single Query with Aggregations
             // ============================================
             $cacheKey = "pdf_data_{$lga}_{$year}";
 
-            $reportData = Cache::remember($cacheKey, 1800, function () use ($lga, $year) {
+            $reportData = Cache::remember($cacheKey, 3600, function () use ($lga, $year) {
 
-                $baseData = DB::table('tbldataentry as t')
+                // Check if data exists first (fast query)
+                $exists = DB::table('tbldataentry')
+                    ->where('lga', $lga)
+                    ->where('eventyear', $year)
+                    ->exists();
+
+                if (!$exists) {
+                    return null;
+                }
+
+                // OPTIMIZED: Use database aggregations instead of collection operations
+                // This reduces data transfer and processing time significantly
+
+                // 1. Risk Distribution - Single aggregated query
+                $riskDistribution = DB::table('tbldataentry')
+                    ->where('lga', $lga)
+                    ->where('eventyear', $year)
+                    ->select('riskindicators', DB::raw('COUNT(*) as count'))
+                    ->groupBy('riskindicators')
+                    ->orderByDesc('count')
+                    ->limit(5)
+                    ->get()
+                    ->map(fn($row) => (object)[
+                        'riskindicators' => $row->riskindicators ?? 'Unknown',
+                        'count' => $row->count
+                    ]);
+
+                // 2. Casualties - Single aggregated query
+                $casualtyData = DB::table('tbldataentry')
+                    ->where('lga', $lga)
+                    ->where('eventyear', $year)
+                    ->selectRaw('
+                    COALESCE(SUM(CAST(Casualties_count AS UNSIGNED)), 0) as deaths,
+                    COALESCE(SUM(CAST(victim AS UNSIGNED)), 0) as kidnaps
+                ')
+                    ->first();
+
+                $casualties = (object)[
+                    'deaths' => $casualtyData->deaths ?? 0,
+                    'kidnaps' => $casualtyData->kidnaps ?? 0
+                ];
+
+                // 3. Hotspots - Single aggregated query with join
+                $hotspots = DB::table('tbldataentry as t')
+                    ->join('state_neighbourhoods as sn', 't.neighbourhood', '=', 'sn.id')
+                    ->where('t.lga', $lga)
+                    ->where('t.eventyear', $year)
+                    ->whereNotNull('sn.neighbourhood_name')
+                    ->select('sn.neighbourhood_name', DB::raw('COUNT(*) as incidents'))
+                    ->groupBy('sn.neighbourhood_name')
+                    ->orderByDesc('incidents')
+                    ->limit(4)
+                    ->get()
+                    ->map(fn($row) => (object)[
+                        'neighbourhood_name' => $row->neighbourhood_name,
+                        'incidents' => $row->incidents
+                    ]);
+
+                // 4. Recent Incidents - Optimized with specific columns only
+                $incidents = DB::table('tbldataentry as t')
                     ->leftJoin('state_neighbourhoods as sn', 't.neighbourhood', '=', 'sn.id')
                     ->where('t.lga', $lga)
                     ->where('t.eventyear', $year)
@@ -433,52 +492,13 @@ class HomeNewController extends Controller
                         't.riskindicators',
                         't.Casualties_count',
                         't.victim',
-                        't.eventdate',
-                        't.add_notes',
                         't.eventdateToUse',
+                        DB::raw('LEFT(TRIM(t.add_notes), 300) as add_notes'),
                         'sn.neighbourhood_name'
                     )
+                    ->orderByDesc('t.eventdateToUse')
+                    ->limit(5)
                     ->get();
-
-                if ($baseData->isEmpty()) {
-                    return null;
-                }
-
-                // Process data
-                $riskDistribution = $baseData
-                    ->groupBy('riskindicators')
-                    ->map(fn($group) => (object)[
-                        'riskindicators' => $group->first()->riskindicators ?? 'Unknown',
-                        'count' => $group->count()
-                    ])
-                    ->sortByDesc('count')
-                    ->take(5)
-                    ->values();
-
-                $casualties = (object)[
-                    'deaths' => $baseData->sum(function ($row) {
-                        return is_numeric($row->Casualties_count) ? (int)$row->Casualties_count : 0;
-                    }),
-                    'kidnaps' => $baseData->sum(function ($row) {
-                        return is_numeric($row->victim) ? (int)$row->victim : 0;
-                    })
-                ];
-
-                $hotspots = $baseData
-                    ->filter(fn($row) => !empty($row->neighbourhood_name))
-                    ->groupBy('neighbourhood_name')
-                    ->map(fn($group, $name) => (object)[
-                        'neighbourhood_name' => $name,
-                        'incidents' => $group->count()
-                    ])
-                    ->sortByDesc('incidents')
-                    ->take(4)
-                    ->values();
-
-                $incidents = $baseData
-                    ->sortByDesc('eventdateToUse')
-                    ->take(5)
-                    ->values();
 
                 return [
                     'riskDistribution' => $riskDistribution,
@@ -498,16 +518,21 @@ class HomeNewController extends Controller
             }
 
             // ============================================
-            // Generate Simple Advisory
+            // Generate Advisory (cached separately)
             // ============================================
             $topRisk = $reportData['topRisk'];
-            $mitigation = $this->getMitigationAdvice($topRisk);
-
-            $advisory = "Security Advisory: Based on {$year} data for {$lga}, the primary risk factor is {$topRisk}. {$mitigation}";
+            $advisory = $this->getSmartAdvisoryOptimized($lga, $state, $topRisk, $year);
 
             // ============================================
-            // Generate PDF (FIXED)
+            // OPTIMIZED: PDF Generation
             // ============================================
+            \Log::info("Starting PDF rendering");
+
+            // In controller, add to PDF data:
+            $logoPath = public_path('images/nri-logo.png');
+            $logoData = base64_encode(file_get_contents($logoPath));
+            $logoSrc = 'data:image/png;base64,' . $logoData;
+
             $pdf = Pdf::loadView('reports.risk_profile', [
                 'state' => $state,
                 'lga' => $lga,
@@ -516,12 +541,18 @@ class HomeNewController extends Controller
                 'casualties' => $reportData['casualties'],
                 'hotspots' => $reportData['hotspots'],
                 'incidents' => $reportData['incidents'],
-                'advisory' => $advisory
+                'advisory' => $advisory,
+                'logoSrc' => $logoSrc
             ]);
 
-            // CORRECTED: Only use valid methods
+            // PDF Configuration
             $pdf->setPaper('a4', 'portrait');
             $pdf->setOption('isRemoteEnabled', false);
+            $pdf->setOption('isHtml5ParserEnabled', true);
+            $pdf->setOption('isPhpEnabled', false);
+
+            // CRITICAL: Add timeout option for DomPDF
+            $pdf->setOption('chroot', public_path());
 
             \Log::info("PDF generated successfully");
 
@@ -537,7 +568,8 @@ class HomeNewController extends Controller
             \Log::error('PDF Generation Error', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
@@ -547,35 +579,30 @@ class HomeNewController extends Controller
         }
     }
 
+    // OPTIMIZED: Advisory generation with better caching strategy
     private function getSmartAdvisoryOptimized($lga, $state, $topRisk, $year)
     {
-        // Cache advisory components separately
         $advisoryCacheKey = "advisory_{$lga}_{$year}";
 
-        return Cache::remember($advisoryCacheKey, 3600, function () use ($lga, $state, $topRisk, $year) {
+        return Cache::remember($advisoryCacheKey, 7200, function () use ($lga, $state, $topRisk, $year) {
 
-            // SINGLE QUERY for all advisory data
-            $advisoryData = DB::table('tbldataentry')
+            // SINGLE optimized query for trend calculation
+            $trendData = DB::table('tbldataentry')
                 ->where('lga', $lga)
-                ->where('eventyear', '>=', $year - 1) // Get 2 years of data
-                ->selectRaw('
-                COUNT(*) as total_incidents,
-                eventyear,
-                QUARTER(eventdateToUse) as quarter,
-                COUNT(DISTINCT lga) as lga_count
-            ')
-                ->groupBy('eventyear', 'quarter')
-                ->get();
+                ->whereIn('eventyear', [$year, $year - 1])
+                ->select('eventyear', DB::raw('COUNT(*) as total_incidents'))
+                ->groupBy('eventyear')
+                ->get()
+                ->keyBy('eventyear');
 
-            // Calculate trend from aggregated data
-            $currentYear = $advisoryData->where('eventyear', $year)->sum('total_incidents');
-            $previousYear = $advisoryData->where('eventyear', $year - 1)->sum('total_incidents');
+            $currentYear = $trendData->get($year)->total_incidents ?? 0;
+            $previousYear = $trendData->get($year - 1)->total_incidents ?? 0;
 
             $trendText = $this->calculateTrendText($currentYear, $previousYear);
 
-            // State benchmark (simplified)
+            // State benchmark with longer cache
             $stateAvgCacheKey = "state_avg_{$state}_{$year}";
-            $stateAverage = Cache::remember($stateAvgCacheKey, 7200, function () use ($state, $year) {
+            $stateAverage = Cache::remember($stateAvgCacheKey, 14400, function () use ($state, $year) {
                 return DB::table('tbldataentry')
                     ->where('location', $state)
                     ->where('eventyear', $year)
@@ -583,14 +610,14 @@ class HomeNewController extends Controller
                     ->value('avg_val') ?? 0;
             });
 
-            $lgaTotal = $currentYear;
-            $benchmarkText = $this->calculateBenchmarkText($lgaTotal, $stateAverage);
-
+            $benchmarkText = $this->calculateBenchmarkText($currentYear, $stateAverage);
             $mitigation = $this->getMitigationAdvice($topRisk);
 
             return "Advisory: {$trendText} {$benchmarkText} Given the prevalence of {$topRisk}, we recommend: {$mitigation}";
         });
     }
+
+
 
     // Helper methods for cleaner code
     private function calculateTrendText($current, $previous)
