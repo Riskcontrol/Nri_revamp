@@ -5,7 +5,7 @@
         <div class="relative z-10 max-w-7xl mx-auto text-center">
 
             <h1 class="text-3xl md:text-4xl font-semibold text-white mb-4">
-                Security Reports & Analysis
+                Security Reports
             </h1>
             <p class="text-gray-400 max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
                 Access verified data-driven reports on Nigeria's security landscape.
@@ -23,10 +23,10 @@
         <div class="max-w-7xl mx-auto">
 
             {{-- Section Title --}}
-            <div class="flex items-center justify-between mb-10  pb-4">
+            {{-- <div class="flex items-center justify-between mb-10  pb-4">
                 <h3 class="text-xl text-gray-900 font-semibold">Available Reports</h3>
                 <span class="text-sm text-gray-500">{{ count($reports) }} Documents</span>
-            </div>
+            </div> --}}
 
             {{-- Grid --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
