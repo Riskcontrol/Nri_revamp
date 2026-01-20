@@ -373,83 +373,63 @@
             return;
         }
 
-        // Switch UI immediately
+        // 1. Switch UI to "Processing" state
         const inputContainer = document.getElementById('lead-input-container');
         const processContainer = document.getElementById('lead-process-container');
+
         inputContainer.classList.add('hidden');
         processContainer.classList.remove('hidden');
         processContainer.classList.add('flex');
 
-        // Set initial state
         document.getElementById('process-icon-loading').classList.remove('hidden');
         document.getElementById('process-icon-success').classList.add('hidden');
         document.getElementById('btn-reset-lead').classList.add('hidden');
-        document.getElementById('process-title').innerText = "Generating Report...";
-        document.getElementById('process-year').innerText = year;
-        document.getElementById('process-loc').innerText = lga;
+
+        // Update text to show we are working
+        document.getElementById('process-title').innerText = "Queuing Report...";
+
+        // FIXED: Only update the description. Don't try to find the spans (year/loc)
+        // because this line below overwrites/deletes them.
+        document.getElementById('process-desc').innerText = "Preparing to send email to " + email;
 
         try {
-            // ADD TIMEOUT to prevent hanging
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 50000); // 30 second timeout
-
             const response = await fetch("{{ route('report.download') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': "{{ csrf_token() }}",
-                    'Accept': 'application/pdf'
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     email,
                     state,
                     lga,
                     year
-                }),
-                signal: controller.signal
+                })
             });
 
-            clearTimeout(timeoutId);
-            const contentType = response.headers.get('content-type');
-            console.log('Response Status:', response.status);
-            console.log('Content-Type:', contentType);
+            const data = await response.json();
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Generation failed");
+                throw new Error(data.message || "Generation failed");
             }
 
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Risk_Report_${lga}_${year}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-
-            // Success state
+            // SUCCESS: Update UI
             document.getElementById('process-icon-loading').classList.add('hidden');
             document.getElementById('process-icon-success').classList.remove('hidden');
-            document.getElementById('process-title').innerText = "Download Started!";
-            document.getElementById('process-desc').innerText = "Check your downloads folder.";
+
+            document.getElementById('process-title').innerText = "Check Your Inbox!";
+            document.getElementById('process-desc').innerText =
+                `We've sent the PDF report to ${email}. It should arrive shortly.`;
+
             document.getElementById('btn-reset-lead').classList.remove('hidden');
 
         } catch (error) {
             console.error(error);
-
-            // Show specific error message
-            if (error.name === 'AbortError') {
-                alert("Request timed out. Please try again.");
-            } else {
-                alert(error.message || "Error generating report. Please try again.");
-            }
-
+            alert(error.message || "Error processing request. Please try again.");
             resetLeadForm();
         }
     }
-
     // UPDATED: Function to fully reset the tool
     function resetLeadForm() {
         const inputContainer = document.getElementById('lead-input-container');

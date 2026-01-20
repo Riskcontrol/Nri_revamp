@@ -83,7 +83,7 @@
 
                     {{-- 2. Total Incidents --}}
                     <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
-                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Total Incidents
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Tracked Incidents
                         </h3>
                         <div class="text-xl sm:text-2xl font-normal text-white mt-0.5">
                             {{ number_format($totalIncidents) }}

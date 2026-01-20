@@ -14,7 +14,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\FileProcessorController;
 use App\Http\Controllers\RiskToolController;
 use App\Http\Controllers\DataImportController;
-
+use App\Http\Controllers\ReportController;
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
     ->name('register')
@@ -68,6 +68,10 @@ Route::get('/news', [SecurityHubController::class, 'index'])->name('news');;
 Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])->name('api.calc-risk');
 Route::get('/download-security-report', [SecurityHubController::class, 'downloadReport'])->name('reports.download');
 
+Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+// If you haven't defined the download route yet, here is a placeholder pointing to the same controller
+Route::get('/reports/download/{id?}', [ReportController::class, 'download'])->name('reports.download');
 
 
 // Keep the name the same so your form works automatically

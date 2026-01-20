@@ -22,6 +22,8 @@
             color: #ffffff;
             border-bottom: 5px solid #047857;
             margin-bottom: 30px;
+            /* CRITICAL: Allows us to position the badge absolutely inside this block */
+            position: relative;
         }
 
         .header-logo {
@@ -48,6 +50,8 @@
             font-weight: 400;
             color: #e2e8f0;
             margin-bottom: 8px;
+            /* Ensure text doesn't overlap badge if location is long */
+            max-width: 65%;
         }
 
         .header-location strong {
@@ -83,24 +87,12 @@
             font-weight: 700;
         }
 
-        /* ADVISORY BOX */
-        .advisory {
-            background: #ecfdf5;
-            padding: 20px;
-            font-size: 13px;
-            color: #064e3b;
-            margin: 0 40px 30px 40px;
-            border-radius: 6px;
-            border: 1px solid #a7f3d0;
-        }
-
-        .advisory-title {
-            color: #047857;
-            font-weight: 800;
-            text-transform: uppercase;
-            font-size: 11px;
-            margin-bottom: 5px;
-            display: block;
+        /* NEW SUMMARY STYLE */
+        .summary-text {
+            font-size: 14px;
+            color: #334155;
+            margin-bottom: 30px;
+            line-height: 1.6;
         }
 
         /* STATS */
@@ -241,51 +233,108 @@
             padding: 20px;
             border-top: 1px solid #e2e8f0;
         }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* ... existing styles ... */
+
+        /* UPDATED: Static container for Table Layout */
+        .impact-badge-container {
+            text-align: right;
+            margin: 0;
+            padding: 0;
+        }
+
+        .impact-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .impact-tag {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #fff;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 
 <body>
 
-    {{--
-    ============================================
-    OPTIMIZATION 1: Pre-calculate ALL values once
-    Avoid multiple method calls in loops
-    ============================================
-    --}}
     @php
-        // Calculate these ONCE at the top
         $maxRiskCount = $riskDistribution->first()->count ?? 1;
         $hasHotspots = $hotspots->count() > 0;
         $currentYear = date('Y');
         $generatedDate = date('d M Y');
 
-        // Pre-format casualties to avoid repeated number_format calls
         $formattedDeaths = number_format($casualties->deaths);
         $formattedKidnaps = number_format($casualties->kidnaps);
+
+        // --- CALCULATE IMPACT LEVEL ---
+        $totalImpact = $casualties->deaths + $casualties->kidnaps;
+
+        if ($totalImpact >= 50) {
+            $impactText = 'CRITICAL';
+            $impactColor = '#dc2626'; // Red
+        } elseif ($totalImpact >= 20) {
+            $impactText = 'HIGH';
+            $impactColor = '#f97316'; // Orange
+        } elseif ($totalImpact >= 5) {
+            $impactText = 'MODERATE';
+            $impactColor = '#eab308'; // Yellow
+        } else {
+            $impactText = 'LOW';
+            $impactColor = '#10b981'; // Emerald
+        }
     @endphp
 
     <div class="header-banner">
-        <div class="header-logo">
-            {{-- OPTIMIZATION 2: Use base64 encoded image to avoid file system calls --}}
-            {{-- If logo doesn't change, consider embedding it --}}
-            <img src="{{ $logoSrc }}" class="logo-img" alt="NRI Logo">
-        </div>
+        <table width="100%" style="border-collapse: collapse; border: none;">
+            <tr>
+                <td style="vertical-align: top; text-align: left;">
+                    <div class="header-logo">
+                        <img src="{{ $logoSrc }}" class="logo-img" alt="NRI Logo">
+                    </div>
 
-        <div class="header-title">NRI Report</div>
+                    <div class="header-title">NRI Report</div>
 
-        <div class="header-location">
-            Location Assessment: <strong>{{ $lga }}, {{ $state }}</strong>
-        </div>
+                    <div class="header-location">
+                        Location Assessment: <strong>{{ $lga }}, {{ $state }}</strong>
+                    </div>
 
-        <div class="header-meta">
-            Scope: {{ $year }} &nbsp;|&nbsp; Generated: {{ $generatedDate }}
-        </div>
+                    <div class="header-meta">
+                        Scope: {{ $year }} &nbsp;|&nbsp; Generated: {{ $generatedDate }}
+                    </div>
+                </td>
+
+                <td style="vertical-align: bottom; text-align: right; width: 200px;">
+                    <div class="impact-badge-container">
+                        <span class="impact-label">Calculated Risk Level</span>
+                        <span class="impact-tag" style="background-color: {{ $impactColor }};">
+                            {{ $impactText }}
+                        </span>
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <div class="advisory">
-        <span class="advisory-title">Executive Security Advisory</span>
-        {{-- OPTIMIZATION 3: Advisory already processed in controller, just output --}}
-        {{ $advisory }}
+    <div class="content-wrap">
+        <h2>Executive Security Advisory</h2>
+        <div class="summary-text">
+            {{ $advisory }}
+        </div>
     </div>
 
     <div class="grid-container">
@@ -318,13 +367,8 @@
                 </tr>
             </thead>
             <tbody>
-                {{--
-                OPTIMIZATION 4: Minimize calculations inside loop
-                Use pre-calculated $maxRiskCount
-                --}}
                 @foreach ($riskDistribution as $risk)
                     @php
-                        // Calculate percentage once per iteration
                         $barWidth = min(100, ($risk->count / $maxRiskCount) * 100);
                     @endphp
                     <tr>
@@ -340,8 +384,8 @@
             </tbody>
         </table>
 
-        {{-- OPTIMIZATION 5: Use pre-calculated boolean instead of calling count() again --}}
         @if ($hasHotspots)
+            <div class="page-break"></div>
             <h2>Identified Flashpoints</h2>
             <table class="data-table">
                 <thead>
@@ -363,18 +407,13 @@
     </div>
 
     <div style="padding: 20px 40px; border-bottom: 2px solid #f1f5f9; margin-bottom: 30px;">
-        <h2 style="margin: 0; padding: 0; border: none; font-size: 18px; color: #1E2D3D;">Recent Incident Log</h2>
+        <h2 style="margin: 0; padding: 0; border: none; font-size: 18px;">Recent Incident Log</h2>
         <div style="font-size: 12px; color: #64748b;">Detailed narrative of significant security events</div>
     </div>
 
     <div class="content-wrap">
-        {{--
-        OPTIMIZATION 6: Remove ->take(5) here since it's already limited in controller
-        Also pre-format dates to avoid repeated Carbon parsing
-        --}}
         @foreach ($incidents as $incident)
             @php
-                // Parse and format date once per incident
                 $formattedDate = \Carbon\Carbon::parse($incident->eventdateToUse)->format('M d, Y');
             @endphp
             <div class="incident-item">
@@ -387,10 +426,6 @@
                     @endif
                 </div>
                 <div style="font-size: 12px; line-height: 1.6; color: #334155;">
-                    {{--
-                    OPTIMIZATION 7: Text already cleaned and limited in controller
-                    Just output it directly
-                    --}}
                     {{ $incident->add_notes }}
                 </div>
             </div>
@@ -398,11 +433,24 @@
     </div>
 
     <div class="cta-section">
-        <div class="cta-title">Strategic Intelligence for Critical Decisions</div>
-        <p style="font-size: 12px; opacity: 0.8; margin: 0;">
-            Request a bespoke analysis or schedule a consultation with our Security Operations Center.
+        <div class="cta-title">Do you have a need for Strategic Intelligence?</div>
+        <p style="font-size: 12px; opacity: 0.8; margin: 0; line-height: 1.6;">
+            Request a bespoke analysis or schedule a consultation with our Security Analysts today.
             <br>
-            <strong style="color: #34d399; margin-top: 5px; display: inline-block;">info@riskcontrolnigeria.com</strong>
+
+            {{-- Email --}}
+            <span style="display: block; margin-top: 8px;">
+                <strong style="color: #34d399;">info@riskcontrolnigeria.com</strong>
+            </span>
+
+            {{-- Websites --}}
+            <span style="display: block; margin-top: 4px; font-size: 11px; opacity: 0.9;">
+                <a href="https://nigeriariskindex.com"
+                    style="color: #fff; text-decoration: none;">nigeriariskindex.com</a>
+                <span style="margin: 0 5px; color: #64748b;">|</span>
+                <a href="https://riskcontrolnigeria.com"
+                    style="color: #fff; text-decoration: none;">riskcontrolnigeria.com</a>
+            </span>
         </p>
     </div>
 

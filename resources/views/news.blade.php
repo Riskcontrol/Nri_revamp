@@ -185,7 +185,9 @@
 
                     </div>
 
-                    <div class="pt-4 flex justify-start">
+                    <div class="pt-4 flex flex-wrap justify-start gap-6">
+
+                        {{-- Button 1: Download Report --}}
                         <a href="{{ route('reports.download') }}" target="_blank"
                             class="inline-flex items-center gap-4 group">
                             <div
@@ -197,6 +199,23 @@
                                 Download full report
                             </span>
                         </a>
+
+                        {{-- Button 2: View All Reports (New) --}}
+                        {{-- Replace 'reports.index' with your actual route name --}}
+                        <a href="{{ route('reports.index') }}" class="inline-flex items-center gap-4 group">
+                            {{-- Secondary style: Transparent with white border --}}
+                            <div
+                                class="w-10 h-10 rounded-full border border-white/40 bg-white/10 flex items-center justify-center transition-transform group-hover:scale-110 group-hover:bg-white group-hover:border-white">
+                                {{-- Icon changes color on hover for effect --}}
+                                <i
+                                    class="fa-solid fa-list text-white text-lg group-hover:text-black transition-colors"></i>
+                            </div>
+
+                            <span class="text-white font-medium tracking-wide uppercase text-sm group-hover:underline">
+                                View all reports
+                            </span>
+                        </a>
+
                     </div>
 
                 </div>

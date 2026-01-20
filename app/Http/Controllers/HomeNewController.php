@@ -17,19 +17,25 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Models\ReportRecipient;
+use App\Jobs\GenerateRiskReportJob;
 
 class HomeNewController extends Controller
 {
-    use CalculatesRisk; // Use the weighted calculation logic
+    use CalculatesRisk;
+
 
     /**
      * Main route for the Homepage Dashboard
      */
     public function getStateRiskReports(Request $request)
     {
+
+        $year = 2025;
         // 1. Fetch data for the weighted trait
         // We now include 'riskindicators' to allow for weighted severity
         $data = tbldataentry::selectRaw('location, riskindicators, yy, COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
+            ->where('yy', $year)
             ->groupBy('location', 'riskindicators', 'yy')
             ->get();
 
@@ -43,27 +49,53 @@ class HomeNewController extends Controller
 
         $highRiskStateCount = $highRiskStates->count();
 
+
         $top3HighRiskStates = $data
-            ->filter(function ($row) {
-                $indicator = strtolower(trim($row->riskindicators));
-                // Specifically tracking the most severe threat indicators
-                return in_array($indicator, ['terrorism', 'kidnapping']);
-            })
+            // ->filter(function ($row) {
+            //     $indicator = strtolower(trim($row->riskindicators));
+            //     // Tracking the most severe threat indicators
+            //     return in_array($indicator, ['terrorism', 'kidnapping']);
+            // })
             ->groupBy('location')
             ->map(function ($rows, $location) {
+                // CHANGED: Only summing 'Casualties_count' (deaths)
+                // We removed the injury calculation entirely
                 $deaths = $rows->sum('total_deaths');
-                $injuries = $rows->sum('total_injuries');
 
-                // The Human Toll formula: Fatalities are the primary weight
                 return [
                     'location' => $location,
-                    'human_toll' => ($deaths * 1.0) + ($injuries * 0.5)
+                    'human_toll' => $deaths // Score is now equal to exact death count
                 ];
             })
             ->sortByDesc('human_toll')
             ->take(3)
             ->pluck('location')
             ->implode(', ');
+
+        // =============================================================
+        // DEBUG: DRILL DOWN INTO ABUJA DATA (With Year & ID)
+        // =============================================================
+        $abujaCheck = tbldataentry::where('location', 'Federal Capital Territory')
+            // ->whereIn('riskindicators', ['Terrorism', 'Kidnapping', 'Homicide'])
+            ->orderByRaw('CAST(Casualties_count AS UNSIGNED) DESC')
+            ->where('yy', $year)
+            ->get([
+                'id',               // ID to find the row in DB
+                'yy',               // The Year of the incident
+                'eventdateToUse',   // Full Date
+                'lga',
+                'location',      // Specific Area
+                'riskindicators',   // Terrorism vs Kidnapping
+                'Casualties_count', // The suspect number
+                'add_notes'         // Description
+            ]);
+
+        // dd($abujaCheck->toArray());
+        // echo "<pre>";
+        // print_r($abujaCheck->toArray());
+        // echo "</pre>";
+        // die();
+        // =============================================================
 
         // 4. Trending Risk Factors
         $trendingRiskFactors = tbldataentry::selectRaw('riskindicators, COUNT(*) as frequency, SUM(victim) as total_victims, SUM(Casualties_count) as total_casualties')
@@ -129,63 +161,6 @@ class HomeNewController extends Controller
         ));
     }
 
-    /**
-     * Homepage Risk Calculator API Logic
-     */
-    public function calculateHomepageRisk(Request $request)
-    {
-        $state = $request->state;
-        $industry = $request->industry;
-        $measures = $request->input('measures', []);
-        $year = now()->year;
-
-        $query = DB::table('business_risk_data')
-            ->where('location', $state)
-            ->where('year', $year)
-            ->where(function ($q) use ($industry) {
-                $q->where('industry', $industry)->orWhere('industry', 'LIKE', "%$industry%");
-            });
-
-        $incidents = $query->get();
-
-        $rawScore = 0;
-        foreach ($incidents as $incident) {
-            $severity = strtolower($incident->level ?? $incident->impact ?? 'low');
-            if (str_contains($severity, 'high') || str_contains($severity, 'critical')) {
-                $rawScore += 20;
-            } elseif (str_contains($severity, 'medium')) {
-                $rawScore += 10;
-            } else {
-                $rawScore += 5;
-            }
-        }
-
-        $baseRisk = min($rawScore, 100);
-        $reduction = 0;
-        if (in_array('personnel', $measures)) $reduction += 0.20;
-        if (in_array('cctv', $measures))      $reduction += 0.10;
-        if (in_array('access', $measures))    $reduction += 0.10;
-        if (in_array('protocols', $measures)) $reduction += 0.05;
-
-        $totalReduction = min($reduction, 0.50);
-        $finalScore = round($baseRisk * (1 - $totalReduction));
-
-        $label = match (true) {
-            $finalScore >= 75 => 'Critical',
-            $finalScore >= 50 => 'High',
-            $finalScore >= 25 => 'Medium',
-            default => 'Low'
-        };
-
-        return response()->json([
-            'success' => true,
-            'base_risk' => $baseRisk,
-            'final_score' => $finalScore,
-            'label' => $label,
-            'savings' => round($baseRisk - $finalScore),
-            'incident_count' => $incidents->count()
-        ]);
-    }
 
     /**
      * Map and Violence Index Processing
@@ -399,184 +374,42 @@ class HomeNewController extends Controller
 
     public function downloadReport(Request $request)
     {
-        // Extend all relevant timeouts
-        set_time_limit(180);
-        ini_set('max_execution_time', 180);
-        ini_set('memory_limit', '512M'); // Increase if needed
+        // 1. Validate Input
+        $validated = $request->validate([
+            'state' => 'required|string',
+            'lga' => 'required|string',
+            'email' => 'required|email',
+            'year' => 'nullable|integer|min:2018|max:' . date('Y')
+        ]);
 
-        try {
-            $validated = $request->validate([
-                'state' => 'required|string',
-                'lga' => 'required|string',
-                'email' => 'required|email',
-                'year' => 'nullable|integer|min:2018|max:' . date('Y')
-            ]);
+        $year = $validated['year'] ?? date('Y');
 
-            $state = $validated['state'];
-            $lga = $validated['lga'];
-            $year = $validated['year'] ?? date('Y');
+        // 2. Save or Update Recipient (Prevent Duplicates)
+        // If email exists, update timestamp and increment count. If new, create it.
+        $recipient = ReportRecipient::updateOrCreate(
+            ['email' => $validated['email']], // Search condition
+            [
+                'last_state_requested' => $validated['state'],
+                'last_lga_requested' => $validated['lga'],
+                'last_request_at' => now(),
+                'request_count' => DB::raw('request_count + 1') // SQL increment
+            ]
+        );
 
-            \Log::info("PDF Generation Started", ['lga' => $lga, 'year' => $year]);
+        // 3. Dispatch Background Job
+        // This puts the task in the queue and returns immediately to the user
+        GenerateRiskReportJob::dispatch(
+            $validated['lga'],
+            $validated['state'],
+            $year,
+            $validated['email']
+        );
 
-            // ============================================
-            // OPTIMIZED: Single Query with Aggregations
-            // ============================================
-            $cacheKey = "pdf_data_{$lga}_{$year}";
-
-            $reportData = Cache::remember($cacheKey, 3600, function () use ($lga, $year) {
-
-                // Check if data exists first (fast query)
-                $exists = DB::table('tbldataentry')
-                    ->where('lga', $lga)
-                    ->where('eventyear', $year)
-                    ->exists();
-
-                if (!$exists) {
-                    return null;
-                }
-
-                // OPTIMIZED: Use database aggregations instead of collection operations
-                // This reduces data transfer and processing time significantly
-
-                // 1. Risk Distribution - Single aggregated query
-                $riskDistribution = DB::table('tbldataentry')
-                    ->where('lga', $lga)
-                    ->where('eventyear', $year)
-                    ->select('riskindicators', DB::raw('COUNT(*) as count'))
-                    ->groupBy('riskindicators')
-                    ->orderByDesc('count')
-                    ->limit(5)
-                    ->get()
-                    ->map(fn($row) => (object)[
-                        'riskindicators' => $row->riskindicators ?? 'Unknown',
-                        'count' => $row->count
-                    ]);
-
-                // 2. Casualties - Single aggregated query
-                $casualtyData = DB::table('tbldataentry')
-                    ->where('lga', $lga)
-                    ->where('eventyear', $year)
-                    ->selectRaw('
-                    COALESCE(SUM(CAST(Casualties_count AS UNSIGNED)), 0) as deaths,
-                    COALESCE(SUM(CAST(victim AS UNSIGNED)), 0) as kidnaps
-                ')
-                    ->first();
-
-                $casualties = (object)[
-                    'deaths' => $casualtyData->deaths ?? 0,
-                    'kidnaps' => $casualtyData->kidnaps ?? 0
-                ];
-
-                // 3. Hotspots - Single aggregated query with join
-                $hotspots = DB::table('tbldataentry as t')
-                    ->join('state_neighbourhoods as sn', 't.neighbourhood', '=', 'sn.id')
-                    ->where('t.lga', $lga)
-                    ->where('t.eventyear', $year)
-                    ->whereNotNull('sn.neighbourhood_name')
-                    ->select('sn.neighbourhood_name', DB::raw('COUNT(*) as incidents'))
-                    ->groupBy('sn.neighbourhood_name')
-                    ->orderByDesc('incidents')
-                    ->limit(4)
-                    ->get()
-                    ->map(fn($row) => (object)[
-                        'neighbourhood_name' => $row->neighbourhood_name,
-                        'incidents' => $row->incidents
-                    ]);
-
-                // 4. Recent Incidents - Optimized with specific columns only
-                $incidents = DB::table('tbldataentry as t')
-                    ->leftJoin('state_neighbourhoods as sn', 't.neighbourhood', '=', 'sn.id')
-                    ->where('t.lga', $lga)
-                    ->where('t.eventyear', $year)
-                    ->select(
-                        't.riskindicators',
-                        't.Casualties_count',
-                        't.victim',
-                        't.eventdateToUse',
-                        DB::raw('LEFT(TRIM(t.add_notes), 300) as add_notes'),
-                        'sn.neighbourhood_name'
-                    )
-                    ->orderByDesc('t.eventdateToUse')
-                    ->limit(5)
-                    ->get();
-
-                return [
-                    'riskDistribution' => $riskDistribution,
-                    'casualties' => $casualties,
-                    'hotspots' => $hotspots,
-                    'incidents' => $incidents,
-                    'topRisk' => $riskDistribution->first()->riskindicators ?? 'General Insecurity'
-                ];
-            });
-
-            // Check if no data
-            if (!$reportData) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "No data available for {$lga} in {$year}."
-                ], 422);
-            }
-
-            // ============================================
-            // Generate Advisory (cached separately)
-            // ============================================
-            $topRisk = $reportData['topRisk'];
-            $advisory = $this->getSmartAdvisoryOptimized($lga, $state, $topRisk, $year);
-
-            // ============================================
-            // OPTIMIZED: PDF Generation
-            // ============================================
-            \Log::info("Starting PDF rendering");
-
-            // In controller, add to PDF data:
-            $logoPath = public_path('images/nri-logo.png');
-            $logoData = base64_encode(file_get_contents($logoPath));
-            $logoSrc = 'data:image/png;base64,' . $logoData;
-
-            $pdf = Pdf::loadView('reports.risk_profile', [
-                'state' => $state,
-                'lga' => $lga,
-                'year' => $year,
-                'riskDistribution' => $reportData['riskDistribution'],
-                'casualties' => $reportData['casualties'],
-                'hotspots' => $reportData['hotspots'],
-                'incidents' => $reportData['incidents'],
-                'advisory' => $advisory,
-                'logoSrc' => $logoSrc
-            ]);
-
-            // PDF Configuration
-            $pdf->setPaper('a4', 'portrait');
-            $pdf->setOption('isRemoteEnabled', false);
-            $pdf->setOption('isHtml5ParserEnabled', true);
-            $pdf->setOption('isPhpEnabled', false);
-
-            // CRITICAL: Add timeout option for DomPDF
-            $pdf->setOption('chroot', public_path());
-
-            \Log::info("PDF generated successfully");
-
-            return $pdf->download(Str::slug("Risk_Report_{$lga}_{$year}") . '.pdf');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Validation Error', ['errors' => $e->errors()]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid input data',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            \Log::error('PDF Generation Error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Server error: ' . $e->getMessage()
-            ], 500);
-        }
+        // 4. Return Immediate JSON Response
+        return response()->json([
+            'success' => true,
+            'message' => "Request received! We are generating the report for {$validated['lga']} and will email it to {$validated['email']} within a few minutes."
+        ], 200);
     }
 
     // OPTIMIZED: Advisory generation with better caching strategy

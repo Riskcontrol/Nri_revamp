@@ -14,16 +14,6 @@ trait CalculatesRisk
     protected $WEIGHT_VICTIM_SEVERITY   = 30;
     protected $WEIGHT_DEATH_SEVERITY    = 45;
 
-    /**
-     * 1. BUILD THE MAP FROM DATABASE
-     * Joins 'tblriskindicators' with 'tblriskfactors' to get the weight for every single indicator.
-     * * Result Format:
-     * [
-     * 'Terrorism' => 0.40,
-     * 'Theft' => 0.10,
-     * 'Natural_Disasters' => 0.15
-     * ]
-     */
     private function getRiskWeightMap()
     {
         // Cache this query for 24 hours (86400 seconds) so we don't hit the DB constantly
