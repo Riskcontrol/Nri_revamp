@@ -191,7 +191,7 @@
 
                 const ctx = document.getElementById('comparisonBarChart').getContext('2d');
                 const labels = selectedStates.map(s => s.name);
-                const data = selectedStates.map(s => s.count);
+                const data = selectedStates.map(s => s.score);
 
                 if (comparisonChart) {
                     comparisonChart.data.labels = labels;
@@ -203,7 +203,7 @@
                         data: {
                             labels: labels,
                             datasets: [{
-                                label: 'Number of Incidents',
+                                label: 'Risk Score',
                                 data: data,
                                 backgroundColor: '#3b82f6',
                                 borderRadius: 5
@@ -219,7 +219,10 @@
                                         color: '#374151'
                                     },
                                     ticks: {
-                                        color: '#9ca3af'
+                                        color: '#9ca3af',
+                                        callback: function(value) {
+                                            return Number(value).toFixed(2);
+                                        }
                                     }
                                 },
                                 x: {
@@ -252,12 +255,12 @@
                                     callbacks: {
                                         label: function(context) {
                                             const item = selectedStates[context.dataIndex];
-                                            return ` Current Tracked Incidents: ${item.count}`;
+                                            return ` Risk Score: ${item.score.toFixed(2)}`;
                                         },
                                         afterBody: function(context) {
                                             const item = selectedStates[context[0].dataIndex];
                                             return [
-                                                ` Risk Score: ${item.score.toFixed(2)}`,
+                                                `  Tracked Incidents: ${item.count}`,
                                                 ` Top Affected LGA: ${item.lga}`,
                                                 ` Prev. Year: ${item.prevCount}`
                                             ];
@@ -391,8 +394,8 @@
                             // SELECT STYLE (Professional Highlight)
                             selectedStates.push({
                                 name: stateName,
+                                score: Number(props.composite_index_score || 0),
                                 count: props.incidents_count,
-                                score: props.composite_index_score,
                                 lga: props.most_affected_lga || 'N/A',
                                 prevCount: props.incidents_prev_year
                             });

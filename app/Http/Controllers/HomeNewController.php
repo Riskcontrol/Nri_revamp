@@ -30,41 +30,41 @@ class HomeNewController extends Controller
      */
     public function getStateRiskReports(Request $request)
     {
+        // =============================
+        // STATIC TABLE DATA (NO DB)
+        // =============================
+        $securityIndexRows = $this->getStaticSecurityIndexRows();
 
         $year = 2025;
-        // 1. Fetch data for the weighted trait
-        // We now include 'riskindicators' to allow for weighted severity
-        $data = tbldataentry::selectRaw('location, riskindicators, yy, COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims')
+
+
+        $data = tbldataentry::selectRaw("
+    TRIM(location) as location,
+    TRIM(riskindicators) as risk_indicator,
+    yy,
+    COUNT(*) as total_incidents,
+    COALESCE(SUM(Casualties_count),0) as total_deaths,
+    COALESCE(SUM(victim),0) as total_victims
+")
             ->where('yy', $year)
-            ->groupBy('location', 'riskindicators', 'yy')
+            ->groupBy(DB::raw('TRIM(location)'), DB::raw('TRIM(riskindicators)'), 'yy')
             ->get();
 
-        // 2. Calculate state risk reports using the Trait
-        $stateRiskReports = $this->calculateWeightedStateRisk($data);
-
-        // 3. Filter high-risk states (Level 3 and 4)
-        $highRiskStates = collect($stateRiskReports)->filter(function ($report) {
-            return in_array($report['risk_level'], [3, 4]);
-        });
-
-        $highRiskStateCount = $highRiskStates->count();
+        $totalFatalities = (int) $data->sum('total_deaths');
 
 
+        // ✅ This now works correctly
+        $stateRiskReports = $this->calculateStateRiskFromIndicators($data);
+
+
+        // Top 3 most affected (by deaths) - update to match renamed field
         $top3HighRiskStates = $data
-            // ->filter(function ($row) {
-            //     $indicator = strtolower(trim($row->riskindicators));
-            //     // Tracking the most severe threat indicators
-            //     return in_array($indicator, ['terrorism', 'kidnapping']);
-            // })
             ->groupBy('location')
             ->map(function ($rows, $location) {
-                // CHANGED: Only summing 'Casualties_count' (deaths)
-                // We removed the injury calculation entirely
                 $deaths = $rows->sum('total_deaths');
-
                 return [
                     'location' => $location,
-                    'human_toll' => $deaths // Score is now equal to exact death count
+                    'human_toll' => $deaths
                 ];
             })
             ->sortByDesc('human_toll')
@@ -72,32 +72,7 @@ class HomeNewController extends Controller
             ->pluck('location')
             ->implode(', ');
 
-        // =============================================================
-        // DEBUG: DRILL DOWN INTO ABUJA DATA (With Year & ID)
-        // =============================================================
-        $abujaCheck = tbldataentry::where('location', 'Federal Capital Territory')
-            // ->whereIn('riskindicators', ['Terrorism', 'Kidnapping', 'Homicide'])
-            ->orderByRaw('CAST(Casualties_count AS UNSIGNED) DESC')
-            ->where('yy', $year)
-            ->get([
-                'id',               // ID to find the row in DB
-                'yy',               // The Year of the incident
-                'eventdateToUse',   // Full Date
-                'lga',
-                'location',      // Specific Area
-                'riskindicators',   // Terrorism vs Kidnapping
-                'Casualties_count', // The suspect number
-                'add_notes'         // Description
-            ]);
-
-        // dd($abujaCheck->toArray());
-        // echo "<pre>";
-        // print_r($abujaCheck->toArray());
-        // echo "</pre>";
-        // die();
-        // =============================================================
-
-        // 4. Trending Risk Factors
+        // 4. Trending Risk Factors (keep as-is)
         $trendingRiskFactors = tbldataentry::selectRaw('riskindicators, COUNT(*) as frequency, SUM(victim) as total_victims, SUM(Casualties_count) as total_casualties')
             ->groupBy('riskindicators')
             ->orderByDesc('frequency')
@@ -114,16 +89,10 @@ class HomeNewController extends Controller
         $totalIncidents = tbldataentry::where('yy', 2025)->count();
 
         // 7. Current Threat Level calculation
-        // Based on the highest normalized ratio produced by the trait
-        // $highestNormalized = collect($stateRiskReports)->max('normalized_ratio');
-        // This will list only the ratios, e.g. ["Abia" => 2.12, "Lagos" => 15.5, ...]
-        // dd(collect($stateRiskReports)->pluck('normalized_ratio', 'location'));
-
         $maxScore = collect($stateRiskReports)->max('normalized_ratio');
         $avgScore = collect($stateRiskReports)->avg('normalized_ratio');
 
         $compositeNationalScore = ($maxScore * 0.5) + ($avgScore * 0.5);
-        // dd($compositeNationalScore);
 
         if ($compositeNationalScore <= 4.0) {
             $currentThreatLevel = 'LOW';
@@ -135,64 +104,31 @@ class HomeNewController extends Controller
             $currentThreatLevel = 'CRITICAL';
         }
 
-
-        // 8. Prepare Map and Dropdown Data
-        $riskData = $this->riskIndex($request);
-
         // 9. Fetch Insights
         $homeInsights = DataInsights::with('category')->latest()->take(4)->get();
 
         $states = collect(config('nigeria'));
 
-        // 10. Pass all data to view
-        return view('home', array_merge(
-            compact(
-                'highRiskStateCount',
-                'top3HighRiskStates',
-                'trendingRiskFactors',
-                'recentIncidentsCount',
-                'auditedTime',
-                'totalIncidents',
-                'currentThreatLevel',
-                'homeInsights',
-                'states',
-            ),
-            $riskData
+        return view('home', compact(
+            'securityIndexRows',
+            'totalFatalities',
+            'top3HighRiskStates',
+            'trendingRiskFactors',
+            'recentIncidentsCount',
+            'auditedTime',
+            'totalIncidents',
+            'currentThreatLevel',
+            'homeInsights',
+            'states',
         ));
     }
+
 
 
     /**
      * Map and Violence Index Processing
      */
-    public function riskIndex(Request $request, $risk = null)
-    {
-        $maxYear = $this->getMaxYear() - 1;
-        $maxMonth = $this->getMaxMonth($maxYear);
-        $indicatorName = "Nigeria Violence Index";
-        $violentRiskindicators = $this->getViolentIndicators();
 
-        if ($request->input('riskindicator') && $request->input('riskindicator') != 'violence-index') {
-            $violentRiskindicators = $request->input('riskindicator');
-            $indicatorName = $violentRiskindicators;
-        }
-
-        $dataByState = $this->getDataByStateWithoutMonth($maxYear, $violentRiskindicators);
-        $dataByState = $this->calculateData($dataByState); // Temporary use until fully migrated
-
-        $searchDuration = $this->getStartEndTime($maxYear, "01", "01", $this->getMaxYear(), $maxMonth, date('d'));
-        $locations = $this->leafletData($maxYear);
-        $limit = 8;
-        $dataByState = collect($dataByState)->sortByDesc('normalized_ratio')->take($limit);
-
-        return [
-            'indicatorName' => $indicatorName,
-            'dataByState' => $dataByState,
-            'maxYear' => $maxYear,
-            'searchDuration' => $searchDuration,
-            'locations' => $locations
-        ];
-    }
 
     /**
      * Individual Insight Detail Page
@@ -220,78 +156,19 @@ class HomeNewController extends Controller
     }
 
     // --- Helper Methods Supporting map data ---
-    private function getMaxYear()
-    {
-        return tbldataentry::where('riskfactors', 'Violent Threats')->max('eventyear');
-    }
-    private function getMaxMonth($maxYear)
-    {
-        return tbldataentry::where('riskfactors', 'Violent Threats')->where('eventyear', $maxYear)->max('eventmonth');
-    }
-    private function getViolentIndicators()
-    {
-        return Tblriskindicators::where('factors', 'Violent Threats')->pluck('indicators')->toArray();
-    }
 
-    private function getDataByStateWithoutMonth($maxYear, $indicators = null)
+    private function getStaticSecurityIndexRows(): array
     {
-        $indicators = is_null($indicators) ? [] : (is_array($indicators) ? $indicators : [$indicators]);
-        return DB::table(DB::raw('(SELECT DISTINCT location FROM tbldataentry) as locations'))
-            ->leftJoin('tbldataentry', function ($join) use ($maxYear, $indicators) {
-                $join->on('locations.location', '=', 'tbldataentry.location')
-                    ->whereIn('tbldataentry.riskindicators', $indicators)
-                    ->where('tbldataentry.eventyear', $maxYear);
-            })
-            ->select(
-                'locations.location',
-                DB::raw('COALESCE(SUM(tbldataentry.Casualties_count), 0) as sum_casualties'),
-                DB::raw('COALESCE(SUM(tbldataentry.victim), 0) as sum_victims'),
-                DB::raw('COALESCE(COUNT(tbldataentry.location), 0) as incident_count')
-            )
-            ->groupBy('locations.location')->get();
-    }
-
-    private function calculateData($data)
-    {
-        // This remains for backward compatibility with existing map markers
-        $reports = [];
-        $AllIncidentCount = $data->sum('incident_count');
-        $AllvictimCount = $data->sum('sum_victims');
-        $AlldeathThreatsCount = $data->sum('sum_casualties');
-
-        foreach ($data as $item) {
-            $totalRatio = ($AllIncidentCount != 0 ? ($item->incident_count / $AllIncidentCount) * 25 : 0) +
-                ($AllvictimCount != 0 ? ($item->sum_victims / $AllvictimCount) * 35 : 0) +
-                ($AlldeathThreatsCount != 0 ? ($item->sum_casualties / $AlldeathThreatsCount) * 40 : 0);
-
-            $reports[$item->location] = [
-                'location' => $item->location,
-                'incident_count' => $item->incident_count,
-                'sum_victims' => $item->sum_victims,
-                'sum_casualties' => $item->sum_casualties,
-                'total_ratio' => $totalRatio,
-            ];
-        }
-        return $reports;
-    }
-
-    private function getStartEndTime($maxYear, $maxMonth, $eventday, $maxYearEnd, $maxMonthEnd, $eventdayEnd)
-    {
-        $startDate = $maxYear . "-" . ($maxMonth ?: '01') . "-" . ($eventday ?: '01');
-        $endDate = ($maxYearEnd ?: $maxYear) . "-" . ($maxMonthEnd ?: '12') . "-" . ($eventdayEnd ?: '28');
-        return date('d F Y', strtotime($startDate)) . ' - ' . date('d F Y', strtotime($endDate));
-    }
-
-    private function leafletData($maxYear)
-    {
-        return tbldataentry::where('yy', $maxYear)->get()->map(fn($entry) => [
-            'state' => $entry->location,
-            'latitude' => $entry->latitude,
-            'longitude' => $entry->longitude,
-            'color' => 'red',
-            'riskindicators' => $entry->riskindicators,
-            'impact' => $entry->impact
-        ]);
+        return [
+            ['location' => 'Abia', 'incident_count' => 42, 'nti_score' => 1.52, 'risk_level' => 'Low'],
+            ['location' => 'Adamawa', 'incident_count' => 46, 'nti_score' => 1.63, 'risk_level' => 'Low'],
+            ['location' => 'Akwa Ibom', 'incident_count' => 35, 'nti_score' => 0.68, 'risk_level' => 'Low'],
+            ['location' => 'Anambra', 'incident_count' => 111, 'nti_score' => 2.64, 'risk_level' => 'Low'],
+            ['location' => 'Bauchi', 'incident_count' => 47, 'nti_score' => 1.41, 'risk_level' => 'Low'],
+            ['location' => 'Bayelsa', 'incident_count' => 16, 'nti_score' => 0.51, 'risk_level' => 'Low'],
+            ['location' => 'Benue', 'incident_count' => 196, 'nti_score' => 11.29, 'risk_level' => 'High'],
+            ['location' => 'Borno', 'incident_count' => 139, 'nti_score' => 8.76, 'risk_level' => 'High'],
+        ];
     }
 
     // Risk tool logic

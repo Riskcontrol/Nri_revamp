@@ -92,9 +92,10 @@
 
                     {{-- 3. High Risk States --}}
                     <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
-                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">High Risk States</h3>
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Tracked Fatalities</h3>
                         <div class="text-xl sm:text-2xl font-normal text-white mt-0.5">
-                            {{ $highRiskStateCount }}
+                            {{ number_format($totalFatalities) }}
+
                         </div>
                     </div>
 

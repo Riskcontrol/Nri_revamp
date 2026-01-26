@@ -31,7 +31,7 @@ class SecurityIntelligenceController extends Controller
         'Composite Risk Index' => 'All'
     ];
 
-  public function getOverview()
+    public function getOverview()
     {
         // 1. Define Date Range
         $startYear = 2018;
@@ -125,7 +125,7 @@ class SecurityIntelligenceController extends Controller
             return $regionData;
         });
 
-// 8. Line Chart Data (Updated to Track FATALITIES)
+        // 8. Line Chart Data (Updated to Track FATALITIES)
         $fatalityData = tbldataentry::selectRaw('yy, SUM(Casualties_count) as total_deaths') // Summing deaths
             ->where('yy', '>=', $startYear)
             ->groupBy('yy')
@@ -156,75 +156,80 @@ class SecurityIntelligenceController extends Controller
         $riskIndicatorData = $allRiskIndicators->pluck('frequency')->toArray();
 
         // 1. Identify Top 5 Recurring Risks (by volume)
-$topRisks = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as count'))
-    ->where('yy', '>=', $startYear)
-    ->groupBy('riskindicators')
-    ->orderByDesc('count')
-    ->take(5)
-    ->pluck('riskindicators'); // e.g., ['Kidnapping', 'Terrorism', 'Banditry'...]
+        $topRisks = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as count'))
+            ->where('yy', '>=', $startYear)
+            ->groupBy('riskindicators')
+            ->orderByDesc('count')
+            ->take(5)
+            ->pluck('riskindicators'); // e.g., ['Kidnapping', 'Terrorism', 'Banditry'...]
 
-// 2. Get Breakdown of States for these Risks
-$rawContributionData = tbldataentry::select('riskindicators', 'location', DB::raw('COUNT(*) as count'))
-    ->where('yy', '>=', $startYear)
-    ->whereIn('riskindicators', $topRisks)
-    ->groupBy('riskindicators', 'location')
-    ->get();
+        // 2. Get Breakdown of States for these Risks
+        $rawContributionData = tbldataentry::select('riskindicators', 'location', DB::raw('COUNT(*) as count'))
+            ->where('yy', '>=', $startYear)
+            ->whereIn('riskindicators', $topRisks)
+            ->groupBy('riskindicators', 'location')
+            ->get();
 
-// 3. Process Data for Chart.js (Group small states into "Others")
-$contributionDatasets = [];
-$riskLabels = $topRisks->toArray();
-$stateColors = [
-    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#6B7280' // Blue, Red, Green, Yellow, Purple, Gray
-];
+        // 3. Process Data for Chart.js (Group small states into "Others")
+        $contributionDatasets = [];
+        $riskLabels = $topRisks->toArray();
+        $stateColors = [
+            '#3B82F6',
+            '#EF4444',
+            '#10B981',
+            '#F59E0B',
+            '#8B5CF6',
+            '#6B7280' // Blue, Red, Green, Yellow, Purple, Gray
+        ];
 
-// We need to pivot the data: Rows = Risks, Cols = States
-$pivotData = [];
-foreach ($rawContributionData as $row) {
-    $pivotData[$row->riskindicators][$row->location] = $row->count;
-}
+        // We need to pivot the data: Rows = Risks, Cols = States
+        $pivotData = [];
+        foreach ($rawContributionData as $row) {
+            $pivotData[$row->riskindicators][$row->location] = $row->count;
+        }
 
-// Identify top contributing states across ALL these risks to keep colors consistent
-$topStatesOverall = tbldataentry::select('location', DB::raw('COUNT(*) as count'))
-    ->where('yy', '>=', $startYear)
-    ->whereIn('riskindicators', $topRisks)
-    ->groupBy('location')
-    ->orderByDesc('count')
-    ->take(5)
-    ->pluck('location')
-    ->toArray();
+        // Identify top contributing states across ALL these risks to keep colors consistent
+        $topStatesOverall = tbldataentry::select('location', DB::raw('COUNT(*) as count'))
+            ->where('yy', '>=', $startYear)
+            ->whereIn('riskindicators', $topRisks)
+            ->groupBy('location')
+            ->orderByDesc('count')
+            ->take(5)
+            ->pluck('location')
+            ->toArray();
 
-// Build Datasets for the Top 5 States
-foreach ($topStatesOverall as $index => $state) {
-    $data = [];
-    foreach ($riskLabels as $risk) {
-        // Calculate percentage or raw count (Raw count is usually better for stacked bars, let Chart.js handle tooltip %)
-        $count = $pivotData[$risk][$state] ?? 0;
-        $data[] = $count;
-    }
+        // Build Datasets for the Top 5 States
+        foreach ($topStatesOverall as $index => $state) {
+            $data = [];
+            foreach ($riskLabels as $risk) {
+                // Calculate percentage or raw count (Raw count is usually better for stacked bars, let Chart.js handle tooltip %)
+                $count = $pivotData[$risk][$state] ?? 0;
+                $data[] = $count;
+            }
 
-    $contributionDatasets[] = [
-        'label' => $state,
-        'data' => $data,
-        'backgroundColor' => $stateColors[$index] ?? '#ccc',
-    ];
-}
+            $contributionDatasets[] = [
+                'label' => $state,
+                'data' => $data,
+                'backgroundColor' => $stateColors[$index] ?? '#ccc',
+            ];
+        }
 
-// Build "Others" Dataset
-$othersData = [];
-foreach ($riskLabels as $risk) {
-    $totalRiskCount = $rawContributionData->where('riskindicators', $risk)->sum('count');
-    $topStatesCount = 0;
-    foreach ($topStatesOverall as $state) {
-        $topStatesCount += $pivotData[$risk][$state] ?? 0;
-    }
-    $othersData[] = $totalRiskCount - $topStatesCount;
-}
+        // Build "Others" Dataset
+        $othersData = [];
+        foreach ($riskLabels as $risk) {
+            $totalRiskCount = $rawContributionData->where('riskindicators', $risk)->sum('count');
+            $topStatesCount = 0;
+            foreach ($topStatesOverall as $state) {
+                $topStatesCount += $pivotData[$risk][$state] ?? 0;
+            }
+            $othersData[] = $totalRiskCount - $topStatesCount;
+        }
 
-$contributionDatasets[] = [
-    'label' => 'Others',
-    'data' => $othersData,
-    'backgroundColor' => '#9CA3AF', // Gray for others
-];
+        $contributionDatasets[] = [
+            'label' => 'Others',
+            'data' => $othersData,
+            'backgroundColor' => '#9CA3AF', // Gray for others
+        ];
 
         return view('securityIntelligence', compact(
             'totalIncidents',
@@ -265,171 +270,178 @@ $contributionDatasets[] = [
         return $this->geopoliticalZones[$zone] ?? [];
     }
 
-public function getRiskData(Request $request)
-{
-    $selectedYear = $request->input('year', now()->year);
-    $selectedIndex = $request->input('index_type', 'Composite Risk Index');
-    $riskIndicator = $this->riskMapping[$selectedIndex] ?? 'All';
+    public function getRiskData(Request $request)
+    {
+        $selectedYear  = (int) $request->input('year', now()->year);
+        $selectedIndex = (string) $request->input('index_type', 'Composite Risk Index');
 
-    $cacheKey = "risk_data_{$selectedYear}_{$selectedIndex}";
+        $riskIndicator = $this->riskMapping[$selectedIndex] ?? 'All';
 
-    return Cache::remember($cacheKey, 3600, function () use ($selectedYear, $riskIndicator, $selectedIndex) {
+        // ✅ Decide corrections policy here
+        // Composite => UNADJUSTED (false)
+        // Others => ADJUSTED (true)  [change to false if you want everything unadjusted]
+        $applyCorrections = ($selectedIndex !== 'Composite Risk Index');
 
-        // --- 1. CURRENT YEAR DATA ---
-        $baseQueryCurrent = tbldataentry::where('yy', $selectedYear)
-            ->whereNotNull('location')
-            ->where('location', '!=', '');
+        // ✅ Include it in cache key so cached result matches the mode
+        $cacheKey = "risk_data_{$selectedYear}_{$selectedIndex}_" . ($applyCorrections ? 'adj' : 'unadj');
 
-        if ($riskIndicator !== 'All') {
-            $baseQueryCurrent->where('riskindicators', $riskIndicator);
-        }
+        return Cache::remember($cacheKey, 3600, function () use ($selectedYear, $riskIndicator, $applyCorrections) {
 
-        $totalFatalities = (clone $baseQueryCurrent)->sum('Casualties_count');
+            $indicatorFilter = ($riskIndicator === 'All') ? null : $riskIndicator;
 
-        $stateDataCurrent = $baseQueryCurrent
-            ->selectRaw('location, riskindicators, COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims, MAX(yy) as yy')
-            ->groupBy('location', 'riskindicators')
-            ->get();
+            // 1) CURRENT YEAR
+            $stateDataCurrent = $this->buildIndicatorAggregates($selectedYear, $indicatorFilter);
 
-        $stateRiskReportsCurrent = $this->calculateWeightedStateRisk($stateDataCurrent);
+            $totalFatalities = (int) $stateDataCurrent->sum('total_deaths');
 
-        // --- 2. PREVIOUS YEAR DATA (For Trends) ---
-        $previousYear = $selectedYear - 1;
-        $baseQueryPrev = tbldataentry::where('yy', $previousYear)
-            ->whereNotNull('location')
-            ->where('location', '!=', '');
+            // ✅ PASS IT HERE (CURRENT)
+            $stateRiskReportsCurrent = $this->calculateStateRiskFromIndicators(
+                $stateDataCurrent,
+                $applyCorrections
+            );
 
-        if ($riskIndicator !== 'All') {
-            $baseQueryPrev->where('riskindicators', $riskIndicator);
-        }
+            // 2) PREVIOUS YEAR
+            $previousYear = $selectedYear - 1;
 
-        $stateDataPrev = $baseQueryPrev
-            ->selectRaw('location, riskindicators, COUNT(*) as total_incidents, SUM(Casualties_count) as total_deaths, SUM(victim) as total_victims, MAX(yy) as yy')
-            ->groupBy('location', 'riskindicators')
-            ->get();
+            $stateDataPrev = $this->buildIndicatorAggregates($previousYear, $indicatorFilter);
 
-        $stateRiskReportsPrev = $this->calculateWeightedStateRisk($stateDataPrev);
+            // ✅ PASS IT HERE (PREVIOUS)
+            $stateRiskReportsPrev = $this->calculateStateRiskFromIndicators(
+                $stateDataPrev,
+                $applyCorrections
+            );
 
-        // --- 3. SORTING AND RANKING ---
-        $prevYearRanks = collect($stateRiskReportsPrev)
-            ->sortByDesc('normalized_ratio')
-            ->values()
-            ->map(function ($report, $index) {
-                return [
-                    'rank' => $index + 1,
-                    'score' => $report['normalized_ratio'],
-                    'location' => $report['location']
+            // 3) SORTING + RANKING (unchanged)
+            $prevYearRanks = collect($stateRiskReportsPrev)
+                ->sortByDesc('normalized_ratio')
+                ->values()
+                ->map(function ($report, $index) {
+                    return [
+                        'rank' => $index + 1,
+                        'score' => $report['normalized_ratio'],
+                        'location' => $report['location'],
+                    ];
+                })
+                ->keyBy('location');
+
+            $sortedReports = collect($stateRiskReportsCurrent)->sortByDesc('normalized_ratio');
+            $highestRiskReport = $sortedReports->first();
+
+            $nationalThreatLevel = $highestRiskReport
+                ? $this->getRiskCategoryFromLevel($highestRiskReport['risk_level'])
+                : 'Low';
+
+            $totalTrackedIncidents = (int) $sortedReports->sum('incident_count');
+
+            // 4) TOP THREAT GROUPS (unchanged)
+            $topThreatGroups = 'N/A';
+            try {
+                $topThreatGroupsQuery = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
+                    ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
+                    ->where('tbldataentry.yy', $selectedYear)
+                    ->where('attack_group.name', '!=', 'Others')
+                    ->groupBy('attack_group.name')
+                    ->orderByDesc('occurrences')
+                    ->take(5);
+
+                if ($indicatorFilter) {
+                    $topThreatGroupsQuery->where('tbldataentry.riskindicators', $indicatorFilter);
+                }
+
+                $results = $topThreatGroupsQuery->get();
+                if ($results->isNotEmpty()) {
+                    $topThreatGroups = $results->pluck('name')->implode(', ');
+                }
+            } catch (\Exception $e) {
+                Log::error("Failed to get Top Threat Groups: " . $e->getMessage());
+            }
+
+            // 5) FORMAT TREEMAP + TABLE (unchanged)
+            $treemapData = [];
+            $tableData = $sortedReports->values()->map(function ($report, $index) use ($prevYearRanks, &$treemapData) {
+                $stateName = $report['location'];
+                $currentRank = $index + 1;
+
+                $prevData = $prevYearRanks->get($stateName);
+                $previousRank = $prevData['rank'] ?? '-';
+
+                $status = 'Stable';
+                if ($prevData) {
+                    if ($currentRank < $previousRank) $status = 'Escalating';
+                    elseif ($currentRank > $previousRank) $status = 'Improving';
+                }
+
+                $treemapData[] = [
+                    'x' => $stateName,
+                    'y' => $report['normalized_ratio'],
                 ];
-            })
-            ->keyBy('location');
 
-        $sortedReports = collect($stateRiskReportsCurrent)->sortByDesc('normalized_ratio');
-        $highestRiskReport = $sortedReports->first();
+                return [
+                    'state' => $stateName,
+                    'risk_score' => round($report['normalized_ratio'], 2),
+                    'risk_level' => $this->getRiskCategoryFromLevel($report['risk_level']),
+                    'rank_current' => $currentRank,
+                    'rank_previous' => $previousRank,
+                    'status' => $status,
+                    'incidents' => $report['incident_count'],
+                ];
+            });
 
-        $nationalThreatLevel = $highestRiskReport
-            ? $this->getRiskCategoryFromLevel($highestRiskReport['risk_level'])
-            : 'Low';
+            // 6) FATALITIES TREND (unchanged)
+            $trendYears = range(2018, $selectedYear);
 
-        $totalTrackedIncidents = $sortedReports->sum('incident_count');
+            $fatalityTrendQuery = tbldataentry::selectRaw('yy, SUM(Casualties_count) as total_deaths')
+                ->whereIn('yy', $trendYears);
 
-        // --- 4. TOP THREAT GROUPS ---
-        $topThreatGroups = 'N/A';
-        try {
-            $topThreatGroupsQuery = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
-                ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
-                ->where('tbldataentry.yy', $selectedYear)
-                ->where('attack_group.name', '!=', 'Others')
-                ->groupBy('attack_group.name')
-                ->orderByDesc('occurrences')
-                ->take(5);
-
-            if ($riskIndicator !== 'All') {
-                $topThreatGroupsQuery->where('tbldataentry.riskindicators', $riskIndicator);
+            if ($indicatorFilter) {
+                $fatalityTrendQuery->where('riskindicators', $indicatorFilter);
             }
 
-            $results = $topThreatGroupsQuery->get();
-            if ($results->isNotEmpty()) {
-                $topThreatGroups = $results->pluck('name')->implode(', ');
-            }
-        } catch (\Exception $e) {
-            Log::error("Failed to get Top Threat Groups: " . $e->getMessage());
-        }
+            $fatalityTrend = $fatalityTrendQuery
+                ->groupBy('yy')
+                ->orderBy('yy', 'asc')
+                ->get()
+                ->keyBy('yy');
 
-        // --- 5. FORMATTING RESPONSE DATA ---
-        $treemapData = [];
-        $tableData = $sortedReports->values()->map(function ($report, $index) use ($prevYearRanks, &$treemapData) {
-            $stateName = $report['location'];
-            $currentRank = $index + 1;
-            $prevData = $prevYearRanks->get($stateName);
-            $previousRank = $prevData['rank'] ?? '-';
-
-            $status = 'Stable';
-            if ($prevData) {
-                if ($currentRank < $previousRank) $status = 'Escalating';
-                elseif ($currentRank > $previousRank) $status = 'Improving';
+            $trendLabels = [];
+            $trendData = [];
+            foreach ($trendYears as $y) {
+                $trendLabels[] = (string) $y;
+                $trendData[] = $fatalityTrend->has($y) ? (int) $fatalityTrend[$y]->total_deaths : 0;
             }
 
-            $treemapData[] = [
-                'x' => $stateName,
-                'y' => $report['normalized_ratio']
-            ];
-
-            return [
-                'state' => $stateName,
-                'risk_score' => round($report['normalized_ratio'], 2),
-                'risk_level' => $this->getRiskCategoryFromLevel($report['risk_level']),
-                'rank_current' => $currentRank,
-                'rank_previous' => $previousRank,
-                'status' => $status,
-                'incidents' => $report['incident_count']
-            ];
+            return response()->json([
+                'treemapSeries' => [['data' => $treemapData]],
+                'tableData' => $tableData,
+                'cardData' => [
+                    'nationalThreatLevel' => $nationalThreatLevel,
+                    'totalTrackedIncidents' => $totalTrackedIncidents,
+                    'topThreatGroups' => $topThreatGroups,
+                    'totalFatalities' => $totalFatalities,
+                ],
+                'trendSeries' => [
+                    'labels' => $trendLabels,
+                    'data' => $trendData,
+                ],
+            ]);
         });
+    }
 
-        // --- 6. FATALITIES CHART LOGIC (MOVED OUTSIDE MAP) ---
-        $trendYears = range(2018, $selectedYear);
-        $fatalityTrend = tbldataentry::selectRaw('yy, SUM(Casualties_count) as total_deaths')
-            ->whereIn('yy', $trendYears)
-            ->when($riskIndicator !== 'All', function ($query) use ($riskIndicator) {
-                return $query->where('riskindicators', $riskIndicator);
-            })
-            ->groupBy('yy')
-            ->orderBy('yy', 'asc')
-            ->get()
-            ->keyBy('yy');
 
-        $trendLabels = [];
-        $trendData = [];
-        foreach ($trendYears as $year) {
-            $trendLabels[] = (string)$year;
-            $trendData[] = $fatalityTrend->has($year) ? (int)$fatalityTrend[$year]->total_deaths : 0;
-        }
-
-        // --- 7. FINAL RESPONSE ---
-        return response()->json([
-            'treemapSeries' => [['data' => $treemapData]],
-            'tableData' => $tableData,
-            'cardData' => [
-                'nationalThreatLevel' => $nationalThreatLevel,
-                'totalTrackedIncidents' => $totalTrackedIncidents,
-                'topThreatGroups' => $topThreatGroups,
-                'totalFatalities' => $totalFatalities
-            ],
-            'trendSeries' => [
-                'labels' => $trendLabels,
-                'data' => $trendData
-            ]
-        ]);
-    });
-}
 
     private function getRiskCategoryFromLevel($level)
     {
         switch ($level) {
-            case 1: return 'Low';
-            case 2: return 'Medium';
-            case 3: return 'High';
-            case 4: return 'Critical';
-            default: return 'N/A';
+            case 1:
+                return 'Low';
+            case 2:
+                return 'Medium';
+            case 3:
+                return 'High';
+            case 4:
+                return 'Critical';
+            default:
+                return 'N/A';
         }
     }
 }

@@ -38,6 +38,14 @@
                     </h3>
                 </div>
 
+                @php
+                    $pillClass = fn($level) => match (strtolower($level)) {
+                        'high' => 'bg-red-500/10 text-red-400 border border-red-500/20',
+                        'moderate' => 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+                        default => 'bg-green-500/10 text-green-400 border border-green-500/20',
+                    };
+                @endphp
+
                 <div class="overflow-y-auto flex-1"> {{-- Changed to overflow-y-auto to allow scrolling within fixed height --}}
                     <table class="min-w-full text-left">
                         <thead class="sticky top-0 z-10 bg-[#1a1f2e] text-gray-300 text-xs uppercase tracking-wider">
@@ -49,25 +57,25 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-white/10 text-sm text-gray-200">
-                            @foreach ($dataByState as $stateId => $report)
+                            @foreach ($securityIndexRows as $report)
                                 <tr class="hover:bg-white/5 transition-colors duration-150">
-                                    <td class="py-3 px-4 font-medium text-white">{{ $report['location'] }}</td>
-                                    <td class="py-3 px-4 text-center text-gray-400 font-mono">
-                                        {{ $report['incident_count'] }}</td>
-                                    <td class="py-3 px-4 text-center font-mono">
-                                        {{ number_format((float) ($report['total_ratio'] == 0 ? 0.01 : $report['total_ratio']), 2, '.', '') }}%
+                                    <td class="py-3 px-4 font-medium text-white">
+                                        {{ $report['location'] }}
                                     </td>
+
+                                    <td class="py-3 px-4 text-center text-gray-400 font-mono">
+                                        {{ $report['incident_count'] }}
+                                    </td>
+
+                                    <td class="py-3 px-4 text-center font-mono text-white">
+                                        {{ number_format((float) $report['nti_score'], 2) }}%
+                                    </td>
+
                                     <td class="py-3 px-4 text-right">
-                                        @if ($report['total_ratio'] > 7)
-                                            <span
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">High</span>
-                                        @elseif($report['total_ratio'] > 3)
-                                            <span
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Moderate</span>
-                                        @else
-                                            <span
-                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">Low</span>
-                                        @endif
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $pillClass($report['risk_level']) }}">
+                                            {{ $report['risk_level'] }}
+                                        </span>
                                     </td>
                                 </tr>
                             @endforeach
