@@ -480,7 +480,7 @@
             case 'Low':
                 return 'bg-green-600 text-white';
             case 'Medium':
-                return 'bg-yellow-500 text-black';
+                return 'bg-yellow-500 text-white';
             case 'High':
                 return 'bg-[#fc4444] text-white';
             case 'Critical':

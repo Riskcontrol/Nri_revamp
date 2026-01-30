@@ -269,7 +269,6 @@ class SecurityIntelligenceController extends Controller
     {
         return $this->geopoliticalZones[$zone] ?? [];
     }
-
     public function getRiskData(Request $request)
     {
         $selectedYear  = (int) $request->input('year', now()->year);
@@ -277,41 +276,91 @@ class SecurityIntelligenceController extends Controller
 
         $riskIndicator = $this->riskMapping[$selectedIndex] ?? 'All';
 
-        // ✅ Decide corrections policy here
-        // Composite => UNADJUSTED (false)
-        // Others => ADJUSTED (true)  [change to false if you want everything unadjusted]
-        $applyCorrections = ($selectedIndex !== 'Composite Risk Index');
+        // ✅ Composite uses a different engine; cache must not collide
+        $mode = ($selectedIndex === 'Composite Risk Index') ? 'composite_rf' : 'indicator_engine';
+        $cacheKey = "risk_data_{$selectedYear}_{$selectedIndex}_{$mode}";
 
-        // ✅ Include it in cache key so cached result matches the mode
-        $cacheKey = "risk_data_{$selectedYear}_{$selectedIndex}_" . ($applyCorrections ? 'adj' : 'unadj');
-
-        return Cache::remember($cacheKey, 3600, function () use ($selectedYear, $riskIndicator, $applyCorrections) {
+        return Cache::remember($cacheKey, 3600, function () use ($selectedYear, $selectedIndex, $riskIndicator) {
 
             $indicatorFilter = ($riskIndicator === 'All') ? null : $riskIndicator;
 
-            // 1) CURRENT YEAR
-            $stateDataCurrent = $this->buildIndicatorAggregates($selectedYear, $indicatorFilter);
+            /**
+             * -----------------------------
+             * 1) CURRENT + PREVIOUS REPORTS
+             * -----------------------------
+             * Composite => OLD algorithm (riskfactors-based)
+             * Others    => NEW engine (indicators-based)
+             */
+            if ($selectedIndex === 'Composite Risk Index') {
 
-            $totalFatalities = (int) $stateDataCurrent->sum('total_deaths');
+                // ✅ OLD composite algorithm (riskfactors + factor weights + corrections)
+                $currentComposite = collect($this->calculateCompositeIndexByRiskFactors($selectedYear));
+                $prevComposite    = collect($this->calculateCompositeIndexByRiskFactors($selectedYear - 1));
 
-            // ✅ PASS IT HERE (CURRENT)
-            $stateRiskReportsCurrent = $this->calculateStateRiskFromIndicators(
-                $stateDataCurrent,
-                $applyCorrections
-            );
+                // Ensure ranking works (highest first)
+                $sortedCurrent = $currentComposite->sortDesc();
+                $sortedPrev    = $prevComposite->sortDesc();
 
-            // 2) PREVIOUS YEAR
-            $previousYear = $selectedYear - 1;
+                // Total tracked incidents (all incidents in that year)
+                $totalTrackedIncidents = (int) tbldataentry::where('yy', $selectedYear)->count();
 
-            $stateDataPrev = $this->buildIndicatorAggregates($previousYear, $indicatorFilter);
+                // Total fatalities (all fatalities in that year)
+                $totalFatalities = (int) tbldataentry::where('yy', $selectedYear)->sum('Casualties_count');
 
-            // ✅ PASS IT HERE (PREVIOUS)
-            $stateRiskReportsPrev = $this->calculateStateRiskFromIndicators(
-                $stateDataPrev,
-                $applyCorrections
-            );
+                // Build "reports" arrays matching your existing structure
+                $stateRiskReportsCurrent = $sortedCurrent->map(function ($score, $state) {
+                    $score = (float) $score;
+                    return [
+                        'location' => $state,
+                        // optional: set incident_count properly; we fill later via query
+                        'incident_count' => 0,
+                        'normalized_ratio' => round($score, 2),
+                        'risk_level' => $this->determineBusinessRiskLevel($score),
+                        'year' => now()->year,
+                    ];
+                })->values()->all();
 
-            // 3) SORTING + RANKING (unchanged)
+                $stateRiskReportsPrev = $sortedPrev->map(function ($score, $state) {
+                    $score = (float) $score;
+                    return [
+                        'location' => $state,
+                        'incident_count' => 0,
+                        'normalized_ratio' => round($score, 2),
+                        'risk_level' => $this->determineBusinessRiskLevel($score),
+                        'year' => now()->year,
+                    ];
+                })->values()->all();
+
+                // ✅ Fill incident_count for composite (batch query)
+                $incidentCounts = tbldataentry::selectRaw('TRIM(location) as location, COUNT(*) as cnt')
+                    ->where('yy', $selectedYear)
+                    ->groupBy(DB::raw('TRIM(location)'))
+                    ->pluck('cnt', 'location');
+
+                $stateRiskReportsCurrent = collect($stateRiskReportsCurrent)->map(function ($r) use ($incidentCounts) {
+                    $loc = $r['location'];
+                    $r['incident_count'] = (int) ($incidentCounts[$loc] ?? 0);
+                    return $r;
+                })->all();
+            } else {
+
+                // ✅ NEW engine (indicators-based)
+                $stateDataCurrent = $this->buildIndicatorAggregates($selectedYear, $indicatorFilter);
+                $totalFatalities = (int) $stateDataCurrent->sum('total_deaths');
+                $stateRiskReportsCurrent = $this->calculateStateRiskFromIndicators($stateDataCurrent);
+
+                $previousYear = $selectedYear - 1;
+                $stateDataPrev = $this->buildIndicatorAggregates($previousYear, $indicatorFilter);
+                $stateRiskReportsPrev = $this->calculateStateRiskFromIndicators($stateDataPrev);
+
+                $sortedCurrent = collect($stateRiskReportsCurrent)->sortByDesc('normalized_ratio');
+                $totalTrackedIncidents = (int) $sortedCurrent->sum('incident_count');
+            }
+
+            // From here down, keep your existing logic exactly, but use the variables above
+            $sortedReports = collect($stateRiskReportsCurrent)->sortByDesc('normalized_ratio');
+
+            // 3) SORTING + RANKING (previous year ranks)
             $prevYearRanks = collect($stateRiskReportsPrev)
                 ->sortByDesc('normalized_ratio')
                 ->values()
@@ -324,16 +373,13 @@ class SecurityIntelligenceController extends Controller
                 })
                 ->keyBy('location');
 
-            $sortedReports = collect($stateRiskReportsCurrent)->sortByDesc('normalized_ratio');
             $highestRiskReport = $sortedReports->first();
 
             $nationalThreatLevel = $highestRiskReport
                 ? $this->getRiskCategoryFromLevel($highestRiskReport['risk_level'])
                 : 'Low';
 
-            $totalTrackedIncidents = (int) $sortedReports->sum('incident_count');
-
-            // 4) TOP THREAT GROUPS (unchanged)
+            // 4) TOP THREAT GROUPS (keep your original logic, but for Composite don't filter indicators)
             $topThreatGroups = 'N/A';
             try {
                 $topThreatGroupsQuery = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
@@ -344,7 +390,8 @@ class SecurityIntelligenceController extends Controller
                     ->orderByDesc('occurrences')
                     ->take(5);
 
-                if ($indicatorFilter) {
+                // ✅ Only apply indicator filter for non-composite indices
+                if ($selectedIndex !== 'Composite Risk Index' && $indicatorFilter) {
                     $topThreatGroupsQuery->where('tbldataentry.riskindicators', $indicatorFilter);
                 }
 
@@ -356,7 +403,7 @@ class SecurityIntelligenceController extends Controller
                 Log::error("Failed to get Top Threat Groups: " . $e->getMessage());
             }
 
-            // 5) FORMAT TREEMAP + TABLE (unchanged)
+            // 5) FORMAT TREEMAP + TABLE
             $treemapData = [];
             $tableData = $sortedReports->values()->map(function ($report, $index) use ($prevYearRanks, &$treemapData) {
                 $stateName = $report['location'];
@@ -387,13 +434,14 @@ class SecurityIntelligenceController extends Controller
                 ];
             });
 
-            // 6) FATALITIES TREND (unchanged)
+            // 6) FATALITIES TREND
             $trendYears = range(2018, $selectedYear);
 
             $fatalityTrendQuery = tbldataentry::selectRaw('yy, SUM(Casualties_count) as total_deaths')
                 ->whereIn('yy', $trendYears);
 
-            if ($indicatorFilter) {
+            // ✅ Only apply indicator filter for non-composite indices
+            if ($selectedIndex !== 'Composite Risk Index' && $indicatorFilter) {
                 $fatalityTrendQuery->where('riskindicators', $indicatorFilter);
             }
 
@@ -415,9 +463,9 @@ class SecurityIntelligenceController extends Controller
                 'tableData' => $tableData,
                 'cardData' => [
                     'nationalThreatLevel' => $nationalThreatLevel,
-                    'totalTrackedIncidents' => $totalTrackedIncidents,
+                    'totalTrackedIncidents' => (int) ($totalTrackedIncidents ?? 0),
                     'topThreatGroups' => $topThreatGroups,
-                    'totalFatalities' => $totalFatalities,
+                    'totalFatalities' => (int) ($totalFatalities ?? 0),
                 ],
                 'trendSeries' => [
                     'labels' => $trendLabels,
@@ -426,6 +474,8 @@ class SecurityIntelligenceController extends Controller
             ]);
         });
     }
+
+
 
 
 

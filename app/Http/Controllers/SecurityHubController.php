@@ -69,7 +69,7 @@ class SecurityHubController extends Controller
 
                 // Determine Impact Label and Class
                 if (($riskFactor == "Violent Threats" || $indicator == "Political Protest") && $casualties > 10 || $casualties > 10 || $injuries > 10) {
-                    $incident->impact_label = 'Very High';
+                    $incident->impact_label = 'Critical';
                     $incident->impact_class = 'bg-red-800';
                 } elseif (($riskFactor == "Violent Threats" || $indicator == "Political Protest") && $casualties > 2 || ($casualties > 5 && $casualties < 10) || ($injuries > 5 && $injuries < 10) || $incident->impact_level == "High") {
                     $incident->impact_label = 'High';

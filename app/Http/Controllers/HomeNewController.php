@@ -237,7 +237,7 @@ class HomeNewController extends Controller
     {
         if ($score >= 75) return 'Critical';
         if ($score >= 50) return 'High';
-        if ($score >= 25) return 'Moderate';
+        if ($score >= 25) return 'Medium';
         return 'Low';
     }
     private function calculateRiskScore($total, $casualties, $trend)
