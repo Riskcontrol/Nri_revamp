@@ -155,8 +155,8 @@
         <div class="flex flex-col lg:flex-row gap-6 mb-8">
             {{-- Chart 1: Incidents Over 12 Months (APEXCHARTS) --}}
             <div class="w-full lg:w-1/2 bg-[#1E2D3D] p-4 md:p-6 rounded-lg shadow-md">
-                <h3 class="text-center text-lg md:text-xl font-semibold text-gray-400 mb-4">Incidents Over the Past 12
-                    Months</h3>
+                <h3 id="trend-title" class="text-center text-lg md:text-xl font-semibold text-gray-400 mb-4"> Incidents
+                    in {{ $year }} (Monthly)</h3>
                 {{-- ApexChart Container --}}
                 <div id="incidentsTrendChart" style="min-height: 320px;"></div>
             </div>
@@ -221,18 +221,18 @@
                                 <td class="py-4 px-4 whitespace-nowrap">{{ $item['previous_year_count'] }}</td>
                                 @php
                                     // Default blue pill for stable/neutral
-                                    $pillClasses = 'bg-blue text-white';
+                                    $pillClasses = 'bg-blue text-white uppercase';
 
                                     if ($item['status'] === 'Escalating') {
-                                        $pillClasses = 'bg-red-500 text-white border-red-500';
+                                        $pillClasses = 'bg-red-500 text-white border-red-500 uppercase';
                                     } elseif ($item['status'] === 'Improving') {
-                                        $pillClasses = 'bg-green-500 text-white border-green-500';
+                                        $pillClasses = 'bg-green-500 text-white border-green-500 uppercase';
                                     }
                                 @endphp
 
                                 <td class="py-4 px-4 whitespace-nowrap">
                                     <span
-                                        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold lowercase tracking-wider border {{ $pillClasses }}">
+                                        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wider border {{ $pillClasses }}">
                                         {{ $item['status'] }}
                                     </span>
                                 </td>
@@ -327,8 +327,7 @@
             }
 
             const defaultState = document.getElementById('state-name').textContent || 'Primary State';
-            // const defaultYear = document.getElementById('current-year').textContent;
-
+            const defaultYear = document.getElementById('year-select').value; // ✅ add this
             // --- Chart 1: Incidents Over Past 12 Months (ApexCharts) ---
             const trendOptions = {
                 series: [{
@@ -410,9 +409,7 @@
                         label: defaultState,
                         data: @json($topRiskCounts),
                         backgroundColor: [
-                            'rgba(27, 158, 133, 0.7)', 'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)'
+                            'rgba(27, 158, 133, 0.7)'
                         ],
                         borderWidth: 1
                     }]
@@ -624,6 +621,10 @@
             if (!primaryState || !selectedYear) return;
             if (typeof updateMap === "function") updateMap(primaryState, selectedYear);
 
+            const trendTitle = document.getElementById('trend-title');
+            if (trendTitle) trendTitle.textContent = `Incidents in ${selectedYear} (Monthly)`;
+
+
             const prevalentDropdown = document.getElementById('prevalent-compare-select');
             if (prevalentDropdown) {
                 prevalentDropdown.value = "";
@@ -714,12 +715,12 @@
                         if (data.crimeTable && data.crimeTable.length > 0) {
                             data.crimeTable.forEach(item => {
                                 // Match the logic used in your PHP @php block
-                                let pillClasses = 'bg-blue-500 text-white border-blue-500'; // Default
+                                let pillClasses = 'bg-blue-500 text-white border-blue-500 uppercase'; // Default
 
                                 if (item.status === 'Escalating') {
-                                    pillClasses = 'bg-red-500 text-white border-red-500';
+                                    pillClasses = 'bg-red-500 text-white border-red-500 uppercase';
                                 } else if (item.status === 'Improving') {
-                                    pillClasses = 'bg-green-500 text-white border-green-500';
+                                    pillClasses = 'bg-green-500 text-white border-green-500 uppercase';
                                 }
 
                                 crimeTableHtml += `
@@ -728,7 +729,7 @@
                     <td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td>
                     <td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td>
                     <td class="py-4 px-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold lowercase tracking-wider border ${pillClasses}">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wider border ${pillClasses}">
                             ${item.status}
                         </span>
                     </td>
@@ -764,6 +765,7 @@
             const selectedYear = document.getElementById('year-select').value;
             document.getElementById('state-name').textContent = primaryState;
             // document.getElementById('current-year').textContent = selectedYear;
+
             updateMainDashboard(primaryState, selectedYear);
         }
 

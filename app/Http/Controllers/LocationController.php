@@ -43,12 +43,16 @@ class LocationController extends Controller
         return $factors;
     }
 
-    public function getTotalIncident($state)
+    public function getTotalIncident($state, $year = null)
     {
 
-        $year = now()->year;
+        $year = (int) ($year ?: now()->year);
         $availableYears = range(now()->year, 2018);
         $states = StateInsight::all();
+
+        if (!in_array($year, $availableYears, true)) {
+            $year = now()->year;
+        }
 
         $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
@@ -70,44 +74,30 @@ class LocationController extends Controller
 
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+        // If user selected current year, show up to current month. Otherwise show all 12.
+        $endMonth = ((int)$year === (int)now()->year) ? (int)now()->format('n') : 12;
 
-        $now = now(); // Carbon instance of current date
-        $pairs = collect(range(0, 11))
-            ->map(fn($i) => $now->copy()->subMonths($i))
-            ->reverse() // Order from oldest to newest month
+        $wantedMonths = collect(range(1, $endMonth))
+            ->map(fn($m) => $months[$m - 1])
             ->values();
 
-        $wanted = $pairs->map(fn($d) => [
-            'yy' => (int)$d->format('Y'),
-            'month_pro' => $d->format('M'),
-            'label' => $d->format('M') . ' ' . $d->format('Y'),
-        ])->values();
-
-        // Map the raw data to an associative array for easy lookup
-        $monthlyDataRaw = tbldataentry::selectRaw('yy, month_pro, COUNT(*) as total_incidents')
+        // Query counts for that year, grouped by month_pro
+        $monthlyData = tbldataentry::selectRaw('month_pro, COUNT(*) as total_incidents')
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where(function ($q) use ($wanted) {
-                foreach ($wanted as $w) {
-                    $q->orWhere(function ($qq) use ($w) {
-                        $qq->where('yy', $w['yy'])->where('month_pro', $w['month_pro']);
-                    });
-                }
-            })
-            ->groupBy('yy', 'month_pro')
+            ->where('yy', (int)$year)
+            ->whereIn('month_pro', $wantedMonths->all())
+            ->groupBy('month_pro')
             ->get()
-            ->keyBy(function ($row) {
-                return $row->month_pro . ' ' . $row->yy;
-            });
+            ->keyBy('month_pro');
 
-        // Prepare the final labels (ensuring the correct 12-month order)
-        $chartLabels = $wanted->pluck('label')->values()->toArray();
+        // X labels are the months for that year
+        $chartLabels = $wantedMonths->values();
 
-        // Prepare the final counts (using the correct labels to ensure correct order)
-        $incidentCounts = $wanted->pluck('label')->map(function ($lbl) use ($monthlyDataRaw) {
-            // Look up the count using the generated label as the key
-            $count = $monthlyDataRaw[$lbl]->total_incidents ?? 0;
-            return (int)$count;
-        })->values()->toArray();
+        // Y values aligned to the labels (missing months = 0)
+        $incidentCounts = $wantedMonths->map(function ($mp) use ($monthlyData) {
+            return (int)($monthlyData[$mp]->total_incidents ?? 0);
+        })->values();
+
 
 
         // Fetch the top 5 most frequent risk indicators and their counts
@@ -350,35 +340,26 @@ class LocationController extends Controller
 
 
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        $now = now(); // Carbon
-        $pairs = collect(range(0, 11))
-            ->map(fn($i) => $now->copy()->subMonths($i))
-            ->reverse()
+
+        $endMonth = ((int)$year === (int)now()->year) ? (int)now()->format('n') : 12;
+
+        $wantedMonths = collect(range(1, $endMonth))
+            ->map(fn($m) => $months[$m - 1])
             ->values();
 
-        $wanted = $pairs->map(fn($d) => [
-            'yy' => (int)$d->format('Y'),
-            'month_pro' => $months[(int)$d->format('n') - 1],
-            'label' => $months[(int)$d->format('n') - 1] . ' ' . $d->format('Y'),
-        ])->values();
-
-        $monthlyData = tbldataentry::selectRaw('yy, month_pro, COUNT(*) as total_incidents')
+        $monthlyDataRaw = tbldataentry::selectRaw('month_pro, COUNT(*) as total_incidents')
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where(function ($q) use ($wanted) {
-                foreach ($wanted as $w) {
-                    $q->orWhere(function ($qq) use ($w) {
-                        $qq->where('yy', $w['yy'])->where('month_pro', $w['month_pro']);
-                    });
-                }
-            })
-            ->groupBy('yy', 'month_pro')
+            ->where('yy', (int)$year)
+            ->whereIn('month_pro', $wantedMonths->all())
+            ->groupBy('month_pro')
             ->get()
-            ->keyBy(function ($row) {
-                return $row->month_pro . ' ' . $row->yy;
-            });
+            ->keyBy('month_pro');
 
-        $chartLabels = $wanted->pluck('label')->values();
-        $incidentCounts = $chartLabels->map(fn($lbl) => (int)($monthlyData[$lbl]->total_incidents ?? 0))->values();
+        $chartLabels = $wantedMonths->values()->toArray();
+
+        $incidentCounts = $wantedMonths->map(function ($mp) use ($monthlyDataRaw) {
+            return (int)($monthlyDataRaw[$mp]->total_incidents ?? 0);
+        })->values()->toArray();
 
         // B) Year series from 2018
         $yearlyData = tbldataentry::selectRaw('yy, COUNT(*) as total_incidents')

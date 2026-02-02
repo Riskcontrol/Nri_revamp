@@ -29,7 +29,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/', [HomeNewController::class, 'getStateRiskReports'])
     ->name('home');
-Route::get('/location-intelligence/{state}', [LocationController::class, 'getTotalIncident'])->name('locationIntelligence');
+Route::get('/location-intelligence/{state}/{year?}', [LocationController::class, 'getTotalIncident'])->name('locationIntelligence');
 Route::get('/get-state-data/{state}/{year}', [LocationController::class, 'getStateData']);
 Route::get('/get-total-incidents-only/{state}/{year}', [LocationController::class, 'getTotalIncidentsOnly']);
 Route::get('/get-incident-locations/{state}/{year}', [LocationController::class, 'getIncidentLocations']);

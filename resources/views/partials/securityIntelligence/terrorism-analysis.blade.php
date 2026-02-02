@@ -246,7 +246,7 @@
             if (value <= 1.7) return 'Low';
             if (value <= 2.8) return 'Medium';
             if (value <= 7.0) return 'High';
-            return 'Critical';
+            return 'Very High';
         }
 
         var options = {
@@ -483,7 +483,7 @@
                 return 'bg-yellow-500 text-white';
             case 'High':
                 return 'bg-[#fc4444] text-white';
-            case 'Critical':
+            case 'Very High':
                 return 'bg-red-700 text-white';
             default:
                 return 'bg-gray-500 text-white';

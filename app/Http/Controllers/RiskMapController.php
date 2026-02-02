@@ -236,11 +236,11 @@ class RiskMapController extends Controller
         $selectedRiskType = $request->input('risk_type', 'All');
 
         // Short-circuit for types that likely don't have "Groups" (e.g. Theft)
-        if (in_array($selectedRiskType, ['Crime', 'Property-Risk'])) {
-            return response()->json([
-                'topThreatGroups' => 'N/A'
-            ]);
-        }
+        // if (in_array($selectedRiskType, ['Crime', 'Property-Risk'])) {
+        //     return response()->json([
+        //         'topThreatGroups' => 'N/A'
+        //     ]);
+        // }
 
         return Cache::remember("map_card_{$selectedYear}_{$selectedRiskType}", 3600, function () use ($selectedYear, $selectedRiskType) {
 

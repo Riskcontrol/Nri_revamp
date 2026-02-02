@@ -413,9 +413,16 @@ class SecurityIntelligenceController extends Controller
                 $previousRank = $prevData['rank'] ?? '-';
 
                 $status = 'Stable';
+
                 if ($prevData) {
-                    if ($currentRank < $previousRank) $status = 'Escalating';
-                    elseif ($currentRank > $previousRank) $status = 'Improving';
+                    $prevScore = $prevData['score'];
+                    $currentScore = $report['normalized_ratio'];
+
+                    if ($currentScore > $prevScore) {
+                        $status = 'Escalating';
+                    } elseif ($currentScore < $prevScore) {
+                        $status = 'Improving';
+                    }
                 }
 
                 $treemapData[] = [
@@ -489,7 +496,7 @@ class SecurityIntelligenceController extends Controller
             case 3:
                 return 'High';
             case 4:
-                return 'Critical';
+                return 'Very High';
             default:
                 return 'N/A';
         }
