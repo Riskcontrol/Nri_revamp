@@ -37,6 +37,7 @@ return [
     'groq' => [
         'key' => env('GROQ_API_KEY'),
         'api_url' => env('GROQ_API_URL'),
+        'model'   => env('GROQ_MODEL', 'llama-3.1-70b-versatile'),
         'timeout' => env('GROQ_TIMEOUT', 30),
         'retry_attempts' => env('GROQ_RETRY_ATTEMPTS', 2),
     ],

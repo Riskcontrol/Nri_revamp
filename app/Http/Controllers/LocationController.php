@@ -216,10 +216,10 @@ class LocationController extends Controller
                 ($stateCrimeTotals->total_incidents / $nationalCrimeTotals->total_incidents) * 25 * $correction->incident_correction : 0;
 
             $victimRatio = $nationalCrimeTotals->total_victims != 0 ?
-                ($stateCrimeTotals->total_victims / $nationalCrimeTotals->total_victims) * 35 * $correction->victim_correction : 0;
+                ($stateCrimeTotals->total_victims / $nationalCrimeTotals->total_victims) * 30 * $correction->victim_correction : 0;
 
             $deathThreatsRatio = $nationalCrimeTotals->total_deaths != 0 ?
-                ($stateCrimeTotals->total_deaths / $nationalCrimeTotals->total_deaths) * 40 * $correction->casualty_correction : 0;
+                ($stateCrimeTotals->total_deaths / $nationalCrimeTotals->total_deaths) * 45 * $correction->death_correction : 0;
 
             $stateCrimeIndexScore = round($incidentRatio + $victimRatio + $deathThreatsRatio, 2);
 
@@ -419,10 +419,10 @@ class LocationController extends Controller
                 ($stateCrimeTotals->total_incidents / $nationalCrimeTotals->total_incidents) * 25 * $correction->incident_correction : 0;
 
             $victimRatio = $nationalCrimeTotals->total_victims != 0 ?
-                ($stateCrimeTotals->total_victims / $nationalCrimeTotals->total_victims) * 35 * $correction->victim_correction : 0;
+                ($stateCrimeTotals->total_victims / $nationalCrimeTotals->total_victims) * 30 * $correction->victim_correction : 0;
 
             $deathThreatsRatio = $nationalCrimeTotals->total_deaths != 0 ?
-                ($stateCrimeTotals->total_deaths / $nationalCrimeTotals->total_deaths) * 40 * $correction->casualty_correction : 0;
+                ($stateCrimeTotals->total_deaths / $nationalCrimeTotals->total_deaths) * 45 * $correction->casualty_correction : 0;
 
             $stateCrimeIndexScore = round($incidentRatio + $victimRatio + $deathThreatsRatio, 2);
 

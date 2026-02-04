@@ -11,8 +11,8 @@ trait CalculatesRisk
 {
     // Severity weights (your choice; keep consistent everywhere)
     protected $WEIGHT_INCIDENT_SEVERITY = 25;
-    protected $WEIGHT_VICTIM_SEVERITY   = 35;
-    protected $WEIGHT_DEATH_SEVERITY    = 40;
+    protected $WEIGHT_VICTIM_SEVERITY   = 30;
+    protected $WEIGHT_DEATH_SEVERITY    = 45;
 
     private function norm($s): string
     {
@@ -190,8 +190,8 @@ trait CalculatesRisk
 
         // Component weights (keep consistent with your old method)
         $incidentBaseWeight = 25;
-        $victimBaseWeight   = 35;
-        $deathBaseWeight    = 40;
+        $victimBaseWeight   = 30;
+        $deathBaseWeight    = 45;
 
         // rawValues[riskName][state] = raw value
         $rawValues = [];

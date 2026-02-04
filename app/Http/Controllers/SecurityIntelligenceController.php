@@ -10,6 +10,9 @@ use App\Http\Controllers\Traits\CalculatesRisk;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use App\Services\SecurityInsightGenerator;
+use App\Models\SecurityInsight;
+
 
 class SecurityIntelligenceController extends Controller
 {
@@ -19,7 +22,7 @@ class SecurityIntelligenceController extends Controller
     private $geopoliticalZones = [
         'North West' => ['Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Sokoto', 'Zamfara'],
         'North East' => ['Adamawa', 'Bauchi', 'Borno', 'Gombe', 'Taraba', 'Yobe'],
-        'North Central' => ['Benue', 'FCT', 'Kogi', 'Kwara', 'Nasarawa', 'Niger', 'Plateau'],
+        'North Central' => ['Benue', 'Federal Capital Territory', 'Kogi', 'Kwara', 'Nasarawa', 'Niger', 'Plateau'],
         'South West' => ['Ekiti', 'Lagos', 'Ogun', 'Ondo', 'Osun', 'Oyo'],
         'South East' => ['Abia', 'Anambra', 'Ebonyi', 'Enugu', 'Imo'],
         'South South' => ['Akwa Ibom', 'Bayelsa', 'Cross River', 'Delta', 'Edo', 'Rivers'],
@@ -269,69 +272,61 @@ class SecurityIntelligenceController extends Controller
     {
         return $this->geopoliticalZones[$zone] ?? [];
     }
-    public function getRiskData(Request $request)
+    public function getRiskData(Request $request, SecurityInsightGenerator $insightGen)
     {
         $selectedYear  = (int) $request->input('year', now()->year);
         $selectedIndex = (string) $request->input('index_type', 'Composite Risk Index');
 
-        $riskIndicator = $this->riskMapping[$selectedIndex] ?? 'All';
+        $riskIndicator   = $this->riskMapping[$selectedIndex] ?? 'All';
+        $indicatorFilter = ($riskIndicator === 'All') ? null : $riskIndicator;
 
-        // ✅ Composite uses a different engine; cache must not collide
         $mode = ($selectedIndex === 'Composite Risk Index') ? 'composite_rf' : 'indicator_engine';
-        $cacheKey = "risk_data_{$selectedYear}_{$selectedIndex}_{$mode}";
 
-        return Cache::remember($cacheKey, 3600, function () use ($selectedYear, $selectedIndex, $riskIndicator) {
+        // Cache key for the computed risk payload (chart/table/etc.)
+        $cacheKey = 'risk_data:' . $selectedYear . ':' . md5($selectedIndex . '|' . ($indicatorFilter ?? 'all') . '|' . $mode);
 
-            $indicatorFilter = ($riskIndicator === 'All') ? null : $riskIndicator;
-
-            /**
-             * -----------------------------
-             * 1) CURRENT + PREVIOUS REPORTS
-             * -----------------------------
-             * Composite => OLD algorithm (riskfactors-based)
-             * Others    => NEW engine (indicators-based)
-             */
+        $payload = Cache::remember($cacheKey, 3600, function () use (
+            $selectedYear,
+            $selectedIndex,
+            $indicatorFilter,
+            $mode,
+            $insightGen
+        ) {
+            // -----------------------------
+            // 1) Build CURRENT + PREVIOUS reports
+            // -----------------------------
             if ($selectedIndex === 'Composite Risk Index') {
-
-                // ✅ OLD composite algorithm (riskfactors + factor weights + corrections)
                 $currentComposite = collect($this->calculateCompositeIndexByRiskFactors($selectedYear));
                 $prevComposite    = collect($this->calculateCompositeIndexByRiskFactors($selectedYear - 1));
 
-                // Ensure ranking works (highest first)
                 $sortedCurrent = $currentComposite->sortDesc();
                 $sortedPrev    = $prevComposite->sortDesc();
 
-                // Total tracked incidents (all incidents in that year)
                 $totalTrackedIncidents = (int) tbldataentry::where('yy', $selectedYear)->count();
+                $totalFatalities       = (int) tbldataentry::where('yy', $selectedYear)->sum('Casualties_count');
 
-                // Total fatalities (all fatalities in that year)
-                $totalFatalities = (int) tbldataentry::where('yy', $selectedYear)->sum('Casualties_count');
-
-                // Build "reports" arrays matching your existing structure
-                $stateRiskReportsCurrent = $sortedCurrent->map(function ($score, $state) {
+                $stateRiskReportsCurrent = $sortedCurrent->map(function ($score, $state) use ($selectedYear) {
                     $score = (float) $score;
                     return [
-                        'location' => $state,
-                        // optional: set incident_count properly; we fill later via query
-                        'incident_count' => 0,
+                        'location'         => $state,
+                        'incident_count'   => 0,
                         'normalized_ratio' => round($score, 2),
-                        'risk_level' => $this->determineBusinessRiskLevel($score),
-                        'year' => now()->year,
+                        'risk_level'       => $this->determineBusinessRiskLevel($score),
+                        'year'             => $selectedYear,
                     ];
                 })->values()->all();
 
-                $stateRiskReportsPrev = $sortedPrev->map(function ($score, $state) {
+                $stateRiskReportsPrev = $sortedPrev->map(function ($score, $state) use ($selectedYear) {
                     $score = (float) $score;
                     return [
-                        'location' => $state,
-                        'incident_count' => 0,
+                        'location'         => $state,
+                        'incident_count'   => 0,
                         'normalized_ratio' => round($score, 2),
-                        'risk_level' => $this->determineBusinessRiskLevel($score),
-                        'year' => now()->year,
+                        'risk_level'       => $this->determineBusinessRiskLevel($score),
+                        'year'             => $selectedYear - 1,
                     ];
                 })->values()->all();
 
-                // ✅ Fill incident_count for composite (batch query)
                 $incidentCounts = tbldataentry::selectRaw('TRIM(location) as location, COUNT(*) as cnt')
                     ->where('yy', $selectedYear)
                     ->groupBy(DB::raw('TRIM(location)'))
@@ -343,10 +338,8 @@ class SecurityIntelligenceController extends Controller
                     return $r;
                 })->all();
             } else {
-
-                // ✅ NEW engine (indicators-based)
                 $stateDataCurrent = $this->buildIndicatorAggregates($selectedYear, $indicatorFilter);
-                $totalFatalities = (int) $stateDataCurrent->sum('total_deaths');
+                $totalFatalities  = (int) $stateDataCurrent->sum('total_deaths');
                 $stateRiskReportsCurrent = $this->calculateStateRiskFromIndicators($stateDataCurrent);
 
                 $previousYear = $selectedYear - 1;
@@ -357,32 +350,34 @@ class SecurityIntelligenceController extends Controller
                 $totalTrackedIncidents = (int) $sortedCurrent->sum('incident_count');
             }
 
-            // From here down, keep your existing logic exactly, but use the variables above
             $sortedReports = collect($stateRiskReportsCurrent)->sortByDesc('normalized_ratio');
 
-            // 3) SORTING + RANKING (previous year ranks)
+            // -----------------------------
+            // 2) prev year ranks
+            // -----------------------------
             $prevYearRanks = collect($stateRiskReportsPrev)
                 ->sortByDesc('normalized_ratio')
                 ->values()
                 ->map(function ($report, $index) {
                     return [
-                        'rank' => $index + 1,
-                        'score' => $report['normalized_ratio'],
+                        'rank'     => $index + 1,
+                        'score'    => $report['normalized_ratio'],
                         'location' => $report['location'],
                     ];
                 })
                 ->keyBy('location');
 
             $highestRiskReport = $sortedReports->first();
-
             $nationalThreatLevel = $highestRiskReport
                 ? $this->getRiskCategoryFromLevel($highestRiskReport['risk_level'])
                 : 'Low';
 
-            // 4) TOP THREAT GROUPS (keep your original logic, but for Composite don't filter indicators)
+            // -----------------------------
+            // 3) top threat groups
+            // -----------------------------
             $topThreatGroups = 'N/A';
             try {
-                $topThreatGroupsQuery = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
+                $q = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
                     ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
                     ->where('tbldataentry.yy', $selectedYear)
                     ->where('attack_group.name', '!=', 'Others')
@@ -390,64 +385,58 @@ class SecurityIntelligenceController extends Controller
                     ->orderByDesc('occurrences')
                     ->take(5);
 
-                // ✅ Only apply indicator filter for non-composite indices
                 if ($selectedIndex !== 'Composite Risk Index' && $indicatorFilter) {
-                    $topThreatGroupsQuery->where('tbldataentry.riskindicators', $indicatorFilter);
+                    $q->where('tbldataentry.riskindicators', $indicatorFilter);
                 }
 
-                $results = $topThreatGroupsQuery->get();
+                $results = $q->get();
                 if ($results->isNotEmpty()) {
                     $topThreatGroups = $results->pluck('name')->implode(', ');
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Log::error("Failed to get Top Threat Groups: " . $e->getMessage());
             }
 
-            // 5) FORMAT TREEMAP + TABLE
+            // -----------------------------
+            // 4) treemap + table
+            // -----------------------------
             $treemapData = [];
             $tableData = $sortedReports->values()->map(function ($report, $index) use ($prevYearRanks, &$treemapData) {
-                $stateName = $report['location'];
+                $stateName   = $report['location'];
                 $currentRank = $index + 1;
 
-                $prevData = $prevYearRanks->get($stateName);
-                $previousRank = $prevData['rank'] ?? '-';
+                $prevData      = $prevYearRanks->get($stateName);
+                $previousRank  = $prevData['rank'] ?? '-';
 
                 $status = 'Stable';
-
                 if ($prevData) {
-                    $prevScore = $prevData['score'];
+                    $prevScore    = $prevData['score'];
                     $currentScore = $report['normalized_ratio'];
-
-                    if ($currentScore > $prevScore) {
-                        $status = 'Escalating';
-                    } elseif ($currentScore < $prevScore) {
-                        $status = 'Improving';
-                    }
+                    if ($currentScore > $prevScore) $status = 'Escalating';
+                    elseif ($currentScore < $prevScore) $status = 'Improving';
                 }
 
-                $treemapData[] = [
-                    'x' => $stateName,
-                    'y' => $report['normalized_ratio'],
-                ];
+                $treemapData[] = ['x' => $stateName, 'y' => $report['normalized_ratio']];
 
                 return [
-                    'state' => $stateName,
-                    'risk_score' => round($report['normalized_ratio'], 2),
-                    'risk_level' => $this->getRiskCategoryFromLevel($report['risk_level']),
-                    'rank_current' => $currentRank,
+                    'state'         => $stateName,
+                    'risk_score'    => round($report['normalized_ratio'], 2),
+                    'risk_level'    => $this->getRiskCategoryFromLevel($report['risk_level']),
+                    'rank_current'  => $currentRank,
                     'rank_previous' => $previousRank,
-                    'status' => $status,
-                    'incidents' => $report['incident_count'],
+                    'status'        => $status,
+                    'incidents'     => $report['incident_count'],
                 ];
             });
 
-            // 6) FATALITIES TREND
+            // -----------------------------
+            // 5) fatalities trend
+            // -----------------------------
             $trendYears = range(2018, $selectedYear);
 
             $fatalityTrendQuery = tbldataentry::selectRaw('yy, SUM(Casualties_count) as total_deaths')
                 ->whereIn('yy', $trendYears);
 
-            // ✅ Only apply indicator filter for non-composite indices
             if ($selectedIndex !== 'Composite Risk Index' && $indicatorFilter) {
                 $fatalityTrendQuery->where('riskindicators', $indicatorFilter);
             }
@@ -459,27 +448,163 @@ class SecurityIntelligenceController extends Controller
                 ->keyBy('yy');
 
             $trendLabels = [];
-            $trendData = [];
+            $trendData   = [];
             foreach ($trendYears as $y) {
                 $trendLabels[] = (string) $y;
-                $trendData[] = $fatalityTrend->has($y) ? (int) $fatalityTrend[$y]->total_deaths : 0;
+                $trendData[]   = $fatalityTrend->has($y) ? (int) $fatalityTrend[$y]->total_deaths : 0;
             }
 
-            return response()->json([
+            // -----------------------------
+            // 6) AI INSIGHTS (fixed)
+            // -----------------------------
+            $indexType = $selectedIndex;
+
+            $zoneDeaths = $this->buildZoneImpact($selectedYear, $indicatorFilter);
+
+            $activeRegions = collect($zoneDeaths)
+                ->sortByDesc('fatalities')
+                ->take(2)
+                ->map(function ($z) use ($selectedYear, $indicatorFilter) {
+                    $statesInZone = $this->getStatesForZone($z['zone'] ?? '');
+                    $topRisk = 'N/A';
+
+                    if (!empty($statesInZone)) {
+                        $topRiskQuery = tbldataentry::query()
+                            ->select('riskindicators')
+                            ->where('yy', $selectedYear)
+                            ->whereIn('location', $statesInZone);
+
+                        if ($indicatorFilter) $topRiskQuery->where('riskindicators', $indicatorFilter);
+
+                        $topRisk = $topRiskQuery
+                            ->groupBy('riskindicators')
+                            ->orderByRaw('COUNT(*) DESC')
+                            ->value('riskindicators') ?? 'N/A';
+                    }
+
+                    return [
+                        'zone'        => $z['zone'] ?? 'N/A',
+                        'total_deaths' => (int) ($z['fatalities'] ?? 0),
+                        'top_risk'    => $topRisk,
+                    ];
+                })
+                ->values()
+                ->all();
+
+            $summary = $this->buildInsightSummary(
+                $indexType,
+                $selectedYear,
+                $tableData->toArray(),
+                $trendLabels,
+                $trendData,
+                $activeRegions,
+                $topThreatGroups
+            );
+
+            // fingerprint for storage/cache
+            $latestAudit = tbldataentry::where('yy', $selectedYear)->max('audittimecreated');
+            $summaryHash = hash('sha256', json_encode($summary));
+
+            $aiCacheKey = 'ai_insights:' . $selectedYear . ':' . md5(
+                $indexType . '|' . ($indicatorFilter ?? 'all') . '|' . $mode . '|' . $summaryHash . '|' . ($latestAudit ?? 'na')
+            );
+
+            // 6A) DB FIRST
+            try {
+                $q = SecurityInsight::where('year', $selectedYear)
+                    ->where('index_type', $indexType)
+                    ->where('hash', $summaryHash);
+
+                if ($indicatorFilter === null) $q->whereNull('indicator');
+                else $q->where('indicator', $indicatorFilter);
+
+                $row = $q->first();
+
+                if ($row && !empty($row->insights)) {
+                    $rowSource = $row->source ?? 'unknown';
+                    $aiBlock = [
+                        'insights' => $row->insights,
+                        'meta' => [
+                            'source' => $rowSource,
+                            'cached' => true,
+                            'model'  => $row->model ?? null,
+                        ],
+                    ];
+                }
+            } catch (\Throwable $e) {
+                \Log::error('DB_INSIGHT_LOOKUP_FAILED', [
+                    'year' => $selectedYear,
+                    'index_type' => $indexType,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // 6B) CACHE / GENERATE IF NOT FOUND IN DB
+            if (!isset($aiBlock)) {
+                // Try cache
+                $cached = Cache::get($aiCacheKey);
+                if (is_array($cached) && isset($cached['insights'], $cached['meta'])) {
+                    $aiBlock = $cached;
+                } else {
+                    // call groq
+                    $result  = $insightGen->generateWithMeta($indexType, $selectedYear, $summary);
+                    $insights = $result['insights'] ?? [];
+                    $aiMeta   = $result['meta'] ?? [];
+                    $source   = $aiMeta['source'] ?? 'unknown';
+
+                    $aiBlock = [
+                        'insights' => $insights,
+                        'meta'     => $aiMeta,
+                    ];
+
+                    // SAVE TO DB (always, but store source so you can distinguish later)
+                    try {
+                        SecurityInsight::updateOrCreate(
+                            [
+                                'year'       => $selectedYear,
+                                'index_type'  => $indexType,
+                                'indicator'   => $indicatorFilter,
+                            ],
+                            [
+                                'summary'     => $summary,
+                                'insights'    => $insights,
+                                'hash'        => $summaryHash,
+                                'model'       => config('services.groq.model') ?? 'groq',
+                                'generated_at' => now(),
+                                'source'      => $source, // make sure column exists
+                            ]
+                        );
+                    } catch (\Throwable $e) {
+                        // ignore storage errors
+                    }
+
+                    // CACHE RULE:
+                    // - cache groq for long
+                    // - cache fallback briefly so transient failures don't lock you into fallback for 24h
+                    $ttlSeconds = ($source === 'groq') ? 86400 : 300; // 24h vs 5min (tune to taste)
+                    Cache::put($aiCacheKey, $aiBlock, $ttlSeconds);
+                }
+            }
+
+            return [
                 'treemapSeries' => [['data' => $treemapData]],
-                'tableData' => $tableData,
-                'cardData' => [
-                    'nationalThreatLevel' => $nationalThreatLevel,
+                'tableData'     => $tableData,
+                'cardData'      => [
+                    'nationalThreatLevel'   => $nationalThreatLevel,
                     'totalTrackedIncidents' => (int) ($totalTrackedIncidents ?? 0),
-                    'topThreatGroups' => $topThreatGroups,
-                    'totalFatalities' => (int) ($totalFatalities ?? 0),
+                    'topThreatGroups'       => $topThreatGroups,
+                    'totalFatalities'       => (int) ($totalFatalities ?? 0),
                 ],
                 'trendSeries' => [
                     'labels' => $trendLabels,
-                    'data' => $trendData,
+                    'data'   => $trendData,
                 ],
-            ]);
+                'aiInsights' => $aiBlock['insights'] ?? [],
+                'aiMeta'     => $aiBlock['meta'] ?? ['source' => 'unknown'],
+            ];
         });
+
+        return response()->json($payload);
     }
 
 
@@ -500,5 +625,102 @@ class SecurityIntelligenceController extends Controller
             default:
                 return 'N/A';
         }
+    }
+
+
+    private function buildInsightSummary(
+        string $indexType,
+        int $year,
+        array $tableData,
+        array $trendLabels,
+        array $trendData,
+        array $activeRegions,
+        string $prominentRisks
+    ): array {
+        // Top states (from tableData)
+        $topStates = collect($tableData)
+            ->sortByDesc('risk_score')
+            ->take(5)
+            ->map(fn($r) => [
+                'state' => $r['state'],
+                'risk_score' => $r['risk_score'],
+                'rank_current' => $r['rank_current'],
+                'rank_previous' => $r['rank_previous'],
+                'status' => $r['status'],
+                'incidents' => $r['incidents'],
+            ])
+            ->values()
+            ->all();
+
+        // YOY fatalities % change (national)
+        $labels = collect($trendLabels)->map(fn($x) => (int)$x)->values();
+        $idxThis = $labels->search($year);
+        $idxPrev = $labels->search($year - 1);
+
+        $thisDeaths = ($idxThis !== false) ? (int)($trendData[$idxThis] ?? 0) : 0;
+        $prevDeaths = ($idxPrev !== false) ? (int)($trendData[$idxPrev] ?? 0) : 0;
+
+        $yoyPct = ($prevDeaths > 0)
+            ? round((($thisDeaths - $prevDeaths) / $prevDeaths) * 100, 1)
+            : (($thisDeaths > 0) ? 100.0 : 0.0);
+
+        // Top zones (activeRegions already based on fatalities in your getOverview)
+        $topZones = collect($activeRegions)->take(2)->map(fn($z) => [
+            'zone' => $z['zone'] ?? 'N/A',
+            'total_deaths' => $z['total_deaths'] ?? 0,
+            'top_risk' => $z['top_risk'] ?? 'N/A',
+        ])->values()->all();
+
+        return [
+            'index_type' => $indexType,
+            'year' => $year,
+            'top_states' => $topStates,
+            'top_zones' => $topZones,
+            'prominent_risks' => $prominentRisks,
+            'national_fatalities' => [
+                'this_year' => $thisDeaths,
+                'previous_year' => $prevDeaths,
+                'yoy_change_pct' => $yoyPct,
+            ],
+        ];
+    }
+
+    private function buildZoneImpact(int $year, ?string $indicatorFilter): array
+    {
+        // Map states to zones using your $this->geopoliticalZones array
+        $stateToZone = [];
+        foreach ($this->geopoliticalZones as $zone => $states) {
+            foreach ($states as $state) {
+                $stateToZone[mb_strtolower(trim($state))] = $zone;
+            }
+        }
+
+        // Pull state-level totals
+        $rows = tbldataentry::query()
+            ->where('yy', $year)
+            ->when($indicatorFilter, function ($q) use ($indicatorFilter) {
+                // Adjust this column name if your DB uses something else
+                $q->where('riskindicators', $indicatorFilter);
+            })
+            ->selectRaw("location as state, SUM(Casualties_count) as fatalities")
+            ->groupBy('location')
+            ->get();
+
+        // Aggregate into zones
+        $zones = [];
+        foreach ($rows as $r) {
+            $stateKey = mb_strtolower(trim((string) $r->state));
+            $zone = $stateToZone[$stateKey] ?? null;
+            if (!$zone) continue;
+
+            $zones[$zone] = ($zones[$zone] ?? 0) + (int) ($r->fatalities ?? 0);
+        }
+
+        $out = [];
+        foreach ($zones as $zone => $fatalities) {
+            $out[] = ['zone' => $zone, 'fatalities' => $fatalities];
+        }
+
+        return $out;
     }
 }
