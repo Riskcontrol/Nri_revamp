@@ -327,7 +327,7 @@
             }
 
             const defaultState = document.getElementById('state-name').textContent || 'Primary State';
-            const defaultYear = document.getElementById('year-select').value; // ✅ add this
+            const defaultYear = document.getElementById('year-select').value;
             // --- Chart 1: Incidents Over Past 12 Months (ApexCharts) ---
             const trendOptions = {
                 series: [{
@@ -764,7 +764,13 @@
             const primaryState = document.getElementById('state-select').value;
             const selectedYear = document.getElementById('year-select').value;
             document.getElementById('state-name').textContent = primaryState;
-            // document.getElementById('current-year').textContent = selectedYear;
+
+            // ✅ UPDATE URL TO REFLECT CURRENT STATE AND YEAR
+            const newUrl = `/location-intelligence/${primaryState}/${selectedYear}`;
+            window.history.pushState({
+                state: primaryState,
+                year: selectedYear
+            }, '', newUrl);
 
             updateMainDashboard(primaryState, selectedYear);
         }
@@ -810,6 +816,19 @@
             </div>`;
             });
         }
+
+        // ✅ HANDLE BROWSER BACK/FORWARD BUTTONS
+        window.addEventListener('popstate', function(event) {
+            if (event.state && event.state.state && event.state.year) {
+                const stateSelect = document.getElementById('state-select');
+                const yearSelect = document.getElementById('year-select');
+
+                stateSelect.value = event.state.state;
+                yearSelect.value = event.state.year;
+
+                updateMainDashboard(event.state.state, event.state.year);
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
             initializeCharts();

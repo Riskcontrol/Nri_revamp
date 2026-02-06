@@ -201,8 +201,8 @@
 
 
         function getRiskCategory(value) {
-            if (value <= 1.7) return 'Low';
-            if (value <= 2.8) return 'Medium';
+            if (value <= 1.5) return 'Low';
+            if (value <= 3.5) return 'Medium';
             if (value <= 7.0) return 'High';
             return 'Very High';
         }

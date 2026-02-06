@@ -35,8 +35,7 @@ class HomeNewController extends Controller
         // =============================
         $securityIndexRows = $this->getStaticSecurityIndexRows();
 
-        $year = 2025;
-
+        $year = (int) ($request->query('year') ?: now()->subYear()->year);
 
         $data = tbldataentry::selectRaw("
     TRIM(location) as location,
@@ -86,10 +85,10 @@ class HomeNewController extends Controller
         $auditedTime = $latestIncidentTime ? Carbon::parse($latestIncidentTime->audittimecreated)->format('h:i:s A') : 'N/A';
 
         // 6. Total incidents for current scope (2025)
-        $totalIncidents = tbldataentry::where('yy', 2025)->count();
+        $totalIncidents = tbldataentry::where('yy', $year)->count();
 
         // 7. Current Threat Level calculation
-        $compositeIndexes = $this->calculateCompositeIndexByRiskFactors($year); // [state => score], sums ~100
+        $compositeIndexes = $this->calculateCompositeIndexByRiskFactors($year);
 
         $values = array_values($compositeIndexes);
         rsort($values); // descending
