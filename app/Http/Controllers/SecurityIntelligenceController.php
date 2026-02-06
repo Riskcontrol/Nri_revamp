@@ -656,39 +656,44 @@ class SecurityIntelligenceController extends Controller
         array $activeRegions,
         string $prominentRisks
     ): array {
-        // Top states (from tableData)
+
+        $fmt2 = fn($n) => (float) number_format((float) $n, 2, '.', '');
+        $fmt1 = fn($n) => (float) number_format((float) $n, 1, '.', '');
+
         $topStates = collect($tableData)
-            ->sortByDesc('risk_score')
+            ->sortByDesc(fn($r) => (float) ($r['risk_score'] ?? 0))
             ->take(5)
-            ->map(fn($r) => [
-                'state' => $r['state'],
-                'risk_score' => $r['risk_score'],
-                'rank_current' => $r['rank_current'],
-                'rank_previous' => $r['rank_previous'],
-                'status' => $r['status'],
-                'incidents' => $r['incidents'],
-            ])
+            ->map(function ($r) use ($fmt2) {
+                return [
+                    'state'         => (string) ($r['state'] ?? 'N/A'),
+                    'risk_score'    => $fmt2($r['risk_score'] ?? 0),
+                    'rank_current'  => (int) ($r['rank_current'] ?? 0),
+                    'rank_previous' => $r['rank_previous'] ?? '-',
+                    'status'        => (string) ($r['status'] ?? 'Stable'),
+                    'incidents'     => (int) ($r['incidents'] ?? 0),
+                ];
+            })
             ->values()
             ->all();
 
-        // YOY fatalities % change (national)
-        $labels = collect($trendLabels)->map(fn($x) => (int)$x)->values();
+        $labels  = collect($trendLabels)->map(fn($x) => (int) $x)->values();
         $idxThis = $labels->search($year);
         $idxPrev = $labels->search($year - 1);
 
-        $thisDeaths = ($idxThis !== false) ? (int)($trendData[$idxThis] ?? 0) : 0;
-        $prevDeaths = ($idxPrev !== false) ? (int)($trendData[$idxPrev] ?? 0) : 0;
+        $thisDeaths = ($idxThis !== false) ? (int) ($trendData[$idxThis] ?? 0) : 0;
+        $prevDeaths = ($idxPrev !== false) ? (int) ($trendData[$idxPrev] ?? 0) : 0;
 
         $yoyPct = ($prevDeaths > 0)
-            ? round((($thisDeaths - $prevDeaths) / $prevDeaths) * 100, 1)
+            ? (($thisDeaths - $prevDeaths) / $prevDeaths) * 100
             : (($thisDeaths > 0) ? 100.0 : 0.0);
 
-        // Top zones (activeRegions already based on fatalities in your getOverview)
-        $topZones = collect($activeRegions)->take(2)->map(fn($z) => [
-            'zone' => $z['zone'] ?? 'N/A',
-            'total_deaths' => $z['total_deaths'] ?? 0,
-            'top_risk' => $z['top_risk'] ?? 'N/A',
-        ])->values()->all();
+        $topZones = collect($activeRegions)->take(2)->map(function ($z) {
+            return [
+                'zone'        => (string) ($z['zone'] ?? 'N/A'),
+                'total_deaths' => (int) ($z['total_deaths'] ?? 0),
+                'top_risk'    => (string) ($z['top_risk'] ?? 'N/A'),
+            ];
+        })->values()->all();
 
         return [
             'index_type' => $indexType,
@@ -699,10 +704,11 @@ class SecurityIntelligenceController extends Controller
             'national_fatalities' => [
                 'this_year' => $thisDeaths,
                 'previous_year' => $prevDeaths,
-                'yoy_change_pct' => $yoyPct,
+                'yoy_change_pct' => $fmt1($yoyPct),
             ],
         ];
     }
+
 
     private function buildZoneImpact(int $year, ?string $indicatorFilter): array
     {
