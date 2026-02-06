@@ -89,20 +89,30 @@ class HomeNewController extends Controller
         $totalIncidents = tbldataentry::where('yy', 2025)->count();
 
         // 7. Current Threat Level calculation
-        $maxScore = collect($stateRiskReports)->max('normalized_ratio');
-        $avgScore = collect($stateRiskReports)->avg('normalized_ratio');
+        $compositeIndexes = $this->calculateCompositeIndexByRiskFactors($year); // [state => score], sums ~100
 
-        $compositeNationalScore = ($maxScore * 0.5) + ($avgScore * 0.5);
+        $values = array_values($compositeIndexes);
+        rsort($values); // descending
 
-        if ($compositeNationalScore <= 4.0) {
-            $currentThreatLevel = 'LOW';
-        } elseif ($compositeNationalScore <= 6.0) {
-            $currentThreatLevel = 'MEDIUM';
-        } elseif ($compositeNationalScore <= 8.5) {
-            $currentThreatLevel = 'HIGH';
-        } else {
-            $currentThreatLevel = 'CRITICAL';
-        }
+        $avg = !empty($values) ? (array_sum($values) / count($values)) : 0;
+
+        $top5 = array_slice($values, 0, 5);
+        $top5Avg = !empty($top5) ? (array_sum($top5) / count($top5)) : 0;
+
+        // National pressure score (same ~0–10-ish scale your thresholds expect)
+        $nationalScore = ($top5Avg * 0.6) + ($avg * 0.4);
+
+        // Reuse your existing thresholds
+        $level = $this->determineBusinessRiskLevel($nationalScore);
+
+        $currentThreatLevel = match ($level) {
+            1 => 'LOW',
+            2 => 'MEDIUM',
+            3 => 'HIGH',
+            4 => 'VERY HIGH',
+            default => 'LOW',
+        };
+
 
         // 9. Fetch Insights
         $homeInsights = DataInsights::with('category')->latest()->take(4)->get();

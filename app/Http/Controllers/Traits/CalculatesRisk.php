@@ -10,9 +10,9 @@ use App\Models\CorrectionFactorForStates;
 trait CalculatesRisk
 {
     // Severity weights (your choice; keep consistent everywhere)
-    protected $WEIGHT_INCIDENT_SEVERITY = 25;
-    protected $WEIGHT_VICTIM_SEVERITY   = 30;
-    protected $WEIGHT_DEATH_SEVERITY    = 45;
+    protected $WEIGHT_INCIDENT_SEVERITY = 15;
+    protected $WEIGHT_VICTIM_SEVERITY   = 25;
+    protected $WEIGHT_DEATH_SEVERITY    = 60;
 
     private function norm($s): string
     {
@@ -189,9 +189,9 @@ trait CalculatesRisk
         });
 
         // Component weights (keep consistent with your old method)
-        $incidentBaseWeight = 25;
-        $victimBaseWeight   = 30;
-        $deathBaseWeight    = 45;
+        $incidentBaseWeight = 15;
+        $victimBaseWeight   = 25;
+        $deathBaseWeight    = 60;
 
         // rawValues[riskName][state] = raw value
         $rawValues = [];

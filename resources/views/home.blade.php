@@ -59,19 +59,17 @@
                         </h3>
 
                         @php
-                            $level = strtolower($currentThreatLevel);
+                            $level = strtoupper(trim($currentThreatLevel));
 
-                            if (str_contains($level, 'critical')) {
-                                $pillClasses = 'bg-red-600 text-white border-transparent shadow-sm animate-pulse';
-                            } elseif (str_contains($level, 'high')) {
-                                $pillClasses = 'bg-red-100 text-red-700 border-red-200';
-                            } elseif (str_contains($level, 'elevated') || str_contains($level, 'medium')) {
-                                $pillClasses = 'bg-[#FFB020] text-white border-transparent';
-                            } else {
-                                // LOW: Green (Safe)
-                                $pillClasses = 'bg-green-600 text-white border-transparent';
-                            }
+                            $pillClasses = match ($level) {
+                                'VERY HIGH' => 'bg-red-600 text-white border-transparent shadow-sm animate-pulse',
+                                'HIGH' => 'bg-[#fc4444] text-white border-transparent',
+                                'MEDIUM' => 'bg-[#FFB020] text-white border-transparent',
+                                'LOW' => 'bg-green-600 text-white border-transparent',
+                                default => 'bg-gray-200 text-gray-800 border-gray-300',
+                            };
                         @endphp
+
 
                         <div class="flex items-center mt-2">
                             <span

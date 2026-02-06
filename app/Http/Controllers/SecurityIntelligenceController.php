@@ -401,33 +401,52 @@ class SecurityIntelligenceController extends Controller
             // 4) treemap + table
             // -----------------------------
             $treemapData = [];
-            $tableData = $sortedReports->values()->map(function ($report, $index) use ($prevYearRanks, &$treemapData) {
-                $stateName   = $report['location'];
-                $currentRank = $index + 1;
 
-                $prevData      = $prevYearRanks->get($stateName);
-                $previousRank  = $prevData['rank'] ?? '-';
+            $sorted = $sortedReports->values(); // already sorted desc by normalized_ratio
+
+            $rank = 0;
+            $pos = 0;
+            $lastScore = null;
+
+            $tableData = $sorted->map(function ($report) use ($prevYearRanks, &$treemapData, &$rank, &$pos, &$lastScore) {
+
+                $pos++; // 1..N position in sorted list
+
+                $stateName = $report['location'];
+
+                // Use the same 2dp score users see, to determine ties
+                $score2 = round((float) ($report['normalized_ratio'] ?? 0), 2);
+
+                // Competition ranking: same score => same rank, else rank becomes current position
+                if ($lastScore === null || $score2 !== $lastScore) {
+                    $rank = $pos;
+                    $lastScore = $score2;
+                }
+
+                $prevData     = $prevYearRanks->get($stateName);
+                $previousRank = $prevData['rank'] ?? '-';
 
                 $status = 'Stable';
                 if ($prevData) {
-                    $prevScore    = $prevData['score'];
-                    $currentScore = $report['normalized_ratio'];
-                    if ($currentScore > $prevScore) $status = 'Escalating';
-                    elseif ($currentScore < $prevScore) $status = 'Improving';
+                    $prevScore2 = round((float) ($prevData['score'] ?? 0), 2);
+                    if ($score2 > $prevScore2) $status = 'Escalating';
+                    elseif ($score2 < $prevScore2) $status = 'Improving';
                 }
 
+                // keep treemap data as-is (you said leave 2dp changes out)
                 $treemapData[] = ['x' => $stateName, 'y' => $report['normalized_ratio']];
 
                 return [
                     'state'         => $stateName,
-                    'risk_score'    => round($report['normalized_ratio'], 2),
+                    'risk_score'    => $score2,
                     'risk_level'    => $this->getRiskCategoryFromLevel($report['risk_level']),
-                    'rank_current'  => $currentRank,
+                    'rank_current'  => $rank,              // ✅ tie-aware rank
                     'rank_previous' => $previousRank,
                     'status'        => $status,
-                    'incidents'     => $report['incident_count'],
+                    'incidents'     => (int) ($report['incident_count'] ?? 0),
                 ];
             });
+
 
             // -----------------------------
             // 5) fatalities trend
