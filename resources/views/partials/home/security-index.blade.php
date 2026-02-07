@@ -40,8 +40,9 @@
 
                 @php
                     $pillClass = fn($level) => match (strtolower($level)) {
+                        'very high' => 'bg-red-700/10 text-red-700 border border-red-700/20',
                         'high' => 'bg-red-500/10 text-red-400 border border-red-500/20',
-                        'moderate' => 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+                        'medium' => 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
                         default => 'bg-green-500/10 text-green-400 border border-green-500/20',
                     };
                 @endphp
@@ -52,7 +53,7 @@
                             <tr>
                                 <th class="py-3 px-4 font-semibold">State</th>
                                 <th class="py-3 px-4 font-semibold text-center">Incidents</th>
-                                <th class="py-3 px-4 font-semibold text-center">NTI Score</th>
+                                <th class="py-3 px-4 font-semibold text-center">NCI Score</th>
                                 <th class="py-3 px-4 font-semibold text-right">Risk Level</th>
                             </tr>
                         </thead>
@@ -68,7 +69,7 @@
                                     </td>
 
                                     <td class="py-3 px-4 text-center font-mono text-white">
-                                        {{ number_format((float) $report['nti_score'], 2) }}%
+                                        {{ number_format((float) $report['nci_score'], 2) }}%
                                     </td>
 
                                     <td class="py-3 px-4 text-right">
