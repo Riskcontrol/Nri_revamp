@@ -38,13 +38,13 @@ class HomeNewController extends Controller
         $year = (int) ($request->query('year') ?: now()->subYear()->year);
 
         $data = tbldataentry::selectRaw("
-    TRIM(location) as location,
-    TRIM(riskindicators) as risk_indicator,
-    yy,
-    COUNT(*) as total_incidents,
-    COALESCE(SUM(Casualties_count),0) as total_deaths,
-    COALESCE(SUM(victim),0) as total_victims
-")
+            TRIM(location) as location,
+            TRIM(riskindicators) as risk_indicator,
+            yy,
+            COUNT(*) as total_incidents,
+            COALESCE(SUM(Casualties_count),0) as total_deaths,
+            COALESCE(SUM(victim),0) as total_victims
+        ")
             ->where('yy', $year)
             ->groupBy(DB::raw('TRIM(location)'), DB::raw('TRIM(riskindicators)'), 'yy')
             ->get();
@@ -90,27 +90,36 @@ class HomeNewController extends Controller
         // 7. Current Threat Level calculation
         $compositeIndexes = $this->calculateCompositeIndexByRiskFactors($year);
 
-        $values = array_values($compositeIndexes);
-        rsort($values); // descending
+        // $values = array_values($compositeIndexes);
+        // rsort($values); // descending
 
-        $avg = !empty($values) ? (array_sum($values) / count($values)) : 0;
+        // $avg = !empty($values) ? (array_sum($values) / count($values)) : 0;
 
-        $top5 = array_slice($values, 0, 5);
-        $top5Avg = !empty($top5) ? (array_sum($top5) / count($top5)) : 0;
+        // $top5 = array_slice($values, 0, 5);
+        // $top5Avg = !empty($top5) ? (array_sum($top5) / count($top5)) : 0;
 
-        // National pressure score (same ~0–10-ish scale your thresholds expect)
-        $nationalScore = ($top5Avg * 0.6) + ($avg * 0.4);
+        // // National pressure score (same ~0–10-ish scale your thresholds expect)
+        // $nationalScore = ($top5Avg * 0.6) + ($avg * 0.4);
 
-        // Reuse your existing thresholds
-        $level = $this->determineBusinessRiskLevel($nationalScore);
+        // $compositeIndexes = $this->calculateCompositeIndexByRiskFactorsRaw(2025);
+        // $nationalAverage = array_sum($compositeIndexes) / count($compositeIndexes);
+        // $no =  count($compositeIndexes);
+        // dd("$no $nationalAverage");
+        $series = $this->getNationalThreatSeries(2018, now()->year);
 
-        $currentThreatLevel = match ($level) {
-            1 => 'LOW',
-            2 => 'MEDIUM',
-            3 => 'HIGH',
-            4 => 'VERY HIGH',
-            default => 'LOW',
-        };
+        $current = $series[$year];
+
+        $level = $this->classifyNationalThreat($current, $series);
+        // dd($level );
+
+        // $currentThreatLevel = match ($level) {
+        //     1 => 'LOW',
+        //     2 => 'MEDIUM',
+        //     3 => 'HIGH',
+        //     4 => 'VERY HIGH',
+        //     default => 'LOW',
+        // };
+        $currentThreatLevel = $level;
 
 
         // 9. Fetch Insights

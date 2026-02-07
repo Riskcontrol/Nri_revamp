@@ -189,9 +189,13 @@ trait CalculatesRisk
         });
 
         // Component weights (keep consistent with your old method)
-        $incidentBaseWeight = 15;
-        $victimBaseWeight   = 25;
-        $deathBaseWeight    = 60;
+        // $incidentBaseWeight = 15;
+        // $victimBaseWeight   = 25;
+        // $deathBaseWeight    = 60;
+        // Component base weights
+        $incidentBaseWeight = $this->WEIGHT_INCIDENT_SEVERITY;
+        $victimBaseWeight   = $this->WEIGHT_VICTIM_SEVERITY;
+        $deathBaseWeight    = $this->WEIGHT_DEATH_SEVERITY;
 
         // rawValues[riskName][state] = raw value
         $rawValues = [];
@@ -280,6 +284,130 @@ trait CalculatesRisk
 
         return $compositeIndexes;
     }
+    public function calculateNationalThreat(int $year): float
+    {
+        // 1) Load risk factors with weights > 0
+        $riskFactors = Cache::remember('tblriskfactors_weighted', 3600, function () {
+            return DB::table('tblriskfactors')
+                ->get(['name', 'weight']);
+        });
+
+        if ($riskFactors->isEmpty()) return 0.0;
+
+        // 2) Load correction factors for states (normalized key)
+        $correctionFactors = Cache::remember('correction_factors_by_state', 3600, function () {
+            return CorrectionFactorForStates::all()
+                ->keyBy(fn($r) => $this->norm($r->state));
+        });
+
+        // Component base weights
+        $incidentBaseWeight = $this->WEIGHT_INCIDENT_SEVERITY;
+        $victimBaseWeight   = $this->WEIGHT_VICTIM_SEVERITY;
+        $deathBaseWeight    = $this->WEIGHT_DEATH_SEVERITY;
+
+        $nationalThreat = 0.0;
+
+        foreach ($riskFactors as $rf) {
+            $riskName = $this->norm($rf->name);
+
+            // Aggregate absolute counts per state for this risk factor
+            $stateData = DB::table('tbldataentry')
+                ->where('yy', $year)
+                ->where('riskfactors', $rf->name)
+                ->selectRaw('TRIM(location) as location, COUNT(*) as incidentCount, COALESCE(SUM(victim),0) as victimCount, COALESCE(SUM(Casualties_count),0) as deathCount')
+                ->groupBy(DB::raw('TRIM(location)'))
+                ->get();
+
+            $riskFactorTotal = 0.0;
+
+            foreach ($stateData as $data) {
+                $state = $this->norm($data->location);
+
+                $incidentCount = (float) ($data->incidentCount ?? 0);
+                $victimCount   = (float) ($data->victimCount ?? 0);
+                $deathCount    = (float) ($data->deathCount ?? 0);
+
+                // Apply correction factors if available
+                $cor = $correctionFactors->get($state);
+                $incidentCorrection = (float) ($cor?->incident_correction ?? 1);
+                $victimCorrection   = (float) ($cor?->victim_correction ?? 1);
+                $deathCorrection    = (float) ($cor?->death_correction ?? 1);
+
+                $weightedState = ($incidentCount * $incidentBaseWeight * $incidentCorrection)
+                            + ($victimCount * $victimBaseWeight * $victimCorrection)
+                            + ($deathCount * $deathBaseWeight * $deathCorrection);
+
+                $riskFactorTotal += $weightedState;
+            }
+
+            // Multiply by risk factor weight
+            $weight = (float) $rf->weight;
+            // Uncomment if your weights are stored as 0–100:
+            // if ($weight > 1) $weight /= 100;
+
+            $nationalThreat += $riskFactorTotal * $weight;
+        }
+
+        return $nationalThreat;
+    }
+    private function percentile(array $values, float $percentile): float
+    {
+        sort($values);
+        $count = count($values);
+
+        if ($count === 0) return 0.0;
+
+        $index = ($percentile / 100) * ($count - 1);
+        $lower = floor($index);
+        $upper = ceil($index);
+
+        if ($lower === $upper) {
+            return $values[$lower];
+        }
+
+        return $values[$lower]
+            + ($values[$upper] - $values[$lower]) * ($index - $lower);
+    }
+    public function getNationalThreatSeries(int $startYear, int $endYear): array
+    {
+        $series = [];
+
+        for ($year = $startYear; $year <= $endYear; $year++) {
+            $series[$year] = $this->calculateNationalThreat($year);
+        }
+
+        return $series;
+    }
+
+
+    public function classifyNationalThreat(
+        float $currentValue,
+        array $historicalSeries
+    ): string {
+        $values = array_values($historicalSeries);
+
+        $p25 = $this->percentile($values, 25);
+        $p50 = $this->percentile($values, 50);
+        $p75 = $this->percentile($values, 75);
+
+        if ($currentValue <= $p25) {
+            return 'Low';
+        }
+
+        if ($currentValue <= $p50) {
+            return 'Medium';
+        }
+
+        if ($currentValue <= $p75) {
+            return 'High';
+        }
+
+        return 'Very High';
+    }
+
+
+
+
 
 
 
