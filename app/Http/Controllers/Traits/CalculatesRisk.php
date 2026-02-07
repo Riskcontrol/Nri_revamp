@@ -69,6 +69,73 @@ trait CalculatesRisk
             ->groupBy(DB::raw('TRIM(location)'), 'yy', DB::raw('TRIM(riskindicators)'))
             ->get();
     }
+    public function calculateCrimeRiskIndexFromIndicators(Collection $data): array
+    {
+        $reports = [];
+
+        // Load correction factors
+        $corrections = CorrectionFactorForStates::all()
+            ->keyBy(fn($r) => $this->norm($r->state));
+
+        // National totals
+        $totalIncidents  = (float) $data->sum('raw_incident_count');
+        $totalCasualties = (float) $data->sum('raw_casualties_sum');
+        $totalVictims    = (float) $data->sum('raw_victims_sum');
+
+        $grandTotalScore = 0.0;
+
+        foreach ($data as $row) {
+            $stateKey = $this->norm($row->location);
+            $cor = $corrections->get($stateKey);
+
+            $incidentCorrection = (float) ($cor?->incident_correction ?? 1);
+            $deathCorrection    = (float) ($cor?->death_correction ?? 1);
+            $victimCorrection   = (float) ($cor?->victim_correction ?? 1);
+
+            // Ratios
+            $incidentRatio = $totalIncidents > 0
+                ? $row->raw_incident_count / $totalIncidents
+                : 0;
+
+            $casualtyRatio = $totalCasualties > 0
+                ? $row->raw_casualties_sum / $totalCasualties
+                : 0;
+
+            $victimRatio = $totalVictims > 0
+                ? $row->raw_victims_sum / $totalVictims
+                : 0;
+
+            // Weighted corrected score
+            $score =
+                ($incidentRatio * $this->WEIGHT_INCIDENT_SEVERITY * $incidentCorrection) +
+                ($casualtyRatio * $this->WEIGHT_DEATH_SEVERITY   * $deathCorrection) +
+                ($victimRatio   * $this->WEIGHT_VICTIM_SEVERITY * $victimCorrection);
+
+            $reports[$stateKey] = [
+                'location'       => $stateKey,
+                'incident_count' => (int) $row->raw_incident_count,
+                'raw_score'      => $score,
+                'year'           => (int) $row->yy,
+            ];
+
+            $grandTotalScore += $score;
+        }
+
+        // Normalize
+        foreach ($reports as &$r) {
+            $normalized = $grandTotalScore > 0
+                ? ($r['raw_score'] / $grandTotalScore) * 100
+                : 0;
+
+            $r['normalized_ratio_raw'] = $normalized;
+            $r['normalized_ratio']     = number_format($normalized, 2, '.', '');
+            $r['risk_level']           = $this->determineBusinessRiskLevel($normalized);
+
+            unset($r['raw_score']);
+        }
+
+        return array_values($reports);
+    }
 
     public function calculateStateRiskFromIndicators(Collection $data): array
     {
