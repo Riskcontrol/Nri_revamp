@@ -62,22 +62,36 @@ class LocationController extends Controller
         }
 
         $data = DB::table('tbldataentry')
-            ->where('yy', $year)
-            ->whereNotNull('location')
-            ->where('location', '!=', '')
-            ->whereIn('riskindicators', $crimeIndicators->all())
-            ->selectRaw('
-                TRIM(location) as location,
-                yy,
-                TRIM(riskindicators) as risk_indicator,
-                COUNT(*) as total_incidents,
-                COALESCE(SUM(victim),0) as total_victims,
-                COALESCE(SUM(Casualties_count),0) as total_deaths
-            ')
-            ->groupBy(DB::raw('TRIM(location)'), 'yy', DB::raw('TRIM(riskindicators)'))
-            ->get();
-
-        return $this->calculateStateRiskFromIndicators($data);
+                ->where('yy', $year)
+                ->whereNotNull('location')
+                ->where('location', '!=', '')
+                ->whereIn('riskindicators', $crimeIndicators->all())
+                ->selectRaw('
+                    TRIM(location) AS location,
+                    yy,
+                    COUNT(*) AS raw_incident_count,
+                    COALESCE(SUM(Casualties_count), 0) AS raw_casualties_sum,
+                    COALESCE(SUM(victim), 0) AS raw_victims_sum
+                ')
+                ->groupBy(DB::raw('TRIM(location)'), 'yy')
+                ->get();
+        return $this->calculateCrimeRiskIndexFromIndicators($data);
+        // $data = DB::table('tbldataentry')
+        //     ->where('yy', $year)
+        //     ->whereNotNull('location')
+        //     ->where('location', '!=', '')
+        //     ->whereIn('riskindicators', $crimeIndicators->all())
+        //     ->selectRaw('
+        //         TRIM(location) as location,
+        //         yy,
+        //         TRIM(riskindicators) as risk_indicator,
+        //         COUNT(*) as total_incidents,
+        //         COALESCE(SUM(victim),0) as total_victims,
+        //         COALESCE(SUM(Casualties_count),0) as total_deaths
+        //     ')
+        //     ->groupBy(DB::raw('TRIM(location)'), 'yy', DB::raw('TRIM(riskindicators)'))
+        //     ->get();
+        // return $this->calculateStateRiskFromIndicators($data);
     }
 
     /**
@@ -114,7 +128,7 @@ class LocationController extends Controller
 
             $ranked[$r['location']] = [
                 'rank'  => $rank,
-                'score' => round($score, 2), // safe (trait already rounds)
+                'score' => $r['normalized_ratio'], // Alfred partround($score, 2), // safe (trait already rounds)
             ];
         }
 

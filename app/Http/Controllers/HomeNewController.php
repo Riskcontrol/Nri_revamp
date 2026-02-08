@@ -33,7 +33,8 @@ class HomeNewController extends Controller
         // =============================
         // STATIC TABLE DATA (NO DB)
         // =============================
-        $securityIndexRows = $this->getStaticSecurityIndexRows();
+        // $securityIndexRows = $this->getStaticSecurityIndexRows();
+        $securityIndexRows = $this->getCurrentCrimeRiskYearSecurityIndexRows(); //$this->getStaticSecurityIndexRows();
 
         $year = (int) ($request->query('year') ?: now()->subYear()->year);
 
@@ -179,6 +180,82 @@ class HomeNewController extends Controller
             ['location' => 'Borno', 'incident_count' => 139, 'nti_score' => 8.76, 'risk_level' => 'High'],
         ];
     }
+    private function getCrimeIndexIndicators()
+    {
+        // Cache these lookups to save DB calls on every request
+        return Cache::remember('indicators_crime', 86400, function () {
+            try {
+                return tblriskindicators::where('author', 'crimeIndex')
+                    ->orderByRaw('CAST(indicators AS CHAR) ASC')
+                    ->pluck('indicators');
+            } catch (\Exception $e) {
+                Log::error("CRITICAL: Could not fetch crime indicators. " . $e->getMessage());
+                return collect();
+            }
+        });
+    }
+    private function getCurrentCrimeRiskYearSecurityIndexRows(): array
+    {
+        $currentYear = (int) now()->year;
+
+        // Cache key
+        $cacheKey = 'crime_index_rows:' . $currentYear;
+
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($currentYear) {
+
+            // Fetch crime indicators dynamically
+            $crimeIndicators = $this->getCrimeIndexIndicators();
+            if ($crimeIndicators->isEmpty()) {
+                return [];
+            }
+
+            // Fetch aggregated data for the current year (all states)
+            $rawData = DB::table('tbldataentry')
+                ->where('yy', $currentYear)
+                ->whereNotNull('location')
+                ->where('location', '!=', '')
+                ->whereIn('riskindicators', $crimeIndicators->all())
+                ->selectRaw('
+                    TRIM(location) AS location,
+                    yy,
+                    COUNT(*) AS raw_incident_count,
+                    COALESCE(SUM(Casualties_count), 0) AS raw_casualties_sum,
+                    COALESCE(SUM(victim), 0) AS raw_victims_sum
+                ')
+                ->groupBy(DB::raw('TRIM(location)'), 'yy')
+                ->get();
+
+            // Compute NCI scores for all states
+            $nciReports = $this->calculateCrimeRiskIndexFromIndicators($rawData);
+
+            // Sort alphabetically and pick the first 8 states
+            $sortedReports = collect($nciReports)
+                ->sortBy('location')
+                ->take(8);
+
+            $levelMap = [
+                1 => 'Low',
+                2 => 'Medium',
+                3 => 'High',
+                4 => 'Very High',
+            ];
+
+            $rows = [];
+            foreach ($sortedReports as $r) {
+                $levelCode = $this->determineBusinessRiskLevel((float) $r['normalized_ratio_raw']);
+                $rows[] = [
+                    'location'       => $r['location'],
+                    'incident_count' => (int) $r['incident_count'],
+                    'nci_score'      => round((float) $r['normalized_ratio'], 2),
+                    'risk_level'     => $levelMap[$levelCode] ?? 'Unknown',
+                ];
+            }
+
+            return $rows;
+        });
+    }
+
+
 
     // Risk tool logic
     public function analyze(Request $request)

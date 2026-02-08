@@ -415,7 +415,10 @@ class SecurityIntelligenceController extends Controller
                 $stateName = $report['location'];
 
                 // Use the same 2dp score users see, to determine ties
-                $score2 = round((float) ($report['normalized_ratio'] ?? 0), 2);
+                $scoreRaw = round((float) ($report['normalized_ratio'] ?? 0), 2);
+                $score2   = number_format($scoreRaw, 2, '.', ''); // used to format to 2dp
+
+                // $score2 = round((float) ($report['normalized_ratio'] ?? 0), 2); //before
 
                 // Competition ranking: same score => same rank, else rank becomes current position
                 if ($lastScore === null || $score2 !== $lastScore) {

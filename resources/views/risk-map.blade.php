@@ -374,43 +374,71 @@
     `;
 
                 layer.bindPopup(popupContent, {
+                    autoPan: false, // Prevents map from panning to show popup
                     closeButton: false,
                     offset: L.point(0, -10),
-                    className: 'custom-leaflet-popup'
+                    className: 'custom-leaflet-popup',
+                    autoPanPadding: [0, 0], // No padding
+                    keepInView: false // Don't force popup to stay in view
                 });
 
                 // 4. Click Logic & Selection Styling
-                layer.on('click', function(e) {
-                    if (isComparisonMode) {
-                        layer.closePopup();
-                        L.DomEvent.stopPropagation(e);
-
-                        const index = selectedStates.findIndex(s => s.name === stateName);
-                        if (index > -1) {
-                            // DESELECT STYLE
-                            selectedStates.splice(index, 1);
-                            geoJsonLayer.resetStyle(layer);
-                        } else {
-                            // SELECT STYLE (Professional Highlight)
-                            selectedStates.push({
-                                name: stateName,
-                                score: Number(props.composite_index_score || 0),
-                                count: props.incidents_count,
-                                lga: props.most_affected_lga || 'N/A',
-                                prevCount: props.incidents_prev_year
-                            });
-                            layer.setStyle({
-                                weight: 4,
-                                color: '#10b981', // Emerald 500
-                                fillColor: '#059669', // Emerald 600
-                                fillOpacity: 0.8,
-                                dashArray: ''
-                            });
-                            layer.bringToFront();
-                        }
-                        updateComparisonChart();
+                // --- HOVER POPUP (Normal mode) ---
+                layer.on('mouseover', function() {
+                    if (!isComparisonMode) {
+                        layer.setStyle({
+                            weight: 3,
+                            color: '#60a5fa',
+                            fillOpacity: 0.85,
+                            dashArray: ''
+                        });
+                        layer.bringToFront();
+                        layer.openPopup();
                     }
                 });
+
+                layer.on('mouseout', function() {
+                    if (!isComparisonMode) {
+                        geoJsonLayer.resetStyle(layer);
+                        layer.closePopup();
+                    }
+                });
+
+                // --- CLICK (Comparison mode only) ---
+                layer.on('click', function(e) {
+                    if (!isComparisonMode) return;
+
+                    layer.closePopup();
+                    L.DomEvent.stopPropagation(e);
+
+                    const index = selectedStates.findIndex(s => s.name === stateName);
+
+                    if (index > -1) {
+                        selectedStates.splice(index, 1);
+                        geoJsonLayer.resetStyle(layer);
+                    } else {
+                        selectedStates.push({
+                            name: stateName,
+                            score: Number(props.composite_index_score || 0),
+                            count: props.incidents_count,
+                            lga: props.most_affected_lga || 'N/A',
+                            prevCount: props.incidents_prev_year
+                        });
+
+                        layer.setStyle({
+                            weight: 4,
+                            color: '#10b981',
+                            fillColor: '#059669',
+                            fillOpacity: 0.8,
+                            dashArray: ''
+                        });
+
+                        layer.bringToFront();
+                    }
+
+                    updateComparisonChart();
+                });
+
             }
 
             // --- 6. DATA FETCHING ---
@@ -479,8 +507,9 @@
             font-size: 10px;
             font-weight: 500;
             text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-            pointer-events: none;
+            pointer-events: none !important;
         }
+
 
         .leaflet-tooltip-bottom:before,
         .leaflet-tooltip-top:before,
@@ -502,6 +531,10 @@
 
         .leaflet-popup-tip {
             background: rgba(30, 45, 61, 0.95);
+        }
+
+        .leaflet-container {
+            transform: translate3d(0, 0, 0);
         }
     </style>
 
