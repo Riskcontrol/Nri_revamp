@@ -40,13 +40,17 @@
             <div>
                 <h3 class="text-sm font-semibold tracking-[0.15em] text-white uppercase mb-8">Use Cases</h3>
                 <ul class="space-y-4 text-base">
-                    <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Location
+                    <li><a class="text-gray-400 hover:text-white transition-colors"
+                            href="{{ route('locationIntelligence', ['state' => 'Lagos']) }}">Location
                             Intelligence</a></li>
-                    <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Risk Database</a>
+                    <li><a class="text-gray-400 hover:text-white transition-colors"
+                            href="{{ route('securityIntelligence') }}">Risk Database</a>
                     </li>
-                    <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Business Insight</a>
+                    <li><a class="text-gray-400 hover:text-white transition-colors"
+                            href="{{ route('insights.index') }}">Business Insight</a>
                     </li>
-                    <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Custom Reports</a>
+                    <li><a class="text-gray-400 hover:text-white transition-colors"
+                            href="{{ route('reports.index') }}">Custom Reports</a>
                     </li>
                 </ul>
             </div>
@@ -56,7 +60,6 @@
                 <h3 class="text-sm font-semibold tracking-[0.15em] text-white uppercase mb-8">Company</h3>
                 <ul class="space-y-4 text-base">
                     <li><a class="text-gray-400 hover:text-white transition-colors" href="#">About Us</a></li>
-                    <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Insights</a></li>
                     <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Methodology</a></li>
                     <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Contact</a></li>
                 </ul>
