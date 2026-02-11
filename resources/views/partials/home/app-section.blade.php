@@ -22,10 +22,21 @@
 
                    {{-- Changed text-gray-300 to text-gray-600 --}}
                    <p
-                       class="text-base sm:text-xl text-gray-600 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0 mb-10">
-                       See risks nearby and monitor live incidents in real-time.
-                       Stay ahead of threats with instant alerts delivered directly to your device.
+                       class="text-base sm:text-xl text-gray-600 font-bold leading-relaxed max-w-xl mx-auto lg:mx-0 mb-3">
+                       Real-time security intelligence. Instant emergency alerts. Your community watching over you
+                       {{-- Stay ahead of threats with instant alerts delivered directly to your device. --}}
                    </p>
+                   <h2 class="text-base sm:text-base md:text-bas font-medium tracking-tight text-[#10b981] mb-1">ONE-TAP SOS</H2>
+                   <p class="text-base sm:text-xl text-gray-600 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0 mb-1">Emergency contacts get your exact location, live tracking, and audio recording instantly.</p>
+                   <h2 class="text-base sm:text-xl md:text-base font-medium tracking-tight text-[#10b981] mb-1">PRIVATE COMMUNITIES</h2>
+                    <p class="text-base sm:text-xl text-gray-600 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0 mb-1">Create safety networks for family, church, workplace, or estate. See each other's locations and respond together.</p>
+
+                    <h2 class="text-base sm:text-base md:text-base font-medium tracking-tight text-[#10b981] mb-1">LIVE INCIDENT MAP</h2>
+                    <p class="text-base sm:text-xl text-gray-600 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0 mb-3">Community-verified threats in real-time. Know what's happening on your street right now.</p>
+
+
+
+
 
                    <div class="space-y-6">
                        {{-- Blue text usually works fine on white, kept as is, or change to text-blue-600 for darker contrast --}}

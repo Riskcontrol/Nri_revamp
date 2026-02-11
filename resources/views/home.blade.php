@@ -25,12 +25,12 @@
                     </h1>
 
                     <p class="text-white text-xl sm:text-xl leading-relaxed mt-4">
-                        Monitor verified security incidents in all 36 states and the FCT<br> Stop guessing and start
+                        Monitor verified security incidents in all 36 states and the FCT. <br> Stop guessing and start
                         planning with tools that track trends <br> and predict future risks for your specific location.
                     </p>
 
                     <p class="text-[#FDA557] text-lg sm:text-xl mt-6 font-semibold">
-                        Trusted by 500+ security professionals across <br> banking, energy, telecom, and logistics
+                        Trusted by security professionals across <br> banking, energy, telecom, and logistics
                         sector
                     </p>
 
