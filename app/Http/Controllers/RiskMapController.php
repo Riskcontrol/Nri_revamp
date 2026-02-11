@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 // --- Laravel Core ---
+use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -77,6 +78,132 @@ class RiskMapController extends Controller
      * Fetch and merge REAL risk data with GeoJSON for the map.
      */
     public function getMapData(Request $request)
+    {
+        $selectedYear     = (int) $request->input('year', now()->year);
+        $selectedRiskType = (string) $request->input('risk_type', 'All');
+
+        $cacheKey = "map_data_{$selectedYear}_{$selectedRiskType}";
+
+        return Cache::remember($cacheKey, 3600, function () use ($selectedYear, $selectedRiskType) {
+
+            // -------------------------------------------------
+            // 1) Base query
+            // -------------------------------------------------
+            $baseQuery = tbldataentry::query()
+                ->where('yy', $selectedYear)
+                ->whereNotNull('location')
+                ->where('location', '!=', '');
+
+            if ($selectedRiskType === 'Crime') {
+                $baseQuery->whereIn('riskindicators', $this->crimeIndexIndicators);
+            } elseif ($selectedRiskType === 'Property-Risk') {
+                $baseQuery->whereIn('riskindicators', $this->propertyThreatIndicators);
+            } else {
+                $indicator = $this->riskMapping[$selectedRiskType] ?? null;
+                if ($indicator) {
+                    $baseQuery->where('riskindicators', $indicator);
+                }
+            }
+
+            // -------------------------------------------------
+            // 2) Aggregate + calculate
+            // -------------------------------------------------
+            if ($selectedRiskType === 'Crime' OR $selectedRiskType === 'Property-Risk') {
+
+                $stateData = (clone $baseQuery)
+                    ->selectRaw('
+                        TRIM(location) AS location,
+                        yy,
+                        COUNT(*) AS raw_incident_count,
+                        COALESCE(SUM(Casualties_count),0) AS raw_casualties_sum,
+                        COALESCE(SUM(victim),0) AS raw_victims_sum
+                    ')
+                    ->groupBy(DB::raw('TRIM(location)'), 'yy')
+                    ->get();
+
+                $stateRiskReports = $this->multipleRiskIndicatorCalculation($stateData);
+
+            } else {
+
+                $stateData = (clone $baseQuery)
+                    ->selectRaw('
+                        TRIM(location) AS location,
+                        yy,
+                        TRIM(riskindicators) AS risk_indicator,
+                        COUNT(*) AS total_incidents,
+                        COALESCE(SUM(victim),0) AS total_victims,
+                        COALESCE(SUM(Casualties_count),0) AS total_deaths
+                    ')
+                    ->groupBy(
+                        DB::raw('TRIM(location)'),
+                        'yy',
+                        DB::raw('TRIM(riskindicators)')
+                    )
+                    ->get();
+
+                $stateRiskReports = $this->calculateStateRiskFromIndicators($stateData, true);
+            }
+
+            // -------------------------------------------------
+            // 3) Previous year incidents
+            // -------------------------------------------------
+            $previousYear = $selectedYear - 1;
+
+            $previousYearIncidents = tbldataentry::query()
+                ->where('yy', $previousYear)
+                ->whereNotNull('location')
+                ->where('location', '!=', '')
+                ->selectRaw('TRIM(location) AS location, COUNT(*) AS cnt')
+                ->groupBy(DB::raw('TRIM(location)'))
+                ->pluck('cnt', 'location')
+                ->mapWithKeys(fn ($v, $k) => [$this->norm($k) => $v])
+                ->toArray();
+
+            // -------------------------------------------------
+            // 4) Most affected LGA
+            // -------------------------------------------------
+            $lgaData = (clone $baseQuery)
+                ->whereNotNull('lga')
+                ->where('lga', '!=', '')
+                ->selectRaw('TRIM(location) AS location, lga, COUNT(*) AS c')
+                ->groupBy(DB::raw('TRIM(location)'), 'lga')
+                ->orderByDesc('c')
+                ->get();
+
+            $mostAffectedLGAs = [];
+            foreach ($lgaData as $row) {
+                $key = $this->norm($row->location);
+                if (!isset($mostAffectedLGAs[$key])) {
+                    $mostAffectedLGAs[$key] = $row->lga;
+                }
+            }
+
+            // -------------------------------------------------
+            // 5) Merge with GeoJSON
+            // -------------------------------------------------
+            $geoJson = json_decode(File::get(public_path('nigeria-state.geojson')), true);
+
+            foreach ($geoJson['features'] as &$feature) {
+
+                $stateName = $feature['properties']['name'] ?? '';
+                $stateKey  = $this->norm($stateName);
+                $risk      = $stateRiskReports[$stateKey] ?? [];
+
+                $feature['properties']['incidents_count']       = (int) ($risk['incident_count'] ?? 0);
+                $feature['properties']['risk_level']            = (int) ($risk['risk_level'] ?? 1);
+                $feature['properties']['composite_index_score'] = (float) ($risk['normalized_ratio'] ?? 0);
+                $feature['properties']['incidents_prev_year']   = (int) ($previousYearIncidents[$stateKey] ?? 0);
+                $feature['properties']['most_affected_lga']     = $mostAffectedLGAs[$stateKey] ?? 'N/A';
+
+                $feature['properties']['filter_risk_type'] = $selectedRiskType;
+                $feature['properties']['current_year']     = $selectedYear;
+                $feature['properties']['previous_year']    = $previousYear;
+            }
+
+            return response()->json($geoJson);
+        });
+    }
+    public function getMapDataOld(Request $request)
     {
         $selectedYear     = (int) $request->input('year', now()->year);
         $selectedRiskType = (string) $request->input('risk_type', 'All');
@@ -228,6 +355,76 @@ class RiskMapController extends Controller
             return response()->json($geoJson);
         });
     }
+
+    public function multipleRiskIndicatorCalculation(Collection $data): array
+    {
+        $reports = [];
+
+        // Load correction factors
+        $corrections = CorrectionFactorForStates::all()
+            ->keyBy(fn($r) => $this->norm($r->state));
+
+        // National totals
+        $totalIncidents  = (float) $data->sum('raw_incident_count');
+        $totalCasualties = (float) $data->sum('raw_casualties_sum');
+        $totalVictims    = (float) $data->sum('raw_victims_sum');
+
+        $grandTotalScore = 0.0;
+
+        foreach ($data as $row) {
+            $stateKey = $this->norm($row->location);
+            $cor = $corrections->get($stateKey);
+
+            $incidentCorrection = (float) ($cor?->incident_correction ?? 1);
+            $deathCorrection    = (float) ($cor?->death_correction ?? 1);
+            $victimCorrection   = (float) ($cor?->victim_correction ?? 1);
+
+            // Ratios
+            $incidentRatio = $totalIncidents > 0
+                ? $row->raw_incident_count / $totalIncidents
+                : 0;
+
+            $casualtyRatio = $totalCasualties > 0
+                ? $row->raw_casualties_sum / $totalCasualties
+                : 0;
+
+            $victimRatio = $totalVictims > 0
+                ? $row->raw_victims_sum / $totalVictims
+                : 0;
+
+            // Weighted corrected score
+            $score =
+                ($incidentRatio * $this->WEIGHT_INCIDENT_SEVERITY * $incidentCorrection) +
+                ($casualtyRatio * $this->WEIGHT_DEATH_SEVERITY   * $deathCorrection) +
+                ($victimRatio   * $this->WEIGHT_VICTIM_SEVERITY * $victimCorrection);
+
+            $reports[$stateKey] = [
+                'location'       => $stateKey,
+                'incident_count' => (int) $row->raw_incident_count,
+                'raw_score'      => $score,
+                'year'           => (int) $row->yy,
+            ];
+
+            $grandTotalScore += $score;
+        }
+
+        // Normalize
+        foreach ($reports as &$r) {
+            $normalized = $grandTotalScore > 0
+                ? ($r['raw_score'] / $grandTotalScore) * 100
+                : 0;
+
+            $r['normalized_ratio_raw'] = $normalized;
+            $r['normalized_ratio']     = number_format($normalized, 2, '.', '');
+            $r['risk_level']           = $this->determineBusinessRiskLevel($normalized);
+
+            unset($r['raw_score']);
+        }
+
+
+        return $reports;
+    }
+
 
 
     public function getMapCardData(Request $request)
