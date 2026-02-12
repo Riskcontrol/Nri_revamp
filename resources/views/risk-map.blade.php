@@ -260,7 +260,7 @@
                                         afterBody: function(context) {
                                             const item = selectedStates[context[0].dataIndex];
                                             return [
-                                                `  Tracked Incidents: ${item.count}`,
+                                                ` Tracked Incidents: ${item.count}`,
                                                 ` Top Affected LGA: ${item.lga}`,
                                                 ` Prev. Year: ${item.prevCount}`
                                             ];
@@ -536,6 +536,44 @@
         .leaflet-container {
             transform: translate3d(0, 0, 0);
         }
+
+        /* =====================================================
+            LEAFLET POPUP VISIBILITY FIX
+            Ensures popups are never clipped while preserving controls
+            ===================================================== */
+
+            /* Elevate popup pane only */
+            .leaflet-popup-pane {
+                z-index: 10000 !important;
+            }
+
+            /* Ensure popup wrapper is above everything else */
+            .leaflet-popup {
+                z-index: 10001 !important;
+            }
+
+            /* Prevent parent containers from clipping popups */
+            #risk-map {
+                overflow: visible !important;
+            }
+
+            /* Restore and elevate Leaflet controls (zoom, attribution) */
+            .leaflet-top,
+            .leaflet-bottom {
+                z-index: 11000 !important;
+            }
+
+            /* Ensure controls remain interactive */
+            .leaflet-control {
+                z-index: 11001 !important;
+                pointer-events: auto;
+            }
+
+            /* Avoid stacking context issues caused by transforms */
+            .leaflet-container {
+                transform: none !important;
+            }
+
     </style>
 
 </x-layout>
