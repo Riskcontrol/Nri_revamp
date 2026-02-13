@@ -380,7 +380,6 @@ class LocationController extends Controller
 
         $stored = LocationInsight::where('state', $state)
             ->where('year', (int) $year)
-            ->where('hash', $hash)
             ->first();
 
         if ($stored && !empty($stored->insights)) {
@@ -396,8 +395,9 @@ class LocationController extends Controller
                 $source = $res['meta']['source'] ?? 'fallback';
 
                 LocationInsight::updateOrCreate(
-                    ['state' => $state, 'year' => (int) $year, 'hash' => $hash],
+                    ['state' => $state, 'year' => (int) $year],
                     [
+                        'hash'  => $hash,
                         'summary' => $summary,
                         'insights' => $automatedInsights,
                         'source' => $source,
@@ -646,8 +646,9 @@ class LocationController extends Controller
                 $source = $res['meta']['source'] ?? 'fallback';
 
                 LocationInsight::updateOrCreate(
-                    ['state' => $state, 'year' => (int) $year, 'hash' => $hash],
+                    ['state' => $state, 'year' => (int) $year],
                     [
+                        'hash'    => $hash,
                         'summary' => $summary,
                         'insights' => $automatedInsights,
                         'source' => $source,
