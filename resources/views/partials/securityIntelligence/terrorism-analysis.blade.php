@@ -9,6 +9,15 @@
                     Threats
                 </p>
             </div>
+            @guest
+                <div class="mt-4 bg-blue-900/30 border border-blue-500 rounded-lg p-4 text-center">
+                    <p class="text-blue-200 text-sm">
+                        📊 <strong>Preview Mode:</strong> Showing current year data only.
+                        <a href="{{ route('login') }}" class="underline hover:text-blue-100">Sign in</a>
+                        to access full historical data and analytics.
+                    </p>
+                </div>
+            @endguest
 
             <div class="mt-6 flex flex-col sm:flex-row sm:justify-center sm:space-x-4 space-y-4 sm:space-y-0">
 
@@ -32,6 +41,7 @@
                         </div>
                     </div>
                 </div>
+
 
                 <div>
                     <div class="relative mt-1">
@@ -163,306 +173,81 @@
 </div>
 
 </div>
+<x-auth-required-modal />
+
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    // ✅ Auth flag (server-side)
+    const IS_AUTH = @json(auth()->check());
 
+    // ---------------------------
+    // Modal open/close
+    // ---------------------------
+    function openAuthModal() {
+        const modal = document.getElementById("authRequiredModal");
+        if (!modal) return;
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        document.body.style.overflow = "hidden";
+    }
 
-        function renderAiInsights(aiInsights, selectedType) {
-            const listContainer = document.getElementById('insight-list');
-            const badge = document.getElementById('insight-badge');
+    function closeAuthModal() {
+        const modal = document.getElementById("authRequiredModal");
+        if (!modal) return;
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        document.body.style.overflow = "";
+    }
 
-            badge.textContent = `${selectedType} AI Insights`;
-
-            let htmlContent = '';
-            aiInsights.slice(0, 3).forEach(item => {
-                htmlContent += `
-            <li class="bg-[#2b3a4a] p-4 rounded border-l-4 border-indigo-500 transition-colors duration-300">
-                <div class="flex flex-col">
-                    <span class="text-xs font-bold text-gray-300 uppercase tracking-widest mb-1">${item.title ?? 'Insight'}</span>
-                    <p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line">${item.text ?? ''}</p>
-                </div>
-            </li>
-        `;
-            });
-
-            listContainer.style.opacity = '0';
-            setTimeout(() => {
-                listContainer.innerHTML = htmlContent || `
-        <li class="text-gray-400 text-sm">No AI insights available.</li>
-    `;
-                listContainer.style.opacity = '1';
-                hideInsightsLoading();
-            }, 150);
-
-        }
-
-
-        function getRiskCategory(value) {
-            if (value <= 1.5) return 'Low';
-            if (value <= 3.5) return 'Medium';
-            if (value <= 7.0) return 'High';
-            return 'Very High';
-        }
-
-        var options = {
-            series: [],
-            chart: {
-                height: 400,
-                type: 'treemap',
-                toolbar: {
-                    show: false
-                }
-            },
-            title: {
-                text: 'Geographic Risk Analysis by State',
-                align: 'center',
-                style: {
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    color: '#FFFFFF'
-                }
-            },
-            plotOptions: {
-                treemap: {
-                    enableShades: false,
-                    colorScale: {
-                        ranges: [{
-                                from: 0,
-                                to: 1.7,
-                                color: '#10b981'
-                            },
-                            {
-                                from: 1.71,
-                                to: 2.8,
-                                color: '#FFB020'
-                            },
-                            {
-                                from: 2.81,
-                                to: 7.0,
-                                color: '#fc4444'
-                            },
-                            {
-                                from: 7.01,
-                                to: 100,
-                                color: '#c40000'
-                            }
-                        ]
-                    },
-                    dataLabels: {
-                        style: {
-                            colors: ['#000']
-                        }
-                    }
-                }
-            },
-            tooltip: {
-                theme: 'dark',
-                y: {
-                    formatter: function(value) {
-                        var category = getRiskCategory(value);
-                        var formattedValue = parseFloat(value).toFixed(2);
-                        return formattedValue + "% Risk (" + category + ")";
-                    }
-                }
-            },
-            noData: {
-                text: 'Loading Risk Data...'
-            }
-        };
-
-        var chart = new ApexCharts(document.querySelector("#treemap-chart"), options);
-        chart.render();
-
-        var lineOptions = {
-            series: [{
-                name: 'Fatalities',
-                data: []
-            }],
-            chart: {
-                height: 350,
-                type: 'line',
-                toolbar: {
-                    show: false
-                },
-                animations: {
-                    enabled: true
-                }
-            },
-            stroke: {
-                curve: 'smooth',
-                width: 3
-            },
-            colors: ['#ef4444'], // Red color for fatalities
-            xaxis: {
-                categories: [],
-                labels: {
-                    style: {
-                        colors: '#94a3b8'
-                    }
-                }
-            },
-            yaxis: {
-                labels: {
-                    style: {
-                        colors: '#94a3b8'
-                    }
-                }
-            },
-            grid: {
-                borderColor: '#334155'
-            },
-            tooltip: {
-                theme: 'dark'
-            }
-        };
-
-        var fatalityChart = new ApexCharts(document.querySelector("#fatality-line-chart"), lineOptions);
-        fatalityChart.render();
-
-        function updateRiskTable(tableData) {
-            const tableBody = document.getElementById('risk-table-body');
-            if (!tableData || tableData.length === 0) {
-                tableBody.innerHTML =
-                    `<tr><td colspan="7" class="py-10 px-4 text-center text-gray-500">No data available for this filter.</td></tr>`;
+    // ✅ Guard wrapper
+    function requireAuth(actionFn) {
+        return function(...args) {
+            if (!IS_AUTH) {
+                openAuthModal();
                 return;
             }
+            return actionFn.apply(this, args);
+        };
+    }
 
-            let tableHtml = '';
-            tableData.forEach(state => {
-                let statusColorClass = 'text-gray-400';
-                if (state.status === 'Escalating') statusColorClass = 'text-red-500';
-                else if (state.status === 'Improving') statusColorClass = 'text-green-500';
+    // ✅ Visitor-block: prevent opening select UI
+    function blockSelectOpen(e, selectEl, fallbackGetter) {
+        if (IS_AUTH) return;
 
-                tableHtml += `
-                    <tr class="border-b border-gray-700 hover:bg-gray-700">
-                        <td class="py-3 px-4 font-medium">${state.state}</td>
-                        <td class="py-3 px-4">${state.risk_score}%</td>
-                        <td class="py-3 px-4"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskLevelClass(state.risk_level)}">${state.risk_level}</span></td>
-                        <td class="py-3 px-4">${state.rank_current}</td>
-                        <td class="py-3 px-4">${state.rank_previous}</td>
-                        <td class="py-3 px-4 font-semibold ${statusColorClass}">${state.status}</td>
-                        <td class="py-3 px-4">${state.incidents}</td>
-                    </tr>`;
-            });
-            tableBody.innerHTML = tableHtml;
-        }
+        const fallback = typeof fallbackGetter === "function" ? fallbackGetter() : "";
+        if (selectEl) selectEl.value = fallback;
 
-        function updateChartData() {
-            const indexSelect = document.getElementById('index_type');
-            const yearSelect = document.getElementById('year');
-            const titleElement = document.getElementById('main-title');
-            const tableTitleElement = document.getElementById('table-title');
-            const selectedIndexText = indexSelect.options[indexSelect.selectedIndex].text;
-            const selectedYear = yearSelect.value;
+        e.preventDefault();
+        e.stopPropagation();
 
-            titleElement.textContent = `${selectedIndexText} - ${selectedYear}`;
-            tableTitleElement.textContent = `${selectedIndexText}: State Risk Ranking`;
+        openAuthModal();
+        selectEl?.blur();
+    }
 
-            const indexType = indexSelect.value;
-            const year = selectedYear;
-
-            showInsightsLoading(); // add this helper
-
-
-            // Removed: document.getElementById('prev-year-label').textContent = ...
-
-            chart.updateOptions({
-                noData: {
-                    text: 'Loading filtered data...'
-                }
-            });
-            document.getElementById('risk-table-body').innerHTML =
-                `<tr><td colspan="7" class="py-10 px-4 text-center text-gray-500">Loading risk table...</td></tr>`;
-
-            document.getElementById('card-risk-index').textContent = '...';
-            document.getElementById('card-top-threats').textContent = 'Loading...';
-
-            fetch(`/risk-treemap-data?year=${year}&index_type=${indexType}`)
-                .then(response => response.json())
-                .then(data => {
-                    chart.updateSeries(data.treemapSeries);
-                    updateRiskTable(data.tableData);
-
-                    document.getElementById('card-risk-index').textContent = data.cardData
-                        .totalTrackedIncidents;
-                    document.getElementById('card-top-threats').textContent = data.cardData.topThreatGroups;
-                    document.getElementById('card-fatalities').textContent = new Intl.NumberFormat().format(
-                        data.cardData.totalFatalities);
-
-                    if (data.trendSeries && data.trendSeries.labels) {
-                        fatalityChart.updateOptions({
-                            xaxis: {
-                                categories: data.trendSeries.labels
-                            }
-                        });
-
-                        fatalityChart.updateSeries([{
-                            name: "Fatalities",
-                            data: data.trendSeries.data
-                        }]);
-
-                        document.getElementById('line-chart-title').textContent =
-                            `${selectedIndexText} Fatality Trend`;
-                    } else {
-                        console.error(
-                            "Trend data is missing from the server response. Check Controller scope and clear cache."
-                        );
-                    }
-                    if (data.aiInsights && Array.isArray(data.aiInsights) && data.aiInsights.length) {
-                        renderAiInsights(data.aiInsights, selectedIndexText);
-                    } else {
-                        renderAiInsights([], selectedIndexText); // shows “No AI insights available.”
-                    }
-
-                    if (data.aiMeta?.source === "groq") {
-                        document.getElementById("insight-badge").textContent =
-                            `${selectedIndexText} Analysis`;
-                    } else {
-                        document.getElementById("insight-badge").textContent =
-                            `${selectedIndexText} Fallback Insights`;
-                    }
-
-
-
-
-                })
-                .catch(error => {
-                    console.error('Error fetching chart data:', error);
-                    chart.updateOptions({
-                        noData: {
-                            text: 'Failed to load data.'
-                        }
-                    });
-                    document.getElementById('risk-table-body').innerHTML =
-                        `<tr><td colspan="7" class="py-10 px-4 text-center text-red-500">Failed to load table data.</td></tr>`;
-                    document.getElementById('card-risk-index').textContent = 'N/A';
-                    document.getElementById('card-top-threats').textContent = 'Error';
-                    document.getElementById('card-fatalities').textContent = 'N/A';
-                });
-        }
-
-        const indexSelect = document.getElementById('index_type');
-        const yearSelect = document.getElementById('year');
-        indexSelect.addEventListener('change', updateChartData);
-        yearSelect.addEventListener('change', updateChartData);
-        updateChartData();
-    });
+    // ---------------------------
+    // Helpers (global)
+    // ---------------------------
+    function getRiskCategory(value) {
+        if (value <= 1.5) return "Low";
+        if (value <= 3.5) return "Medium";
+        if (value <= 7.0) return "High";
+        return "Very High";
+    }
 
     function getRiskLevelClass(riskLevel) {
         switch (riskLevel) {
-            case 'Low':
-                return 'bg-green-600 text-white';
-            case 'Medium':
-                return 'bg-yellow-500 text-white';
-            case 'High':
-                return 'bg-[#fc4444] text-white';
-            case 'Very High':
-                return 'bg-red-700 text-white';
+            case "Low":
+                return "bg-green-600 text-white";
+            case "Medium":
+                return "bg-yellow-500 text-white";
+            case "High":
+                return "bg-[#fc4444] text-white";
+            case "Very High":
+                return "bg-red-700 text-white";
             default:
-                return 'bg-gray-500 text-white';
+                return "bg-gray-500 text-white";
         }
     }
 
@@ -476,9 +261,7 @@
 
         if (list) {
             list.style.opacity = "0.6";
-            list.innerHTML = `
-            <li class="text-gray-400 text-sm">Updating intelligence…</li>
-        `;
+            list.innerHTML = `<li class="text-gray-400 text-sm">Updating intelligence…</li>`;
         }
     }
 
@@ -488,4 +271,340 @@
         if (overlay) overlay.classList.add("hidden");
         if (list) list.style.opacity = "1";
     }
+
+    function renderAiInsights(aiInsights, selectedType) {
+        const listContainer = document.getElementById("insight-list");
+        const badge = document.getElementById("insight-badge");
+        if (!listContainer || !badge) return;
+
+        badge.textContent = `${selectedType} AI Insights`;
+
+        let htmlContent = "";
+        (aiInsights || []).slice(0, 3).forEach((item) => {
+            htmlContent += `
+        <li class="bg-[#2b3a4a] p-4 rounded border-l-4 border-indigo-500 transition-colors duration-300">
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-gray-300 uppercase tracking-widest mb-1">${item.title ?? "Insight"}</span>
+            <p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line">${item.text ?? ""}</p>
+          </div>
+        </li>
+      `;
+        });
+
+        listContainer.style.opacity = "0";
+        setTimeout(() => {
+            listContainer.innerHTML =
+                htmlContent ||
+                `<li class="text-gray-400 text-sm">No AI insights available.</li>`;
+            listContainer.style.opacity = "1";
+            hideInsightsLoading();
+        }, 150);
+    }
+
+    function updateRiskTable(tableData) {
+        const tableBody = document.getElementById("risk-table-body");
+        if (!tableBody) return;
+
+        if (!tableData || tableData.length === 0) {
+            tableBody.innerHTML =
+                `<tr><td colspan="7" class="py-10 px-4 text-center text-gray-500">No data available for this filter.</td></tr>`;
+            return;
+        }
+
+        let tableHtml = "";
+        tableData.forEach((state) => {
+            let statusColorClass = "text-gray-400";
+            if (state.status === "Escalating") statusColorClass = "text-red-500";
+            else if (state.status === "Improving") statusColorClass = "text-green-500";
+
+            tableHtml += `
+        <tr class="border-b border-gray-700 hover:bg-gray-700">
+          <td class="py-3 px-4 font-medium">${state.state}</td>
+          <td class="py-3 px-4">${state.risk_score}%</td>
+          <td class="py-3 px-4">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskLevelClass(state.risk_level)}">
+              ${state.risk_level}
+            </span>
+          </td>
+          <td class="py-3 px-4">${state.rank_current}</td>
+          <td class="py-3 px-4">${state.rank_previous}</td>
+          <td class="py-3 px-4 font-semibold ${statusColorClass}">${state.status}</td>
+          <td class="py-3 px-4">${state.incidents}</td>
+        </tr>
+      `;
+        });
+
+        tableBody.innerHTML = tableHtml;
+    }
+
+    // ---------------------------
+    // Main
+    // ---------------------------
+    document.addEventListener("DOMContentLoaded", function() {
+        // Modal close wiring
+        document.getElementById("authModalClose")?.addEventListener("click", closeAuthModal);
+        document.getElementById("authRequiredModal")?.addEventListener("click", function(e) {
+            if (e.target === this) closeAuthModal();
+        });
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") closeAuthModal();
+        });
+
+        const indexSelect = document.getElementById("index_type");
+        const yearSelect = document.getElementById("year");
+
+        // Track last allowed values (for guests)
+        let lastAllowedIndex = indexSelect?.value ?? "Composite Risk Index";
+        let lastAllowedYear = yearSelect?.value ?? "";
+
+        // Create charts FIRST
+        const treemapEl = document.querySelector("#treemap-chart");
+        const lineEl = document.querySelector("#fatality-line-chart");
+
+        if (!treemapEl || !lineEl) {
+            console.error("Missing chart containers (#treemap-chart or #fatality-line-chart).");
+            return;
+        }
+
+        const treemapOptions = {
+            series: [],
+            chart: {
+                height: 400,
+                type: "treemap",
+                toolbar: {
+                    show: false
+                }
+            },
+            title: {
+                text: "Geographic Risk Analysis by State",
+                align: "center",
+                style: {
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    color: "#FFFFFF"
+                }
+            },
+            plotOptions: {
+                treemap: {
+                    enableShades: false,
+                    colorScale: {
+                        ranges: [{
+                                from: 0,
+                                to: 1.7,
+                                color: "#10b981"
+                            },
+                            {
+                                from: 1.71,
+                                to: 2.8,
+                                color: "#FFB020"
+                            },
+                            {
+                                from: 2.81,
+                                to: 7.0,
+                                color: "#fc4444"
+                            },
+                            {
+                                from: 7.01,
+                                to: 100,
+                                color: "#c40000"
+                            }
+                        ]
+                    },
+                    dataLabels: {
+                        style: {
+                            colors: ["#000"]
+                        }
+                    }
+                }
+            },
+            tooltip: {
+                theme: "dark",
+                y: {
+                    formatter: function(value) {
+                        const category = getRiskCategory(value);
+                        const formattedValue = parseFloat(value).toFixed(2);
+                        return formattedValue + "% Risk (" + category + ")";
+                    }
+                }
+            },
+            noData: {
+                text: "Loading Risk Data..."
+            }
+        };
+
+        const chart = new ApexCharts(treemapEl, treemapOptions);
+        chart.render();
+
+        const lineOptions = {
+            series: [{
+                name: "Fatalities",
+                data: []
+            }],
+            chart: {
+                height: 350,
+                type: "line",
+                toolbar: {
+                    show: false
+                },
+                animations: {
+                    enabled: true
+                }
+            },
+            stroke: {
+                curve: "smooth",
+                width: 3
+            },
+            colors: ["#ef4444"],
+            xaxis: {
+                categories: [],
+                labels: {
+                    style: {
+                        colors: "#94a3b8"
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: "#94a3b8"
+                    }
+                }
+            },
+            grid: {
+                borderColor: "#334155"
+            },
+            tooltip: {
+                theme: "dark"
+            }
+        };
+
+        const fatalityChart = new ApexCharts(lineEl, lineOptions);
+        fatalityChart.render();
+
+        // ✅ Update function - NOW WORKS FOR BOTH AUTH AND GUEST
+        const updateChartData = function() {
+            const titleElement = document.getElementById("main-title");
+            const tableTitleElement = document.getElementById("table-title");
+
+            const selectedIndexText = indexSelect?.options?.[indexSelect.selectedIndex]?.text ??
+                "Composite Risk Index";
+            const selectedYear = yearSelect?.value ?? "";
+
+            if (titleElement) titleElement.textContent = `${selectedIndexText} - ${selectedYear}`;
+            if (tableTitleElement) tableTitleElement.textContent =
+                `${selectedIndexText}: State Risk Ranking`;
+
+            const indexType = indexSelect?.value ?? "Composite Risk Index";
+            const year = selectedYear;
+
+            showInsightsLoading();
+
+            chart.updateOptions({
+                noData: {
+                    text: "Loading filtered data..."
+                }
+            });
+            document.getElementById("risk-table-body").innerHTML =
+                `<tr><td colspan="7" class="py-10 px-4 text-center text-gray-500">Loading risk table...</td></tr>`;
+
+            document.getElementById("card-risk-index").textContent = "...";
+            document.getElementById("card-top-threats").textContent = "Loading...";
+            document.getElementById("card-fatalities").textContent = "...";
+
+            // ✅ Choose endpoint based on auth status
+            const endpoint = IS_AUTH ?
+                `/risk-treemap-data?year=${encodeURIComponent(year)}&index_type=${encodeURIComponent(indexType)}` :
+                '/risk-preview-data';
+
+            fetch(endpoint, {
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                .then((r) => r.json())
+                .then((data) => {
+                    chart.updateSeries(data.treemapSeries || []);
+                    updateRiskTable(data.tableData || []);
+
+                    document.getElementById("card-risk-index").textContent = data?.cardData
+                        ?.totalTrackedIncidents ?? 0;
+                    document.getElementById("card-top-threats").textContent = data?.cardData
+                        ?.topThreatGroups ?? "N/A";
+                    document.getElementById("card-fatalities").textContent = new Intl.NumberFormat()
+                        .format(
+                            data?.cardData?.totalFatalities ?? 0
+                        );
+
+                    if (data?.trendSeries?.labels) {
+                        fatalityChart.updateOptions({
+                            xaxis: {
+                                categories: data.trendSeries.labels
+                            }
+                        });
+                        fatalityChart.updateSeries([{
+                            name: "Fatalities",
+                            data: data.trendSeries.data || []
+                        }]);
+
+                        const lineTitle = document.getElementById("line-chart-title");
+                        if (lineTitle) lineTitle.textContent = `${selectedIndexText} Fatality Trend`;
+                    }
+
+                    renderAiInsights(data.aiInsights || [], selectedIndexText);
+
+                    const badge = document.getElementById("insight-badge");
+                    if (badge) {
+                        badge.textContent =
+                            data?.aiMeta?.source === "groq" ?
+                            `${selectedIndexText} Analysis` :
+                            `${selectedIndexText} ${IS_AUTH ? 'Fallback' : 'Preview'} Insights`;
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error fetching chart data:", error);
+                    chart.updateOptions({
+                        noData: {
+                            text: "Failed to load data."
+                        }
+                    });
+
+                    document.getElementById("risk-table-body").innerHTML =
+                        `<tr><td colspan="7" class="py-10 px-4 text-center text-red-500">Failed to load table data.</td></tr>`;
+
+                    document.getElementById("card-risk-index").textContent = "N/A";
+                    document.getElementById("card-top-threats").textContent = "Error";
+                    document.getElementById("card-fatalities").textContent = "N/A";
+                    hideInsightsLoading();
+                });
+        };
+
+        // ✅ Guest: block select opening
+        if (!IS_AUTH) {
+            indexSelect?.addEventListener("pointerdown", (e) => blockSelectOpen(e, indexSelect, () =>
+                lastAllowedIndex));
+            indexSelect?.addEventListener("mousedown", (e) => blockSelectOpen(e, indexSelect, () =>
+                lastAllowedIndex));
+            indexSelect?.addEventListener("focus", (e) => blockSelectOpen(e, indexSelect, () =>
+                lastAllowedIndex));
+
+            yearSelect?.addEventListener("pointerdown", (e) => blockSelectOpen(e, yearSelect, () =>
+                lastAllowedYear));
+            yearSelect?.addEventListener("mousedown", (e) => blockSelectOpen(e, yearSelect, () =>
+                lastAllowedYear));
+            yearSelect?.addEventListener("focus", (e) => blockSelectOpen(e, yearSelect, () => lastAllowedYear));
+        }
+
+        // ✅ Change handlers - WRAPPED for authenticated users only
+        const guardedChange = requireAuth(function() {
+            lastAllowedIndex = indexSelect?.value ?? lastAllowedIndex;
+            lastAllowedYear = yearSelect?.value ?? lastAllowedYear;
+            updateChartData();
+        });
+
+        indexSelect?.addEventListener("change", guardedChange);
+        yearSelect?.addEventListener("change", guardedChange);
+
+        // ✅ ALWAYS LOAD INITIAL DATA (removed auth check)
+        updateChartData();
+    });
 </script>

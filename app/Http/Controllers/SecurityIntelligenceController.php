@@ -272,6 +272,92 @@ class SecurityIntelligenceController extends Controller
     {
         return $this->geopoliticalZones[$zone] ?? [];
     }
+
+    public function getPreviewRiskData(Request $request)
+    {
+        // Always return current year, Composite Risk Index for preview
+        $currentYear = now()->year;
+        $selectedIndex = 'Composite Risk Index';
+
+        // Reuse your existing logic but with fixed params
+        $riskIndicator = 'All';
+        $mode = 'composite_rf';
+
+        // Same cache key structure
+        $cacheKey = 'risk_data_preview:' . $currentYear;
+
+        $payload = Cache::remember($cacheKey, 3600, function () use ($currentYear) {
+            // Copy your existing getRiskData logic here but hardcoded to current year
+            // I'll provide simplified version below
+
+            $currentComposite = collect($this->calculateCompositeIndexByRiskFactors($currentYear));
+            $sortedCurrent = $currentComposite->sortDesc();
+
+            $totalTrackedIncidents = (int) tbldataentry::where('yy', $currentYear)->count();
+            $totalFatalities = (int) tbldataentry::where('yy', $currentYear)->sum('Casualties_count');
+
+            // Build treemap data
+            $treemapData = [];
+            $tableData = $sortedCurrent->map(function ($score, $state) use ($currentYear, &$treemapData) {
+                $score2 = round((float) $score, 2);
+                $treemapData[] = ['x' => $state, 'y' => $score];
+
+                return [
+                    'state' => $state,
+                    'risk_score' => $score2,
+                    'risk_level' => $this->getRiskCategoryFromLevel($this->determineBusinessRiskLevel($score)),
+                    'rank_current' => '-',
+                    'rank_previous' => '-',
+                    'status' => 'N/A',
+                    'incidents' => 0,
+                ];
+            })->values();
+
+            // Simplified trend data (just current year)
+            $trendLabels = [(string) $currentYear];
+            $trendData = [(int) $totalFatalities];
+
+            // Get top threat groups
+            $topThreatGroups = 'N/A';
+            try {
+                $results = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
+                    ->select('attack_group.name')
+                    ->where('tbldataentry.yy', $currentYear)
+                    ->where('attack_group.name', '!=', 'Others')
+                    ->groupBy('attack_group.name')
+                    ->orderByRaw('COUNT(*) DESC')
+                    ->take(5)
+                    ->get();
+
+                if ($results->isNotEmpty()) {
+                    $topThreatGroups = $results->pluck('name')->implode(', ');
+                }
+            } catch (\Throwable $e) {
+                Log::error("Preview: Failed to get Top Threat Groups: " . $e->getMessage());
+            }
+
+            return [
+                'treemapSeries' => [['data' => $treemapData]],
+                'tableData' => $tableData,
+                'cardData' => [
+                    'nationalThreatLevel' => 'Medium',
+                    'totalTrackedIncidents' => $totalTrackedIncidents,
+                    'topThreatGroups' => $topThreatGroups,
+                    'totalFatalities' => $totalFatalities,
+                ],
+                'trendSeries' => [
+                    'labels' => $trendLabels,
+                    'data' => $trendData,
+                ],
+                'aiInsights' => [
+                    ['title' => 'Preview Mode', 'text' => 'Sign in to access detailed insights and historical data.']
+                ],
+                'aiMeta' => ['source' => 'preview'],
+            ];
+        });
+
+        return response()->json($payload);
+    }
     public function getRiskData(Request $request, SecurityInsightGenerator $insightGen)
     {
         $selectedYear  = (int) $request->input('year', now()->year);

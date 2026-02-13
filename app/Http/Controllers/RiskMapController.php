@@ -74,6 +74,35 @@ class RiskMapController extends Controller
         return view('risk-map');
     }
 
+    public function getPreviewData(Request $request)
+    {
+        // Force safe defaults for preview
+        $year = (int) (now()->year);
+        $risk = 'Terrorism';
+
+        // Reuse your existing logic by forwarding into getMapData
+        $request->merge([
+            'year' => $year,
+            'risk_type' => $risk,
+        ]);
+
+        return $this->getMapData($request);
+    }
+
+    public function getPreviewCardData(Request $request)
+    {
+        $year = (int) (now()->year);
+        $risk = 'Terrorism';
+
+        $request->merge([
+            'year' => $year,
+            'risk_type' => $risk,
+        ]);
+
+        return $this->getMapCardData($request);
+    }
+
+
     /**
      * Fetch and merge REAL risk data with GeoJSON for the map.
      */
@@ -108,7 +137,7 @@ class RiskMapController extends Controller
             // -------------------------------------------------
             // 2) Aggregate + calculate
             // -------------------------------------------------
-            if ($selectedRiskType === 'Crime' OR $selectedRiskType === 'Property-Risk') {
+            if ($selectedRiskType === 'Crime' or $selectedRiskType === 'Property-Risk') {
 
                 $stateData = (clone $baseQuery)
                     ->selectRaw('
@@ -122,7 +151,6 @@ class RiskMapController extends Controller
                     ->get();
 
                 $stateRiskReports = $this->multipleRiskIndicatorCalculation($stateData);
-
             } else {
 
                 $stateData = (clone $baseQuery)
@@ -156,7 +184,7 @@ class RiskMapController extends Controller
                 ->selectRaw('TRIM(location) AS location, COUNT(*) AS cnt')
                 ->groupBy(DB::raw('TRIM(location)'))
                 ->pluck('cnt', 'location')
-                ->mapWithKeys(fn ($v, $k) => [$this->norm($k) => $v])
+                ->mapWithKeys(fn($v, $k) => [$this->norm($k) => $v])
                 ->toArray();
 
             // -------------------------------------------------

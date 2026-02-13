@@ -249,59 +249,8 @@
             </div>
         </div>
     </div>
+    <x-auth-required-modal />
 
-    <div id="auth-modal"
-        class="fixed inset-0 z-[2000] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="bg-[#1E2D3D] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl relative">
-            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-
-            {{-- State 1: Need Registration --}}
-            <div id="modal-register-state">
-                <div class="text-center mb-8">
-                    <div
-                        class="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-solid fa-shield-halved text-2xl"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-white">Unlock Full Intelligence</h3>
-                    <p class="text-gray-400 mt-2 text-sm leading-relaxed">
-                        Granular state-level analysis and custom date filtering are reserved for verified organizations.
-                    </p>
-                </div>
-
-                <div class="space-y-4">
-                    <a href="{{ url('/register') }}"
-                        class="block w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl text-center transition-all">
-                        Register for Access
-                    </a>
-                    <p class="text-center text-xs text-gray-500">
-                        Already requested a demo? <a href="{{ url('/login') }}"
-                            class="text-blue-400 hover:underline">Login here</a>
-                    </p>
-                </div>
-            </div>
-
-            {{-- State 2: Demo Pending (Success) --}}
-            <div id="modal-success-state" class="hidden">
-                <div class="text-center">
-                    <div
-                        class="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-solid fa-envelope-circle-check text-2xl"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-white">Request Received</h3>
-                    <p class="text-gray-400 mt-4 text-sm leading-relaxed">
-                        Thank you! We have sent a confirmation to your email. Our team will contact you shortly to
-                        authorize your account and set up your professional demo.
-                    </p>
-                    <button onclick="closeAuthModal()"
-                        class="mt-8 w-full border border-white/10 text-white py-3 rounded-xl hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest">
-                        Continue Browsing
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -309,62 +258,102 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
     <script>
+        // ✅ Auth flag (server-side)
+        const IS_AUTH = @json(auth()->check());
+
+        // ✅ Modal helpers (works with your #authRequiredModal markup)
+        function openAuthModal() {
+            const modal = document.getElementById("authRequiredModal");
+            if (!modal) return;
+
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+            document.body.style.overflow = "hidden";
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById("authRequiredModal");
+            if (!modal) return;
+
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+            document.body.style.overflow = "";
+        }
+
+        // ✅ Guard wrapper: block action + open modal
+        function requireAuth(actionFn) {
+            return function(...args) {
+                if (!IS_AUTH) {
+                    openAuthModal();
+                    return;
+                }
+                return actionFn.apply(this, args);
+            };
+        }
+
         let incidentsTrendChart;
         let myChart2, attackChart;
         let map, geojsonLayer, info;
         let lgaGeoJsonData;
         let lgaIncidentData = {};
 
-        // 2. Initialize Charts
+        let lastAllowedState = null;
+        let lastAllowedYear = null;
+        let lastAllowedCompare = "";
+
+        // 1) Initialize Charts + Map
         async function initializeCharts() {
             try {
-                const response = await fetch('/nigeria-lga.json');
+                const response = await fetch("/nigeria-lga.json");
                 lgaGeoJsonData = await response.json();
             } catch (e) {
                 console.error("CRITICAL: Could not load nigeria-lga.json.", e);
-                document.getElementById('map-title').textContent = "Map failed to load.";
+                const t = document.getElementById("map-title");
+                if (t) t.textContent = "Map failed to load.";
                 return;
             }
 
-            const defaultState = document.getElementById('state-name').textContent || 'Primary State';
-            const defaultYear = document.getElementById('year-select').value;
-            // --- Chart 1: Incidents Over Past 12 Months (ApexCharts) ---
+            const defaultState =
+                (document.getElementById("state-name")?.textContent || "").trim() || "Primary State";
+            const defaultYear = document.getElementById("year-select")?.value;
+
+            // --- ApexCharts Trend ---
             const trendOptions = {
                 series: [{
-                    name: 'Incidents',
+                    name: "Incidents",
                     data: @json($incidentCounts)
                 }],
                 chart: {
-                    type: 'area',
+                    type: "area",
                     height: 320,
                     toolbar: {
                         show: false
                     },
-                    background: 'transparent',
-                    fontFamily: 'inherit'
+                    background: "transparent",
+                    fontFamily: "inherit",
                 },
-                colors: ['#10B981'], // Emerald 500
+                colors: ["#10B981"],
                 fill: {
-                    type: 'gradient',
+                    type: "gradient",
                     gradient: {
                         shadeIntensity: 1,
                         opacityFrom: 0.7,
                         opacityTo: 0.1,
                         stops: [0, 90, 100]
-                    }
+                    },
                 },
                 dataLabels: {
                     enabled: false
                 },
                 stroke: {
-                    curve: 'smooth',
+                    curve: "smooth",
                     width: 2
                 },
                 xaxis: {
                     categories: @json($chartLabels),
                     labels: {
                         style: {
-                            colors: '#9CA3AF' // Gray-400
+                            colors: "#9CA3AF"
                         }
                     },
                     axisBorder: {
@@ -375,143 +364,153 @@
                     },
                     tooltip: {
                         enabled: false
-                    }
+                    },
                 },
                 yaxis: {
                     labels: {
                         style: {
-                            colors: '#9CA3AF' // Gray-400
+                            colors: "#9CA3AF"
                         }
                     }
                 },
                 grid: {
-                    borderColor: '#374151', // Gray-700
-                    strokeDashArray: 4,
+                    borderColor: "#374151",
+                    strokeDashArray: 4
                 },
                 theme: {
-                    mode: 'dark'
+                    mode: "dark"
                 },
                 tooltip: {
-                    theme: 'dark'
-                }
+                    theme: "dark"
+                },
             };
 
             incidentsTrendChart = new ApexCharts(document.querySelector("#incidentsTrendChart"), trendOptions);
             incidentsTrendChart.render();
 
-            // --- Chart 2: Prevalent Risk (Chart.js) ---
-            const ctx2 = document.getElementById('myChart2').getContext('2d');
-            myChart2 = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: @json($topRiskLabels),
-                    datasets: [{
-                        label: defaultState,
-                        data: @json($topRiskCounts),
-                        backgroundColor: [
-                            'rgba(27, 158, 133, 0.7)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                color: 'white'
+            // --- Chart.js Prevalent Risk ---
+            const ctx2 = document.getElementById("myChart2")?.getContext("2d");
+            if (ctx2) {
+                myChart2 = new Chart(ctx2, {
+                    type: "bar",
+                    data: {
+                        labels: @json($topRiskLabels),
+                        datasets: [{
+                            label: defaultState,
+                            data: @json($topRiskCounts),
+                            backgroundColor: ["rgba(27, 158, 133, 0.7)"],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: "white"
+                                },
+                                grid: {
+                                    color: "rgba(255,255,255,0.1)"
+                                }
                             },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                            x: {
+                                ticks: {
+                                    color: "white"
+                                },
+                                grid: {
+                                    color: "rgba(255,255,255,0.1)"
+                                }
                             }
                         },
-                        x: {
-                            ticks: {
-                                color: 'white'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: "white"
+                                }
                             }
                         }
+                    }
+                });
+            }
+
+            // --- Chart.js Actors ---
+            const attackCtx = document.getElementById("attackChart")?.getContext("2d");
+            if (attackCtx) {
+                attackChart = new Chart(attackCtx, {
+                    type: "pie",
+                    data: {
+                        labels: @json($attackLabels),
+                        datasets: [{
+                            label: "Attack Occurrences",
+                            data: @json($attackCounts),
+                            backgroundColor: [
+                                "rgba(27, 158, 133, 0.7)",
+                                "rgba(54, 162, 235, 0.7)",
+                                "rgba(255, 206, 86, 0.7)",
+                                "rgba(75, 192, 192, 0.7)",
+                                "rgba(153, 102, 255, 0.7)",
+                                "rgba(255, 99, 132, 0.7)",
+                                "rgba(255, 159, 64, 0.7)",
+                            ],
+                            borderWidth: 1
+                        }]
                     },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'white'
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: "top",
+                                labels: {
+                                    color: "white"
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
 
-            // --- Chart 3: Incidents by Actors (Chart.js) ---
-            const attackCtx = document.getElementById('attackChart').getContext('2d');
-            attackChart = new Chart(attackCtx, {
-                type: 'pie',
-                data: {
-                    labels: @json($attackLabels),
-                    datasets: [{
-                        label: 'Attack Occurrences',
-                        data: @json($attackCounts),
-                        backgroundColor: [
-                            'rgba(27, 158, 133, 0.7)', 'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)', 'rgba(255, 99, 132, 0.7)',
-                            'rgba(255, 159, 64, 0.7)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                color: 'white'
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Initialize Map
-            map = L.map('map').setView([9.0820, 8.6753], 6);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
+            // --- Leaflet Map ---
+            map = L.map("map").setView([9.082, 8.6753], 6);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: "&copy; OpenStreetMap",
             }).addTo(map);
 
             geojsonLayer = L.geoJson(null, {
                 style: styleFeature,
-                onEachFeature: onEachFeature
+                onEachFeature
             }).addTo(map);
 
             info = L.control();
-            info.onAdd = function(map) {
-                this._div = L.DomUtil.create('div', 'info');
+            info.onAdd = function() {
+                this._div = L.DomUtil.create("div", "info");
                 this.update();
                 return this._div;
             };
             info.update = function(props) {
                 const count = props ? (lgaIncidentData[props.NAME_2] || 0) : null;
-                this._div.innerHTML = '<h4>Incident Count by LGA</h4>' + (props ? '<b>' + props.NAME_2 +
-                    '</b><br />' + (count !== null ? count : 0) + ' Incidents' : 'Hover over an LGA');
+                this._div.innerHTML =
+                    "<h4>Incident Count by LGA</h4>" +
+                    (props ? `<b>${props.NAME_2}</b><br />${count ?? 0} Incidents` : "Hover over an LGA");
             };
             info.addTo(map);
 
-            updateMap(defaultState, defaultYear);
+            // ✅ IMPORTANT: load full dashboard on first render too
+            if (defaultYear) {
+                updateMap(defaultState, defaultYear); // map can update for everyone
+                if (IS_AUTH) updateMainDashboard(defaultState, defaultYear);
+            }
         }
 
-        // Prevalent Risk Comparison Logic
+        // 2) Comparison
         function updatePrevalentComparison() {
-            const compareState = document.getElementById('prevalent-compare-select').value;
-            const year = document.getElementById('year-select').value;
+            const compareState = document.getElementById("prevalent-compare-select")?.value;
+            const year = document.getElementById("year-select")?.value;
 
-            if (!compareState) {
-                if (myChart2.data.datasets.length > 1) {
+            if (!compareState || !myChart2) {
+                if (myChart2?.data?.datasets?.length > 1) {
                     myChart2.data.datasets.pop();
                     myChart2.update();
                 }
@@ -520,33 +519,34 @@
 
             const primaryLabels = myChart2.data.labels;
             const params = new URLSearchParams();
-            params.append('state', compareState);
-            params.append('year', year);
-            primaryLabels.forEach(label => params.append('indicators[]', label));
+            params.append("state", compareState);
+            params.append("year", year);
+            primaryLabels.forEach((label) => params.append("indicators[]", label));
 
             fetch(`/get-comparison-risk-counts?${params.toString()}`)
-                .then(response => response.json())
-                .then(data => {
+                .then((r) => r.json())
+                .then((data) => {
                     const comparisonDataset = {
                         label: compareState,
                         data: data.counts,
-                        backgroundColor: '#3b82f6',
-                        borderColor: '#3b82f6',
-                        borderWidth: 1
+                        backgroundColor: "#3b82f6",
+                        borderColor: "#3b82f6",
+                        borderWidth: 1,
                     };
 
-                    if (myChart2.data.datasets.length > 1) {
-                        myChart2.data.datasets[1] = comparisonDataset;
-                    } else {
-                        myChart2.data.datasets.push(comparisonDataset);
-                    }
+                    if (myChart2.data.datasets.length > 1) myChart2.data.datasets[1] = comparisonDataset;
+                    else myChart2.data.datasets.push(comparisonDataset);
+
                     myChart2.update();
                 })
-                .catch(error => console.error('Error fetching prevalent risk comparison:', error));
+                .catch((err) => console.error("Error fetching prevalent risk comparison:", err));
         }
 
+        // 3) Map update
         async function updateMap(state, year) {
-            document.getElementById('map-title').textContent = `Incident Density in ${state} (${year})`;
+            const title = document.getElementById("map-title");
+            if (title) title.textContent = `Incident Density in ${state} (${year})`;
+
             try {
                 const response = await fetch(`/get-lga-incident-counts/${state}/${year}`);
                 lgaIncidentData = await response.json();
@@ -555,13 +555,17 @@
                 lgaIncidentData = {};
             }
 
-            const stateFeatures = lgaGeoJsonData.features.filter(feature =>
-                feature.properties.NAME_1.toLowerCase().trim() === state.toLowerCase().trim()
+            if (!lgaGeoJsonData?.features?.length) return;
+
+            const stateFeatures = lgaGeoJsonData.features.filter(
+                (feature) => feature.properties.NAME_1.toLowerCase().trim() === state.toLowerCase().trim()
             );
+
+            if (!geojsonLayer || !map) return;
 
             if (stateFeatures.length === 0) {
                 geojsonLayer.clearLayers();
-                map.setView([9.0820, 8.6753], 6);
+                map.setView([9.082, 8.6753], 6);
                 return;
             }
 
@@ -576,9 +580,13 @@
         }
 
         function getColor(count) {
-            return count > 500 ? '#7F1D1D' : count > 200 ? '#991B1B' : count > 100 ? '#B91C1C' :
-                count > 50 ? '#DC2626' : count > 20 ? '#EF4444' : count > 10 ? '#F87171' : count > 0 ? '#FCA5A5' :
-                '#FCA5A5';
+            return count > 500 ? "#7F1D1D" :
+                count > 200 ? "#991B1B" :
+                count > 100 ? "#B91C1C" :
+                count > 50 ? "#DC2626" :
+                count > 20 ? "#EF4444" :
+                count > 10 ? "#F87171" :
+                count > 0 ? "#FCA5A5" : "#FCA5A5";
         }
 
         function styleFeature(feature) {
@@ -588,8 +596,8 @@
                 fillColor: getColor(count),
                 weight: 2,
                 opacity: 1,
-                color: 'white',
-                dashArray: '3',
+                color: "white",
+                dashArray: "3",
                 fillOpacity: 0.7
             };
         }
@@ -597,15 +605,15 @@
         function onEachFeature(feature, layer) {
             layer.on({
                 mouseover: function(e) {
-                    const layer = e.target;
-                    layer.setStyle({
+                    const l = e.target;
+                    l.setStyle({
                         weight: 4,
-                        color: '#666',
-                        dashArray: '',
+                        color: "#666",
+                        dashArray: "",
                         fillOpacity: 0.9
                     });
-                    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) layer.bringToFront();
-                    info.update(layer.feature.properties);
+                    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) l.bringToFront();
+                    info.update(l.feature.properties);
                 },
                 mouseout: function(e) {
                     geojsonLayer.resetStyle(e.target);
@@ -613,22 +621,24 @@
                 },
                 click: function(e) {
                     map.fitBounds(e.target.getBounds());
-                }
+                },
             });
         }
 
+        // ✅ 4) THIS is what updates EVERYTHING (cards + charts + table + insights)
         function updateMainDashboard(primaryState, selectedYear) {
             if (!primaryState || !selectedYear) return;
-            if (typeof updateMap === "function") updateMap(primaryState, selectedYear);
 
-            const trendTitle = document.getElementById('trend-title');
+            updateMap(primaryState, selectedYear);
+
+            const trendTitle = document.getElementById("trend-title");
             if (trendTitle) trendTitle.textContent = `Incidents in ${selectedYear} (Monthly)`;
 
-
-            const prevalentDropdown = document.getElementById('prevalent-compare-select');
+            // reset compare
+            const prevalentDropdown = document.getElementById("prevalent-compare-select");
             if (prevalentDropdown) {
                 prevalentDropdown.value = "";
-                if (typeof myChart2 !== 'undefined' && myChart2.data.datasets.length > 1) {
+                if (myChart2?.data?.datasets?.length > 1) {
                     myChart2.data.datasets.pop();
                     myChart2.update();
                 }
@@ -636,46 +646,48 @@
 
             const safeSetText = (id, text) => {
                 const el = document.getElementById(id);
-                if (el) el.querySelector('p') ? el.querySelector('p').textContent = text : el.textContent = text;
+                if (!el) return;
+                const p = el.querySelector("p");
+                if (p) p.textContent = text;
+                else el.textContent = text;
             };
+
             const safeSetHTML = (id, html) => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = html;
             };
 
-            // Reset UI placeholders
-            safeSetText('total-incidents', '...');
-            safeSetHTML('most-frequent-risk-content', '<p>Loading...</p>');
-            safeSetText('most-affected-lga', '...');
-            safeSetHTML('insights-container', '<p class="text-gray-400 p-4">Analyzing data patterns...</p>');
-            safeSetText('crime-index-score', '...');
-            safeSetHTML('crime-table-body',
+            safeSetText("total-incidents", "...");
+            safeSetHTML("most-frequent-risk-content", "<p>Loading...</p>");
+            safeSetText("most-affected-lga", "...");
+            safeSetHTML("insights-container", '<p class="text-gray-400 p-4">Analyzing data patterns...</p>');
+            safeSetText("crime-index-score", "...");
+            safeSetHTML("crime-table-body",
                 '<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">Loading...</td></tr>');
 
-            fetch(`/get-state-data/${primaryState}/${selectedYear}`)
-                .then(response => response.json())
-                .then(data => {
-                    // 1. Update Basic Stats
-                    safeSetText('total-incidents', data.total_incidents);
-                    const totalTitle = document.getElementById('total-incidents-title');
+            fetch(`/get-state-data/${primaryState}/${selectedYear}`, {
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                .then((r) => r.json())
+                .then((data) => {
+                    safeSetText("total-incidents", data.total_incidents);
+                    const totalTitle = document.getElementById("total-incidents-title");
                     if (totalTitle) totalTitle.textContent = `Tracked Incidents (${selectedYear})`;
 
-                    // 2. Update Most Frequent Risk Text
-                    const riskContent = document.getElementById('most-frequent-risk-content');
+                    const riskContent = document.getElementById("most-frequent-risk-content");
                     if (riskContent) {
-                        let riskText = 'No data available';
-                        if (data.mostFrequentRisk && data.mostFrequentRisk.length > 0) {
-                            riskText = data.mostFrequentRisk.map(risk => risk.riskindicators).join(', ');
+                        let riskText = "No data available";
+                        if (data.mostFrequentRisk?.length) {
+                            riskText = data.mostFrequentRisk.map((r) => r.riskindicators).join(", ");
                         }
                         riskContent.innerHTML = `<p>${riskText}</p>`;
                     }
 
-                    // 3. Update Most Affected LGA
-                    safeSetText('most-affected-lga', data.mostAffectedLGA ? data.mostAffectedLGA.lga : 'None');
+                    safeSetText("most-affected-lga", data.mostAffectedLGA ? data.mostAffectedLGA.lga : "None");
 
-                    // 4. Update Charts
-
-                    // --- UPDATE APEX CHART (Trend) ---
+                    // Trend
                     if (incidentsTrendChart) {
                         incidentsTrendChart.updateOptions({
                             xaxis: {
@@ -683,145 +695,118 @@
                             }
                         });
                         incidentsTrendChart.updateSeries([{
-                            name: 'Incidents',
+                            name: "Incidents",
                             data: data.incidentCounts
                         }]);
                     }
 
-                    if (typeof myChart2 !== 'undefined') {
+                    // Prevalent risk
+                    if (myChart2) {
                         myChart2.data.labels = data.topRiskLabels;
                         myChart2.data.datasets[0].label = primaryState;
                         myChart2.data.datasets[0].data = data.topRiskCounts;
                         myChart2.update();
                     }
 
-                    if (typeof attackChart !== 'undefined') {
+                    // Actors
+                    if (attackChart) {
                         attackChart.data.labels = data.attackLabels;
                         attackChart.data.datasets[0].data = data.attackCounts;
                         attackChart.update();
                     }
 
-                    // 5. Update Crime Score & Rank
-                    safeSetText('crime-index-score', data.stateCrimeIndexScore);
-                    const rankSpan = document.getElementById('state-rank');
-                    const ordinalSup = document.getElementById('state-rank-ordinal');
+                    // Crime score & rank
+                    safeSetText("crime-index-score", data.stateCrimeIndexScore);
+                    const rankSpan = document.getElementById("state-rank");
+                    const ordinalSup = document.getElementById("state-rank-ordinal");
                     if (rankSpan) rankSpan.textContent = data.stateRank;
                     if (ordinalSup) ordinalSup.textContent = data.stateRankOrdinal;
 
-                    // 6. Update Crime Table
-                    const crimeTableBody = document.getElementById('crime-table-body');
+                    // Crime table
+                    const crimeTableBody = document.getElementById("crime-table-body");
                     if (crimeTableBody) {
-                        let crimeTableHtml = '';
-                        if (data.crimeTable && data.crimeTable.length > 0) {
-                            data.crimeTable.forEach(item => {
-                                // Match the logic used in your PHP @php block
-                                let pillClasses = 'bg-blue-500 text-white border-blue-500 uppercase'; // Default
+                        let html = "";
+                        if (data.crimeTable?.length) {
+                            data.crimeTable.forEach((item) => {
+                                let pill = "bg-blue-500 text-white border-blue-500 uppercase";
+                                if (item.status === "Escalating") pill =
+                                    "bg-red-500 text-white border-red-500 uppercase";
+                                else if (item.status === "Improving") pill =
+                                    "bg-green-500 text-white border-green-500 uppercase";
 
-                                if (item.status === 'Escalating') {
-                                    pillClasses = 'bg-red-500 text-white border-red-500 uppercase';
-                                } else if (item.status === 'Improving') {
-                                    pillClasses = 'bg-green-500 text-white border-green-500 uppercase';
-                                }
-
-                                crimeTableHtml += `
-                <tr class="border-b border-gray-700">
-                    <td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td>
-                    <td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td>
-                    <td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td>
-                    <td class="py-4 px-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wider border ${pillClasses}">
-                            ${item.status}
-                        </span>
-                    </td>
-                </tr>`;
+                                html += `
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td>
+                                    <td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td>
+                                    <td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td>
+                                    <td class="py-4 px-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wider border ${pill}">
+                                            ${item.status}
+                                        </span>
+                                    </td>
+                                </tr>`;
                             });
                         } else {
-                            crimeTableHtml =
+                            html =
                                 `<tr><td colspan="4" class="py-6 px-4 text-center text-gray-500">No crime index data found.</td></tr>`;
                         }
-                        crimeTableBody.innerHTML = crimeTableHtml;
+                        crimeTableBody.innerHTML = html;
                     }
 
-                    // 7. Update Automated Insights
                     if (typeof renderInsights === "function") renderInsights(data.automatedInsights);
                 })
-                .catch(error => {
-                    console.error('Error fetching primary data:', error);
-                    const errContainer = document.getElementById('insights-container');
-                    if (errContainer) errContainer.innerHTML = '<p class="text-red-400 p-4">Error loading data.</p>';
+                .catch((err) => {
+                    console.error("Error fetching primary data:", err);
+                    const c = document.getElementById("insights-container");
+                    if (c) c.innerHTML = '<p class="text-red-400 p-4">Error loading data.</p>';
                 });
         }
 
-        function openAuthModal() {
-            document.getElementById('auth-modal').classList.remove('hidden');
-        }
+        // ✅ Visitor-block: prevent opening select
+        function blockSelectOpen(e, selectEl, fallbackValueGetter) {
+            if (IS_AUTH) return;
 
-        function closeAuthModal() {
-            document.getElementById('auth-modal').classList.add('hidden');
+            const fallback = typeof fallbackValueGetter === "function" ? fallbackValueGetter() : "";
+            selectEl.value = fallback;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            openAuthModal();
+            selectEl.blur();
         }
 
         function handleFilterChange() {
-            const primaryState = document.getElementById('state-select').value;
-            const selectedYear = document.getElementById('year-select').value;
-            document.getElementById('state-name').textContent = primaryState;
+            const stateSelect = document.getElementById("state-select");
+            const yearSelect = document.getElementById("year-select");
 
-            // ✅ UPDATE URL TO REFLECT CURRENT STATE AND YEAR
+            const primaryState = stateSelect.value;
+            const selectedYear = yearSelect.value;
+
+            lastAllowedState = primaryState;
+            lastAllowedYear = selectedYear;
+
+            document.getElementById("state-name").textContent = primaryState;
+
             const newUrl = `/location-intelligence/${primaryState}/${selectedYear}`;
             window.history.pushState({
                 state: primaryState,
                 year: selectedYear
-            }, '', newUrl);
+            }, "", newUrl);
 
+            // ✅ IMPORTANT: this refreshes the full dashboard
             updateMainDashboard(primaryState, selectedYear);
         }
 
         function handleCompareChange() {
+            lastAllowedCompare = document.getElementById("prevalent-compare-select")?.value || "";
             updatePrevalentComparison();
         }
 
-        function renderInsights(insights) {
-            const container = document.getElementById('insights-container');
-            container.innerHTML = '';
-
-            if (!insights || insights.length === 0) {
-                container.innerHTML =
-                    '<div class="col-span-1 md:col-span-2 text-center text-gray-500 italic py-4">Insufficient data pattern to generate strategic insights for this period.</div>';
-                return;
-            }
-
-            insights.forEach(insight => {
-                // MATCHING THE INITIAL RENDER LOGIC: Use text-gray-400 for all
-                let titleColor = 'text-gray-400';
-                let friendlyTitle = insight.type;
-
-                // Map technical types to friendly titles as seen in your Blade switch
-                if (insight.type === 'Velocity') {
-                    friendlyTitle = 'Activity Pace';
-                } else if (insight.type === 'Emerging Threat') {
-                    friendlyTitle = 'Rising Risk';
-                } else if (insight.type === 'Lethality') {
-                    friendlyTitle = 'Severity Level';
-                } else if (insight.type === 'Forecast') {
-                    friendlyTitle = 'Future Outlook';
-                }
-
-                container.innerHTML += `
-            <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
-                <h4 class="text-xs font-semibold ${titleColor} uppercase mb-1 tracking-wider">
-                    ${friendlyTitle}
-                </h4>
-                <p class="text-white text-md font-light">
-                    ${insight.text}
-                </p>
-            </div>`;
-            });
-        }
-
-        // ✅ HANDLE BROWSER BACK/FORWARD BUTTONS
-        window.addEventListener('popstate', function(event) {
-            if (event.state && event.state.state && event.state.year) {
-                const stateSelect = document.getElementById('state-select');
-                const yearSelect = document.getElementById('year-select');
+        window.addEventListener("popstate", function(event) {
+            if (event.state?.state && event.state?.year) {
+                const stateSelect = document.getElementById("state-select");
+                const yearSelect = document.getElementById("year-select");
 
                 stateSelect.value = event.state.state;
                 yearSelect.value = event.state.year;
@@ -830,18 +815,63 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener("DOMContentLoaded", function() {
+            // last allowed values
+            lastAllowedState = document.getElementById("state-select")?.value;
+            lastAllowedYear = document.getElementById("year-select")?.value;
+            lastAllowedCompare = document.getElementById("prevalent-compare-select")?.value || "";
+
+            // modal close wiring
+            document.getElementById("authModalClose")?.addEventListener("click", closeAuthModal);
+            document.getElementById("authRequiredModal")?.addEventListener("click", function(e) {
+                if (e.target === this) closeAuthModal();
+            });
+            document.addEventListener("keydown", function(e) {
+                if (e.key === "Escape") closeAuthModal();
+            });
+
             initializeCharts();
 
-            @if (session('show_demo_popup'))
-                document.getElementById('modal-register-state').classList.add('hidden');
-                document.getElementById('modal-success-state').classList.remove('hidden');
-                openAuthModal();
-            @endif
+            const stateSelect = document.getElementById("state-select");
+            const yearSelect = document.getElementById("year-select");
+            const compareSelect = document.getElementById("prevalent-compare-select");
+
+            // ✅ Only block opening for visitors
+            if (!IS_AUTH) {
+                if (stateSelect) {
+                    stateSelect.addEventListener("pointerdown", (e) => blockSelectOpen(e, stateSelect, () =>
+                        lastAllowedState));
+                    stateSelect.addEventListener("mousedown", (e) => blockSelectOpen(e, stateSelect, () =>
+                        lastAllowedState));
+                    stateSelect.addEventListener("focus", (e) => blockSelectOpen(e, stateSelect, () =>
+                        lastAllowedState));
+                }
+                if (yearSelect) {
+                    yearSelect.addEventListener("pointerdown", (e) => blockSelectOpen(e, yearSelect, () =>
+                        lastAllowedYear));
+                    yearSelect.addEventListener("mousedown", (e) => blockSelectOpen(e, yearSelect, () =>
+                        lastAllowedYear));
+                    yearSelect.addEventListener("focus", (e) => blockSelectOpen(e, yearSelect, () =>
+                        lastAllowedYear));
+                }
+                if (compareSelect) {
+                    compareSelect.addEventListener("pointerdown", (e) => blockSelectOpen(e, compareSelect, () =>
+                        lastAllowedCompare));
+                    compareSelect.addEventListener("mousedown", (e) => blockSelectOpen(e, compareSelect, () =>
+                        lastAllowedCompare));
+                    compareSelect.addEventListener("focus", (e) => blockSelectOpen(e, compareSelect, () =>
+                        lastAllowedCompare));
+                }
+            }
+
+            // ✅ Change handlers (guarded)
+            stateSelect?.addEventListener("change", requireAuth(handleFilterChange));
+            yearSelect?.addEventListener("change", requireAuth(handleFilterChange));
+            compareSelect?.addEventListener("change", requireAuth(handleCompareChange));
         });
-        document.getElementById('state-select').addEventListener('change', handleFilterChange);
-        document.getElementById('year-select').addEventListener('change', handleFilterChange);
-        document.getElementById('prevalent-compare-select').addEventListener('change', handleCompareChange);
     </script>
+
+
+
 
 </x-layout>

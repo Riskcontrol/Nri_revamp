@@ -111,11 +111,75 @@
             </div>
         </div>
     </div>
+    <x-auth-required-modal />
+
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+
+
+
+            const IS_AUTH = @json(auth()->check());
+            const REGISTER_URL = @json(route('register'));
+
+            function showAuthModalAndRedirect() {
+                const modal = document.getElementById('authRequiredModal');
+                const closeBtn = document.getElementById('authModalClose');
+                const registerBtn = document.getElementById('authModalRegisterBtn');
+
+                if (!modal) {
+                    window.location.href = REGISTER_URL;
+                    return;
+                }
+
+                // show
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+
+                const cleanup = () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    closeBtn?.removeEventListener('click', onClose);
+                    registerBtn?.removeEventListener('click', onRegister);
+                    modal?.removeEventListener('click', onBackdrop);
+                    document.removeEventListener('keydown', onEsc);
+                };
+
+                const onClose = () => cleanup();
+
+                const onRegister = () => {
+                    window.location.href = REGISTER_URL;
+                };
+
+                // close when clicking backdrop (optional)
+                const onBackdrop = (e) => {
+                    if (e.target === modal) cleanup();
+                };
+
+                const onEsc = (e) => {
+                    if (e.key === 'Escape') cleanup();
+                };
+
+                closeBtn?.addEventListener('click', onClose);
+                registerBtn?.addEventListener('click', onRegister);
+                modal?.addEventListener('click', onBackdrop);
+                document.addEventListener('keydown', onEsc);
+            }
+
+
+            // Generic guard wrapper
+            function requireAuth(actionFn) {
+                return function(...args) {
+                    if (!IS_AUTH) {
+                        showAuthModalAndRedirect();
+                        return;
+                    }
+                    return actionFn.apply(this, args);
+                };
+            }
+
 
             // --- 1. SET UP STATE ---
             let isComparisonMode = false;
@@ -149,13 +213,13 @@
             }).addTo(map);
 
             // --- 4. COMPARISON LOGIC ---
-            toggleBtn.addEventListener('click', () => {
+            toggleBtn.addEventListener('click', requireAuth(() => {
                 isComparisonMode = !isComparisonMode;
                 toggleBtn.textContent = isComparisonMode ? 'ON' : 'OFF';
                 toggleBtn.classList.toggle('bg-blue-600', isComparisonMode);
                 toggleBtn.classList.toggle('bg-gray-600', !isComparisonMode);
                 if (!isComparisonMode) resetComparison();
-            });
+            }));
 
             function resetComparison() {
                 selectedStates = [];
@@ -406,6 +470,10 @@
 
                 // --- CLICK (Comparison mode only) ---
                 layer.on('click', function(e) {
+                    if (!IS_AUTH) {
+                        showAuthModalAndRedirect();
+                        return;
+                    }
                     if (!isComparisonMode) return;
 
                     layer.closePopup();
@@ -442,40 +510,133 @@
             }
 
             // --- 6. DATA FETCHING ---
+            function setLoading(isLoading) {
+                loader.style.display = isLoading ? 'flex' : 'none';
+                applyButton.disabled = isLoading;
+                applyButton.textContent = isLoading ? 'Applying...' : 'Apply Filters';
+            }
+
             function fetchMapData() {
                 resetComparison();
-                loader.style.display = 'flex';
-                applyButton.disabled = true;
-                applyButton.textContent = 'Applying...';
+                setLoading(true);
 
                 const year = yearSelect.value;
                 const risk = riskSelect.value;
+
                 const mapApiUrl = `/api/risk-map-data?year=${year}&risk_type=${risk}`;
                 const cardApiUrl = `/api/risk-map-card-data?year=${year}&risk_type=${risk}`;
 
+                // MAP DATA
                 fetch(mapApiUrl)
-                    .then(res => res.json())
-                    .then(geojsonData => {
+                    .then(async (res) => {
+                        if (res.status === 401) {
+                            await res.json().catch(() => null);
+                            showAuthModalAndRedirect();
+                            throw new Error('Auth required');
+                        }
+                        if (!res.ok) throw new Error(`Map API error: ${res.status}`);
+                        return res.json(); // geojson object
+                    })
+                    .then((geojsonData) => {
                         if (geoJsonLayer) map.removeLayer(geoJsonLayer);
+
                         geoJsonLayer = L.geoJson(geojsonData, {
                             style: style,
-                            onEachFeature: onEachFeature
+                            onEachFeature: onEachFeature,
                         }).addTo(map);
 
-                        loader.style.display = 'none';
-                        applyButton.disabled = false;
-                        applyButton.textContent = 'Apply Filters';
+                        setLoading(false);
+                    })
+                    .catch((err) => {
+                        console.error('[risk-map] map fetch failed:', err);
+                        setLoading(false);
                     });
 
+                // CARD DATA
                 fetch(cardApiUrl)
-                    .then(res => res.json())
-                    .then(cardData => {
-                        threatCard.textContent = cardData.topThreatGroups;
+                    .then(async (res) => {
+                        if (res.status === 401) {
+                            await res.json().catch(() => null);
+                            showAuthModalAndRedirect();
+                            throw new Error('Auth required');
+                        }
+                        if (!res.ok) throw new Error(`Card API error: ${res.status}`);
+                        return res.json();
+                    })
+                    .then((cardData) => {
+                        threatCard.textContent = cardData?.topThreatGroups ?? 'N/A';
+                    })
+                    .catch((err) => {
+                        console.error('[risk-map] card fetch failed:', err);
+                        threatCard.textContent = 'Data Unavailable';
                     });
             }
 
-            applyButton.addEventListener('click', fetchMapData);
-            fetchMapData(); // Initial load
+            function renderGeojson(geojsonData) {
+                if (geoJsonLayer) map.removeLayer(geoJsonLayer);
+
+                geoJsonLayer = L.geoJson(geojsonData, {
+                    style: style,
+                    onEachFeature: onEachFeature,
+                }).addTo(map);
+
+                // Optional: fit bounds once
+                try {
+                    map.fitBounds(geoJsonLayer.getBounds(), {
+                        padding: [10, 10]
+                    });
+                } catch (e) {}
+            }
+
+            function fetchPreview() {
+                resetComparison();
+                setLoading(true);
+
+                // Optional: set dropdowns to preview defaults visually
+                // yearSelect.value = new Date().getFullYear();
+                // riskSelect.value = 'All'; // you don't have 'All' option, so keep Terrorism or add All option if needed
+
+                const previewMapUrl = `/api/risk-map-preview`;
+                const previewCardUrl = `/api/risk-map-preview-card`;
+
+                fetch(previewMapUrl)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`Preview map failed: ${res.status}`);
+                        return res.json();
+                    })
+                    .then(geojson => {
+                        renderGeojson(geojson);
+                        setLoading(false);
+                    })
+                    .catch(err => {
+                        console.error('[risk-map] preview map failed:', err);
+                        setLoading(false);
+                    });
+
+                fetch(previewCardUrl)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`Preview card failed: ${res.status}`);
+                        return res.json();
+                    })
+                    .then(cardData => {
+                        threatCard.textContent = cardData?.topThreatGroups ?? 'N/A';
+                    })
+                    .catch(err => {
+                        console.error('[risk-map] preview card failed:', err);
+                        threatCard.textContent = 'Data Unavailable';
+                    });
+            }
+
+
+
+            applyButton.addEventListener('click', requireAuth(fetchMapData));
+
+            if (IS_AUTH) {
+                fetchMapData();
+            } else {
+                fetchPreview();
+            }
+
         });
     </script>
 
@@ -542,38 +703,37 @@
             Ensures popups are never clipped while preserving controls
             ===================================================== */
 
-            /* Elevate popup pane only */
-            .leaflet-popup-pane {
-                z-index: 10000 !important;
-            }
+        /* Elevate popup pane only */
+        .leaflet-popup-pane {
+            z-index: 10000 !important;
+        }
 
-            /* Ensure popup wrapper is above everything else */
-            .leaflet-popup {
-                z-index: 10001 !important;
-            }
+        /* Ensure popup wrapper is above everything else */
+        .leaflet-popup {
+            z-index: 10001 !important;
+        }
 
-            /* Prevent parent containers from clipping popups */
-            #risk-map {
-                overflow: visible !important;
-            }
+        /* Prevent parent containers from clipping popups */
+        #risk-map {
+            overflow: visible !important;
+        }
 
-            /* Restore and elevate Leaflet controls (zoom, attribution) */
-            .leaflet-top,
-            .leaflet-bottom {
-                z-index: 11000 !important;
-            }
+        /* Restore and elevate Leaflet controls (zoom, attribution) */
+        .leaflet-top,
+        .leaflet-bottom {
+            z-index: 11000 !important;
+        }
 
-            /* Ensure controls remain interactive */
-            .leaflet-control {
-                z-index: 11001 !important;
-                pointer-events: auto;
-            }
+        /* Ensure controls remain interactive */
+        .leaflet-control {
+            z-index: 11001 !important;
+            pointer-events: auto;
+        }
 
-            /* Avoid stacking context issues caused by transforms */
-            .leaflet-container {
-                transform: none !important;
-            }
-
+        /* Avoid stacking context issues caused by transforms */
+        .leaflet-container {
+            transform: none !important;
+        }
     </style>
 
 </x-layout>

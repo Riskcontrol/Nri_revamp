@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\StateInsight;
 use App\Services\GroqAIService;
 use App\Services\SpreadsheetProcessorService;
-use Illuminate\Support\Facades\Gate; // <--- ADD THIS LINE
+use Illuminate\Support\Facades\Gate;
 use App\Models\User;
 
 class AppServiceProvider extends ServiceProvider

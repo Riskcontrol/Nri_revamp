@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: [
             'downloadComplete',
         ]);
+        $middleware->alias([
+            'auth.interact' => \App\Http\Middleware\RequireAuthForInteraction::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

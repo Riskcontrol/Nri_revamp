@@ -30,35 +30,43 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/', [HomeNewController::class, 'getStateRiskReports'])
     ->name('home');
 Route::get('/location-intelligence/{state}/{year?}', [LocationController::class, 'getTotalIncident'])->name('locationIntelligence');
-Route::get('/get-state-data/{state}/{year}', [LocationController::class, 'getStateData']);
+Route::get('/get-state-data/{state}/{year}', [LocationController::class, 'getStateData'])->middleware('auth.interact');
 Route::get('/get-total-incidents-only/{state}/{year}', [LocationController::class, 'getTotalIncidentsOnly']);
-Route::get('/get-incident-locations/{state}/{year}', [LocationController::class, 'getIncidentLocations']);
+Route::get('/get-incident-locations/{state}/{year}', [LocationController::class, 'getIncidentLocations'])->middleware('auth.interact');
 
 Route::get('/security-intelligence', [SecurityIntelligenceController::class, 'getOverview'])
     ->name('securityIntelligence');
 Route::get('/get-top-5-risks/{state}/{year}', [LocationController::class, 'getTop5Risks']);
 
-Route::get('/get-lga-incident-counts/{state}/{year}', [LocationController::class, 'getLgaIncidentCounts']);
+Route::get('/get-lga-incident-counts/{state}/{year}', [LocationController::class, 'getLgaIncidentCounts'])->middleware('auth.interact');
 
-Route::get('/risk-treemap-data', [SecurityIntelligenceController::class, 'getRiskData']);
+
+Route::get('/risk-preview-data', [SecurityIntelligenceController::class, 'getPreviewRiskData'])
+    ->name('risk.preview');
+
+Route::get('/risk-treemap-data', [SecurityIntelligenceController::class, 'getRiskData'])->middleware('auth.interact');
 
 Route::get('/security-intelligence/analysis', [SecurityIntelligenceController::class, 'getRiskIndexAnalysis'])->name('security.analysis');
 
 Route::get('/risk-map-data', [SecurityIntelligenceController::class, 'getMapData']);
 
-Route::get('/get-comparison-risk-counts', [LocationController::class, 'getComparisonRiskCounts']);
+Route::get('/get-comparison-risk-counts', [LocationController::class, 'getComparisonRiskCounts'])->middleware('auth.interact');
 
 
 
 
 Route::get('/risk-map', [RiskMapController::class, 'showMapPage'])
-    ->name('risk-map.show'); // We name it 'risk-map.show'
+    ->name('risk-map.show');
 
-// THIS IS YOUR API ROUTE (you should already have this)
+// PUBLIC PREVIEW (no middleware)
+Route::get('/api/risk-map-preview', [RiskMapController::class, 'getPreviewData']);
+Route::get('/api/risk-map-preview-card', [RiskMapController::class, 'getPreviewCardData']);
+
 Route::get('/api/risk-map-data', [RiskMapController::class, 'getMapData'])
-    ->name('map.data');
+    ->name('map.data')
+    ->middleware('auth.interact');
 
-Route::get('/api/risk-map-card-data', [RiskMapController::class, 'getMapCardData'])->name('map.cardData');
+Route::get('/api/risk-map-card-data', [RiskMapController::class, 'getMapCardData'])->name('map.cardData')->middleware('auth.interact');
 
 
 Route::get('/all-insights', [HomeNewController::class, 'allInsights'])->name('insights.index');
