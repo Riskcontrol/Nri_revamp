@@ -15,6 +15,7 @@ use App\Http\Controllers\FileProcessorController;
 use App\Http\Controllers\RiskToolController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\EnterpriseAccessController;
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
     ->name('register')
@@ -53,6 +54,12 @@ Route::get('/risk-map-data', [SecurityIntelligenceController::class, 'getMapData
 Route::get('/get-comparison-risk-counts', [LocationController::class, 'getComparisonRiskCounts'])->middleware('auth.interact');
 
 
+
+Route::get('/enterprise-access', [EnterpriseAccessController::class, 'create'])
+    ->name('enterprise-access.create');
+
+Route::post('/enterprise-access', [EnterpriseAccessController::class, 'store'])
+    ->name('enterprise-access.store');
 
 
 Route::get('/risk-map', [RiskMapController::class, 'showMapPage'])

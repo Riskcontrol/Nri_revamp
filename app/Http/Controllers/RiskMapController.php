@@ -108,6 +108,21 @@ class RiskMapController extends Controller
      */
     public function getMapData(Request $request)
     {
+
+        $user = auth()->user();
+        $selectedRiskType = (string) $request->input('risk_type', 'All');
+
+        if ($user && (int)$user->tier === 1) {
+            if ($selectedRiskType !== 'Terrorism') {
+                return response()->json([
+                    'message' => 'Premium access required. Free users can view Terrorism layer only.',
+                    'upgrade' => true,
+                    'allowed' => ['Terrorism'],
+                ], 403);
+            }
+        }
+
+
         $selectedYear     = (int) $request->input('year', now()->year);
         $selectedRiskType = (string) $request->input('risk_type', 'All');
 
@@ -457,15 +472,25 @@ class RiskMapController extends Controller
 
     public function getMapCardData(Request $request)
     {
+
+        $user = auth()->user();
+        $selectedRiskType = (string) $request->input('risk_type', 'All');
+
+        if ($user && (int)$user->tier === 1) {
+            if ($selectedRiskType !== 'Terrorism') {
+                return response()->json([
+                    'message' => 'Premium access required. Free users can view Terrorism layer only.',
+                    'upgrade' => true,
+                    'allowed' => ['Terrorism'],
+                ], 403);
+            }
+        }
+
+
         $selectedYear = (int)$request->input('year', now()->year);
         $selectedRiskType = $request->input('risk_type', 'All');
 
-        // Short-circuit for types that likely don't have "Groups" (e.g. Theft)
-        // if (in_array($selectedRiskType, ['Crime', 'Property-Risk'])) {
-        //     return response()->json([
-        //         'topThreatGroups' => 'N/A'
-        //     ]);
-        // }
+
 
         return Cache::remember("map_card_{$selectedYear}_{$selectedRiskType}", 3600, function () use ($selectedYear, $selectedRiskType) {
 

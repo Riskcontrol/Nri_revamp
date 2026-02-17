@@ -37,12 +37,19 @@
                                     class="block text-xs font-medium text-gray-400 mb-1 uppercase">Risk Index</label>
                                 <select id="filter-risk" name="risk_type"
                                     class="block w-full bg-gray-700 border-gray-600 text-white rounded-md p-2 text-sm focus:ring-blue-500 cursor-pointer">
-                                    <option value="Terrorism">Terrorism</option>
-                                    <option value="Kidnapping">Kidnapping</option>
-                                    <option value="Crime">Crime</option>
-                                    <option value="Homicide">Homicide</option>
-                                    <option value="Property-Risk">Property Risk</option>
+                                    @php
+                                        $tier = auth()->user()->tier ?? 0;
+                                        $tier2 = $tier === 1; // your Tier2/free lock logic
+                                    @endphp
+
+                                    <option value="Terrorism" data-premium="0">Terrorism</option>
+
+                                    <option value="Kidnapping" data-premium="1">Kidnapping (Premium)</option>
+                                    <option value="Crime" data-premium="1">Crime (Premium)</option>
+                                    <option value="Homicide" data-premium="1">Homicide (Premium)</option>
+                                    <option value="Property-Risk" data-premium="1">Property Risk (Premium)</option>
                                 </select>
+
                             </div>
 
                             {{-- Comparison Mode --}}
@@ -112,6 +119,8 @@
         </div>
     </div>
     <x-auth-required-modal />
+    <x-tier-lock-modal />
+
 
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -168,6 +177,81 @@
                 document.addEventListener('keydown', onEsc);
             }
 
+            // ========= Tier Lock Modal (Risk Map) =========
+            function openTierLockModal(payload = {}) {
+                const modal = document.getElementById("tierLockModal");
+                if (!modal) return;
+
+                const titleEl = document.getElementById("tierLockTitle");
+                const subtitleEl = document.getElementById("tierLockSubtitle");
+                const msgEl = document.getElementById("tierLockMessage");
+
+                const label1El = document.getElementById("tierLockLabel1");
+                const label2El = document.getElementById("tierLockLabel2");
+                const lockedEl = document.getElementById("tierLockLocation");
+                const whenEl = document.getElementById("tierLockWhen");
+
+                const footerEl = document.getElementById("tierLockFooterText");
+                const ctaEl = document.getElementById("tierLockCta");
+
+                // Defaults that match your modal copy
+                const title = payload.title || "Locked";
+                const subtitle = payload.subtitle || "This option is not available on your plan.";
+                const message = payload.message || "";
+
+                // These map to your modal fields
+                const label1 = payload.label1 || "Locked item";
+                const label2 = payload.label2 || "Next switch";
+                const lockedItem = payload.locked_item || payload.locked_location || "";
+                const whenText = payload.when || payload.switch_available_at || "Upgrade to unlock";
+
+                const footer = payload.footer || "Upgrade to unlock premium access.";
+                const ctaUrl = payload.cta_url || "#";
+
+                if (titleEl) titleEl.textContent = title;
+                if (subtitleEl) subtitleEl.textContent = subtitle;
+                if (msgEl) msgEl.textContent = message;
+
+                if (label1El) label1El.textContent = label1;
+                if (label2El) label2El.textContent = label2;
+                if (lockedEl) lockedEl.textContent = lockedItem;
+                if (whenEl) whenEl.textContent = whenText;
+
+                if (footerEl) footerEl.textContent = footer;
+                if (ctaEl) ctaEl.href = ctaUrl;
+
+                modal.classList.remove("hidden");
+                modal.classList.add("flex");
+                document.body.style.overflow = "hidden";
+            }
+
+            function closeTierLockModal() {
+                const modal = document.getElementById("tierLockModal");
+                if (!modal) return;
+
+                modal.classList.add("hidden");
+                modal.classList.remove("flex");
+                document.body.style.overflow = "";
+            }
+
+            // wire close buttons/backdrop/esc
+            document.getElementById("tierLockClose")?.addEventListener("click", closeTierLockModal);
+            document.getElementById("tierLockOk")?.addEventListener("click", closeTierLockModal);
+
+            document.getElementById("tierLockModal")?.addEventListener("click", function(e) {
+                if (e.target === this) closeTierLockModal();
+            });
+
+            document.addEventListener("keydown", function(e) {
+                if (e.key === "Escape") closeTierLockModal();
+            });
+
+            // If you flashed a tier lock from server session, open it automatically
+            if (window.__TIER_LOCK_FLASH__) {
+                openTierLockModal(window.__TIER_LOCK_FLASH__);
+            }
+
+
 
             // Generic guard wrapper
             function requireAuth(actionFn) {
@@ -199,6 +283,102 @@
             const riskSelect = document.getElementById('filter-risk');
             const applyButton = document.getElementById('apply-filters');
             const threatCard = document.getElementById('card-top-threats');
+
+            const USER_TIER = @json(auth()->user()?->tier); // null if guest
+            const IS_TIER2 = USER_TIER !== null && parseInt(USER_TIER, 10) === 1; // your tier lock rule
+
+            let lastAllowedRisk = riskSelect?.value || "Terrorism";
+            let lastAllowedYear = yearSelect?.value || "";
+
+            // helper: build tier-lock payload that your modal expects
+            function openRiskTierLock() {
+                const selectedText =
+                    riskSelect.options[riskSelect.selectedIndex]?.text || "Premium Risk Index";
+
+                openTierLockModal({
+                    title: "Premium Feature",
+                    subtitle: "This Risk Map is locked on your plan.",
+                    message: "Upgrade to Premium to access this Risk Index on the Risk Map.",
+
+                    label1: "Locked risk map",
+                    locked_item: selectedText,
+
+                    label2: "How to unlock",
+                    when: "Upgrade to Premium",
+
+                    footer: "Premium unlocks Kidnapping, Crime, Homicide and Property Risk on the Risk Map.",
+                    // Put your real route here when ready:
+                    cta_url: "/enterprise-access"
+                });
+            }
+
+            // IMPORTANT: if user tries premium, revert + stop loading states
+            function revertRiskSelection() {
+                if (riskSelect) riskSelect.value = lastAllowedRisk;
+                if (yearSelect) yearSelect.value = lastAllowedYear;
+                // ensure button/loader aren’t stuck
+                setLoading(false);
+            }
+
+            // Risk select lock logic
+            riskSelect?.addEventListener("change", function() {
+                const selectedOption = riskSelect.options[riskSelect.selectedIndex];
+                const isPremium = selectedOption?.dataset?.premium === "1";
+
+                // guest: show auth modal + revert
+                if (!IS_AUTH && isPremium) {
+                    showAuthModalAndRedirect();
+                    revertRiskSelection();
+                    return;
+                }
+
+                // tier2/free: allow Terrorism only, lock premium options
+                if (IS_AUTH && IS_TIER2 && isPremium) {
+                    openRiskTierLock();
+                    revertRiskSelection();
+                    return;
+                }
+
+                // ✅ allowed
+                lastAllowedRisk = riskSelect.value;
+            });
+
+            // Optional: also lock year switching for Tier2 if you want “current year only”
+            yearSelect?.addEventListener("change", function() {
+                const selectedYear = parseInt(yearSelect.value, 10);
+
+                if (!IS_AUTH) {
+                    // guests can still view preview; if you want to block year changes for guests:
+                    // showAuthModalAndRedirect(); yearSelect.value = lastAllowedYear; return;
+                    lastAllowedYear = yearSelect.value;
+                    return;
+                }
+
+                if (IS_TIER2) {
+                    // If Tier2 should only see current year, block others:
+                    // Replace 2026 with your computed server year if needed
+                    const CURRENT_YEAR = @json((int) date('Y'));
+                    if (selectedYear !== CURRENT_YEAR) {
+                        if (typeof openTierLockModal === "function") {
+                            openTierLockModal({
+                                upgrade: true,
+                                message: "Historical years are available on Premium.",
+                                locked_location: "Historical Data",
+                                switch_available_at: "Upgrade to unlock",
+                                allowed: {
+                                    year: CURRENT_YEAR
+                                }
+                            });
+                        }
+                        yearSelect.value = lastAllowedYear; // revert
+                        setLoading(false);
+                        return;
+                    }
+                }
+
+                lastAllowedYear = yearSelect.value;
+            });
+
 
             // --- 3. INITIALIZE MAP ---
             var map = L.map('risk-map').setView([9.0820, 8.6753], 6);
@@ -629,7 +809,27 @@
 
 
 
-            applyButton.addEventListener('click', requireAuth(fetchMapData));
+            applyButton.addEventListener("click", function() {
+                const selectedOption = riskSelect.options[riskSelect.selectedIndex];
+                const isPremium = selectedOption?.dataset?.premium === "1";
+
+                // guest trying premium
+                if (!IS_AUTH && isPremium) {
+                    showAuthModalAndRedirect();
+                    revertRiskSelection();
+                    return;
+                }
+
+                // tier2/free trying premium
+                if (IS_AUTH && IS_TIER2 && isPremium) {
+                    openRiskTierLock();
+                    revertRiskSelection();
+                    return;
+                }
+
+                // ✅ allowed
+                fetchMapData();
+            });
 
             if (IS_AUTH) {
                 fetchMapData();

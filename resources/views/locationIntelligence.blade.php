@@ -250,6 +250,7 @@
         </div>
     </div>
     <x-auth-required-modal />
+    <x-tier-lock-modal />
 
 
     {{-- Scripts --}}
@@ -279,6 +280,79 @@
             modal.classList.remove("flex");
             document.body.style.overflow = "";
         }
+
+        function openTierLockModal(payload = {}) {
+            const modal = document.getElementById("tierLockModal");
+            if (!modal) return;
+
+            // elements
+            const title = document.getElementById("tierLockTitle");
+            const subtitle = document.getElementById("tierLockSubtitle");
+            const msg = document.getElementById("tierLockMessage");
+            const loc = document.getElementById("tierLockLocation");
+            const when = document.getElementById("tierLockWhen");
+            const label1 = document.getElementById("tierLockLabel1");
+            const label2 = document.getElementById("tierLockLabel2");
+            const footer = document.getElementById("tierLockFooterText");
+            const cta = document.getElementById("tierLockCta");
+
+            // Decide context
+            // Example payloads:
+            // { context:"location", locked_location:"Lagos", switch_available_at:"2026-03-01", message:"..." }
+            // { context:"risk", locked_index:"Kidnapping Index", allowed:{index_type:"Composite Risk Index", year:2026}, message:"..." }
+            const context = payload.context || (payload.locked_location ? "location" : "risk");
+
+            if (context === "location") {
+                if (title) title.textContent = "Location Locked";
+                if (subtitle) subtitle.textContent = "You can explore only one location on the free plan.";
+                if (label1) label1.textContent = "Locked location";
+                if (label2) label2.textContent = "Next switch";
+                if (footer) footer.textContent = "Unlock all States and 774 LGAs with premium access.";
+                if (loc) loc.textContent = (payload.locked_location || "").toString().toUpperCase();
+                if (when) when.textContent = payload.switch_available_at || "—";
+            } else {
+                // Risk analysis locking (index/year)
+                if (title) title.textContent = "Premium Feature";
+                if (subtitle) subtitle.textContent = "This analysis option is locked on your plan.";
+                if (label1) label1.textContent = "Locked option";
+                if (label2) label2.textContent = "Allowed now";
+                if (footer) footer.textContent = "Upgrade to access all indices and historical years.";
+
+                const lockedOpt =
+                    payload.locked_index ||
+                    payload.locked_year ||
+                    payload.locked_item ||
+                    payload.locked_location || "";
+
+                const allowedNow = payload.allowed ?
+                    `${payload.allowed.index_type || "Composite Risk Index"} • ${payload.allowed.year || "Current Year"}` :
+                    "Composite Risk Index • Current Year";
+
+                if (loc) loc.textContent = lockedOpt || "Premium option";
+                if (when) when.textContent = allowedNow;
+            }
+
+            if (msg) msg.textContent = payload.message || "This option is locked on your plan.";
+
+            // Optional: set CTA link if you want
+            if (cta && payload.cta_url) cta.href = payload.cta_url;
+
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+            document.body.style.overflow = "hidden";
+        }
+
+        function closeTierLockModal() {
+            const modal = document.getElementById("tierLockModal");
+            if (!modal) return;
+
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+            document.body.style.overflow = "";
+        }
+
+
+
 
         // ✅ Guard wrapper: block action + open modal
         function requireAuth(actionFn) {
@@ -670,8 +744,58 @@
                         "X-Requested-With": "XMLHttpRequest"
                     }
                 })
-                .then((r) => r.json())
+                .then(async (r) => {
+                    // always attempt JSON, but don't crash if it's not JSON
+                    const data = await r.json().catch(() => ({}));
+
+                    if (!r.ok) {
+                        // ✅ Tier2 lock case
+                        if (r.status === 403 && data?.upgrade) {
+                            openTierLockModal(data);
+
+                            // rollback dropdowns + state title + URL
+                            const stateSelect = document.getElementById("state-select");
+                            const yearSelect = document.getElementById("year-select");
+
+                            if (stateSelect && lastAllowedState) stateSelect.value = lastAllowedState;
+                            if (yearSelect && lastAllowedYear) yearSelect.value = lastAllowedYear;
+
+                            const stateName = document.getElementById("state-name");
+                            if (stateName) stateName.textContent = lastAllowedState || primaryState;
+
+                            // restore URL (no new history entry)
+                            if (lastAllowedState && lastAllowedYear) {
+                                const backUrl = `/location-intelligence/${lastAllowedState}/${lastAllowedYear}`;
+                                window.history.replaceState({
+                                        state: lastAllowedState,
+                                        year: lastAllowedYear
+                                    },
+                                    "",
+                                    backUrl
+                                );
+
+                                // reload allowed dashboard
+                                updateMainDashboard(lastAllowedState, lastAllowedYear);
+                            }
+
+                            return null; // stop normal success flow
+                        }
+
+                        // other failures
+                        throw new Error(data?.message || `Request failed (${r.status})`);
+                    }
+
+                    return data;
+                })
                 .then((data) => {
+                    if (!data) return; // handled above
+
+                    // ✅ mark this as the last allowed selection ONLY after success
+                    lastAllowedState = primaryState;
+                    lastAllowedYear = selectedYear;
+
+
+                    // ✅ keep ALL your existing success logic as-is from here ↓
                     safeSetText("total-incidents", data.total_incidents);
                     const totalTitle = document.getElementById("total-incidents-title");
                     if (totalTitle) totalTitle.textContent = `Tracked Incidents (${selectedYear})`;
@@ -687,7 +811,6 @@
 
                     safeSetText("most-affected-lga", data.mostAffectedLGA ? data.mostAffectedLGA.lga : "None");
 
-                    // Trend
                     if (incidentsTrendChart) {
                         incidentsTrendChart.updateOptions({
                             xaxis: {
@@ -700,7 +823,6 @@
                         }]);
                     }
 
-                    // Prevalent risk
                     if (myChart2) {
                         myChart2.data.labels = data.topRiskLabels;
                         myChart2.data.datasets[0].label = primaryState;
@@ -708,21 +830,18 @@
                         myChart2.update();
                     }
 
-                    // Actors
                     if (attackChart) {
                         attackChart.data.labels = data.attackLabels;
                         attackChart.data.datasets[0].data = data.attackCounts;
                         attackChart.update();
                     }
 
-                    // Crime score & rank
                     safeSetText("crime-index-score", data.stateCrimeIndexScore);
                     const rankSpan = document.getElementById("state-rank");
                     const ordinalSup = document.getElementById("state-rank-ordinal");
                     if (rankSpan) rankSpan.textContent = data.stateRank;
                     if (ordinalSup) ordinalSup.textContent = data.stateRankOrdinal;
 
-                    // Crime table
                     const crimeTableBody = document.getElementById("crime-table-body");
                     if (crimeTableBody) {
                         let html = "";
@@ -735,16 +854,16 @@
                                     "bg-green-500 text-white border-green-500 uppercase";
 
                                 html += `
-                                <tr class="border-b border-gray-700">
-                                    <td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td>
-                                    <td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td>
-                                    <td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td>
-                                    <td class="py-4 px-4 whitespace-nowrap">
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wider border ${pill}">
-                                            ${item.status}
-                                        </span>
-                                    </td>
-                                </tr>`;
+                    <tr class="border-b border-gray-700">
+                        <td class="py-4 px-4 font-medium whitespace-nowrap">${item.indicator_name}</td>
+                        <td class="py-4 px-4 whitespace-nowrap">${item.incident_count}</td>
+                        <td class="py-4 px-4 whitespace-nowrap">${item.previous_year_count}</td>
+                        <td class="py-4 px-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wider border ${pill}">
+                                ${item.status}
+                            </span>
+                        </td>
+                    </tr>`;
                             });
                         } else {
                             html =
@@ -760,6 +879,7 @@
                     const c = document.getElementById("insights-container");
                     if (c) c.innerHTML = '<p class="text-red-400 p-4">Error loading data.</p>';
                 });
+
         }
 
         // ✅ Visitor-block: prevent opening select
@@ -783,8 +903,7 @@
             const primaryState = stateSelect.value;
             const selectedYear = yearSelect.value;
 
-            lastAllowedState = primaryState;
-            lastAllowedYear = selectedYear;
+
 
             document.getElementById("state-name").textContent = primaryState;
 
@@ -816,6 +935,16 @@
         });
 
         document.addEventListener("DOMContentLoaded", function() {
+
+            document.getElementById("tierLockClose")?.addEventListener("click", closeTierLockModal);
+            document.getElementById("tierLockOk")?.addEventListener("click", closeTierLockModal);
+            document.getElementById("tierLockModal")?.addEventListener("click", function(e) {
+                if (e.target === this) closeTierLockModal();
+            });
+            document.addEventListener("keydown", function(e) {
+                if (e.key === "Escape") closeTierLockModal();
+            });
+
             // last allowed values
             lastAllowedState = document.getElementById("state-select")?.value;
             lastAllowedYear = document.getElementById("year-select")?.value;
@@ -831,6 +960,10 @@
             });
 
             initializeCharts();
+            if (window.__TIER_LOCK_FLASH__) {
+                openTierLockModal(window.__TIER_LOCK_FLASH__);
+            }
+
 
             const stateSelect = document.getElementById("state-select");
             const yearSelect = document.getElementById("year-select");

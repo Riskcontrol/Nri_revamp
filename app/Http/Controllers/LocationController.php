@@ -156,6 +156,9 @@ class LocationController extends Controller
      */
     public function getTotalIncident(LocationInsightGenerator $ai, $state, $year = null)
     {
+
+        $this->enforceTier2LocationLock($state, request());
+
         $year = (int) ($year ?: now()->year);
         $availableYears = range(now()->year, 2018);
         $states = StateInsight::all();
@@ -442,6 +445,8 @@ class LocationController extends Controller
      */
     public function getStateData(LocationInsightGenerator $ai, Request $request, $state, $year)
     {
+        $this->enforceTier2LocationLock($state, $request);
+
         $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
             ->count();
@@ -738,8 +743,9 @@ class LocationController extends Controller
         return response()->json($lgaCounts);
     }
 
-    public function getComparisonRiskCounts(Request $request)
+    public function getComparisonRiskCounts(Request $request, $state)
     {
+        $this->enforceTier2LocationLock($state, $request);
         $state = $request->input('state');
         $year = $request->input('year');
         $indicators = $request->input('indicators');
@@ -764,5 +770,53 @@ class LocationController extends Controller
         return response()->json([
             'counts' => $orderedCounts,
         ]);
+    }
+
+    private function enforceTier2LocationLock(string $state, ?Request $request = null)
+    {
+        $user = auth()->user();
+        if (!$user) return;
+
+        if ((int) $user->tier !== 1) return;
+
+        $stateKey = strtolower(trim($state));
+
+        if (!$user->locked_location) {
+            $user->locked_location = $stateKey;
+            $user->location_switch_available_at = now()->addMonth();
+            $user->save();
+            return;
+        }
+
+        if ($user->locked_location === $stateKey) return;
+
+        $lockedUntil = $user->location_switch_available_at;
+
+        if ($lockedUntil && now()->lt($lockedUntil)) {
+            $payload = [
+                'message' => 'You can switch location once per month. Unlock all States and 774 LGAs with premium access.',
+                'locked_location' => $user->locked_location,
+                'switch_available_at' => $lockedUntil->toDateTimeString(),
+                'upgrade' => true,
+            ];
+
+            $req = $request ?? request();
+
+            // ✅ AJAX / fetch calls
+            if ($req->expectsJson() || $req->ajax() || $req->header('X-Requested-With') === 'XMLHttpRequest') {
+                abort(response()->json($payload, 403));
+            }
+
+            // ✅ Normal page navigation → redirect with flash
+            return redirect()
+                ->to("/location-intelligence/{$user->locked_location}")
+                ->with('tier_lock', $payload)
+                ->send();
+        }
+
+        // Switch allowed
+        $user->locked_location = $stateKey;
+        $user->location_switch_available_at = now()->addMonth();
+        $user->save();
     }
 }

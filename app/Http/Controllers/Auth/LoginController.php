@@ -19,17 +19,17 @@ class LoginController extends Controller implements HasMiddleware
         ];
     }
 
-   /**
- * Helper method to determine the redirect path.
- */
-public function redirectPath()
-{
-    if (method_exists($this, 'redirectTo')) {
-        return $this->redirectTo();
-    }
+    /**
+     * Helper method to determine the redirect path.
+     */
+    public function redirectPath()
+    {
+        if (method_exists($this, 'redirectTo')) {
+            return $this->redirectTo();
+        }
 
-    return property_exists($this, 'redirectTo') ? $this->redirectTo : '/home';
-}
+        return property_exists($this, 'redirectTo') ? $this->redirectTo : '/home';
+    }
     protected $redirectTo = '/location-intelligence/Lagos';
 
 
@@ -38,7 +38,7 @@ public function redirectPath()
         // If the user is registered but not yet authorized for full data
         if ($user->access_level < 1) {
             return redirect()->route('locationIntelligence', ['state' => 'Lagos'])
-                             ->with('show_demo_popup', true);
+                ->with('show_demo_popup', true);
         }
 
         // If they are a verified client, just let them in normally

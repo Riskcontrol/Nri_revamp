@@ -22,7 +22,10 @@ class User extends Authenticatable
         'email',
         'password',
         'organization',
-        'access_level'
+        'access_level',
+        'tier',
+        'locked_location',
+        'location_switch_available_at',
     ];
 
     /**
@@ -45,6 +48,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'location_switch_available_at' => 'datetime',
         ];
     }
 }

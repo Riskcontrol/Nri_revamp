@@ -363,6 +363,34 @@ class SecurityIntelligenceController extends Controller
         $selectedYear  = (int) $request->input('year', now()->year);
         $selectedIndex = (string) $request->input('index_type', 'Composite Risk Index');
 
+        $user = $request->user();
+        if ($user && (int) $user->tier === 1) { // Tier2
+            $currentYear = (int) now()->year;
+
+            $allowedIndex = 'Composite Risk Index';
+            $allowedYear  = $currentYear;
+
+            if ($selectedIndex !== $allowedIndex || (int)$selectedYear !== (int)$allowedYear) {
+                $payload = [
+                    'message' => 'Premium Access: Select other indexes and historical years with premium.',
+                    'upgrade' => true,
+                    'allowed' => [
+                        'index_type' => $allowedIndex,
+                        'year' => $allowedYear,
+                    ],
+                ];
+
+                // AJAX → JSON 403 (so your JS can show modal)
+                if ($request->expectsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                    return response()->json($payload, 403);
+                }
+
+                // Non-AJAX → redirect back (optional safety)
+                return redirect()->route('securityIntelligence')->with('tier_lock', $payload);
+            }
+        }
+
+
         $riskIndicator   = $this->riskMapping[$selectedIndex] ?? 'All';
         $indicatorFilter = ($riskIndicator === 'All') ? null : $riskIndicator;
 

@@ -12,7 +12,7 @@
             @guest
                 <div class="mt-4 bg-blue-900/30 border border-blue-500 rounded-lg p-4 text-center">
                     <p class="text-blue-200 text-sm">
-                        📊 <strong>Preview Mode:</strong> Showing current year data only.
+                        <strong>Preview Mode:</strong> Showing current year data only.
                         <a href="{{ route('login') }}" class="underline hover:text-blue-100">Sign in</a>
                         to access full historical data and analytics.
                     </p>
@@ -23,13 +23,23 @@
 
                 <div>
                     <div class="relative mt-1">
+                        @php
+                            $user = auth()->user();
+                            $isTier2 = $user && (int) $user->tier === 1; // your Tier2 logic
+                            $currentYear = (int) date('Y');
+                            $startYear = 2018;
+                        @endphp
+
                         <select id="index_type" name="index_type"
                             class="block w-full sm:w-60 appearance-none rounded-md border border-gray-600 bg-[#2b3a4a] py-3 pl-3 pr-10 text-base text-white shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
-                            <option selected>Composite Risk Index</option>
-                            <option>Terrorism Index</option>
-                            <option>Kidnapping Index</option>
+
+                            <option value="Composite Risk Index" selected>Composite Risk Index</option>
+
+                            <option value="Terrorism Index">Terrorism Index (Premium)</option>
+                            <option value="Kidnapping Index">Kidnapping Index (Premium)</option>
 
                         </select>
+
                         <div
                             class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
                             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
@@ -45,20 +55,20 @@
 
                 <div>
                     <div class="relative mt-1">
+                        @php
+                            $currentYear = date('Y');
+                            $startYear = 2018;
+                        @endphp
                         <select id="year" name="year"
                             class="block w-full sm:w-40 appearance-none rounded-md border border-gray-600 bg-[#2b3a4a] py-3 pl-3 pr-10 text-base text-white shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
 
-                            @php
-                                $currentYear = date('Y');
-                                $startYear = 2018;
-                            @endphp
-
                             @foreach (range($currentYear, $startYear) as $y)
                                 <option value="{{ $y }}" {{ $y == $currentYear ? 'selected' : '' }}>
-                                    {{ $y }}
+                                    {{ $y }}{!! $isTier2 && $y != $currentYear ? ' (Premium)' : '' !!}
                                 </option>
                             @endforeach
                         </select>
+
                         <div
                             class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
                             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
@@ -174,16 +184,18 @@
 
 </div>
 <x-auth-required-modal />
-
+<x-tier-lock-modal />
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-
 <script>
-    // ✅ Auth flag (server-side)
+    // ✅ Flags from backend
     const IS_AUTH = @json(auth()->check());
+    const USER_TIER = @json(auth()->user()?->tier); // null if guest
+    const IS_TIER2 = USER_TIER !== null && parseInt(USER_TIER, 10) === 1; // your Tier2 = 1
+    const CURRENT_YEAR = @json((int) date('Y'));
 
     // ---------------------------
-    // Modal open/close
+    // Auth modal
     // ---------------------------
     function openAuthModal() {
         const modal = document.getElementById("authRequiredModal");
@@ -201,7 +213,6 @@
         document.body.style.overflow = "";
     }
 
-    // ✅ Guard wrapper
     function requireAuth(actionFn) {
         return function(...args) {
             if (!IS_AUTH) {
@@ -212,22 +223,92 @@
         };
     }
 
-    // ✅ Visitor-block: prevent opening select UI
     function blockSelectOpen(e, selectEl, fallbackGetter) {
         if (IS_AUTH) return;
-
         const fallback = typeof fallbackGetter === "function" ? fallbackGetter() : "";
         if (selectEl) selectEl.value = fallback;
-
         e.preventDefault();
         e.stopPropagation();
-
         openAuthModal();
         selectEl?.blur();
     }
 
     // ---------------------------
-    // Helpers (global)
+    // Tier lock modal
+    // ---------------------------
+    function openTierLockModal(payload = {}) {
+        const modal = document.getElementById("tierLockModal");
+        if (!modal) return;
+
+        // elements
+        const title = document.getElementById("tierLockTitle");
+        const subtitle = document.getElementById("tierLockSubtitle");
+        const msg = document.getElementById("tierLockMessage");
+        const loc = document.getElementById("tierLockLocation");
+        const when = document.getElementById("tierLockWhen");
+        const label1 = document.getElementById("tierLockLabel1");
+        const label2 = document.getElementById("tierLockLabel2");
+        const footer = document.getElementById("tierLockFooterText");
+        const cta = document.getElementById("tierLockCta");
+
+        // Decide context
+        // Example payloads:
+        // { context:"location", locked_location:"Lagos", switch_available_at:"2026-03-01", message:"..." }
+        // { context:"risk", locked_index:"Kidnapping Index", allowed:{index_type:"Composite Risk Index", year:2026}, message:"..." }
+        const context = payload.context || (payload.locked_location ? "location" : "risk");
+
+        if (context === "location") {
+            if (title) title.textContent = "Location Locked";
+            if (subtitle) subtitle.textContent = "You can explore only one location on the free plan.";
+            if (label1) label1.textContent = "Locked location";
+            if (label2) label2.textContent = "Next switch";
+            if (footer) footer.textContent = "Unlock all States and 774 LGAs with premium access.";
+            if (loc) loc.textContent = (payload.locked_location || "").toString().toUpperCase();
+            if (when) when.textContent = payload.switch_available_at || "—";
+        } else {
+            // Risk analysis locking (index/year)
+            if (title) title.textContent = "Premium Feature";
+            if (subtitle) subtitle.textContent = "This analysis option is locked on your plan.";
+            if (label1) label1.textContent = "Locked option";
+            if (label2) label2.textContent = "Allowed now";
+            if (footer) footer.textContent = "Upgrade to access all indices and historical years.";
+
+            const lockedOpt =
+                payload.locked_index ||
+                payload.locked_year ||
+                payload.locked_item ||
+                payload.locked_location || "";
+
+            const allowedNow = payload.allowed ?
+                `${payload.allowed.index_type || "Composite Risk Index"} • ${payload.allowed.year || "Current Year"}` :
+                "Composite Risk Index • Current Year";
+
+            if (loc) loc.textContent = lockedOpt || "Premium option";
+            if (when) when.textContent = allowedNow;
+        }
+
+        if (msg) msg.textContent = payload.message || "This option is locked on your plan.";
+
+        // Optional: set CTA link if you want
+        if (cta && payload.cta_url) cta.href = payload.cta_url;
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeTierLockModal() {
+        const modal = document.getElementById("tierLockModal");
+        if (!modal) return;
+
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        document.body.style.overflow = "";
+    }
+
+
+    // ---------------------------
+    // Helpers
     // ---------------------------
     function getRiskCategory(value) {
         if (value <= 1.5) return "Low";
@@ -282,19 +363,18 @@
         let htmlContent = "";
         (aiInsights || []).slice(0, 3).forEach((item) => {
             htmlContent += `
-        <li class="bg-[#2b3a4a] p-4 rounded border-l-4 border-indigo-500 transition-colors duration-300">
-          <div class="flex flex-col">
-            <span class="text-xs font-bold text-gray-300 uppercase tracking-widest mb-1">${item.title ?? "Insight"}</span>
-            <p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line">${item.text ?? ""}</p>
-          </div>
-        </li>
-      `;
+                <li class="bg-[#2b3a4a] p-4 rounded border-l-4 border-indigo-500 transition-colors duration-300">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-gray-300 uppercase tracking-widest mb-1">${item.title ?? "Insight"}</span>
+                        <p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line">${item.text ?? ""}</p>
+                    </div>
+                </li>
+            `;
         });
 
         listContainer.style.opacity = "0";
         setTimeout(() => {
-            listContainer.innerHTML =
-                htmlContent ||
+            listContainer.innerHTML = htmlContent ||
                 `<li class="text-gray-400 text-sm">No AI insights available.</li>`;
             listContainer.style.opacity = "1";
             hideInsightsLoading();
@@ -318,55 +398,61 @@
             else if (state.status === "Improving") statusColorClass = "text-green-500";
 
             tableHtml += `
-        <tr class="border-b border-gray-700 hover:bg-gray-700">
-          <td class="py-3 px-4 font-medium">${state.state}</td>
-          <td class="py-3 px-4">${state.risk_score}%</td>
-          <td class="py-3 px-4">
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskLevelClass(state.risk_level)}">
-              ${state.risk_level}
-            </span>
-          </td>
-          <td class="py-3 px-4">${state.rank_current}</td>
-          <td class="py-3 px-4">${state.rank_previous}</td>
-          <td class="py-3 px-4 font-semibold ${statusColorClass}">${state.status}</td>
-          <td class="py-3 px-4">${state.incidents}</td>
-        </tr>
-      `;
+                <tr class="border-b border-gray-700 hover:bg-gray-700">
+                    <td class="py-3 px-4 font-medium">${state.state}</td>
+                    <td class="py-3 px-4">${state.risk_score}%</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskLevelClass(state.risk_level)}">
+                            ${state.risk_level}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">${state.rank_current}</td>
+                    <td class="py-3 px-4">${state.rank_previous}</td>
+                    <td class="py-3 px-4 font-semibold ${statusColorClass}">${state.status}</td>
+                    <td class="py-3 px-4">${state.incidents}</td>
+                </tr>
+            `;
         });
 
         tableBody.innerHTML = tableHtml;
     }
 
-    // ---------------------------
-    // Main
-    // ---------------------------
     document.addEventListener("DOMContentLoaded", function() {
         // Modal close wiring
         document.getElementById("authModalClose")?.addEventListener("click", closeAuthModal);
         document.getElementById("authRequiredModal")?.addEventListener("click", function(e) {
             if (e.target === this) closeAuthModal();
         });
+
+        document.getElementById("tierLockClose")?.addEventListener("click", closeTierLockModal);
+        document.getElementById("tierLockOk")?.addEventListener("click", closeTierLockModal);
+        document.getElementById("tierLockModal")?.addEventListener("click", function(e) {
+            if (e.target === this) closeTierLockModal();
+        });
+
         document.addEventListener("keydown", function(e) {
-            if (e.key === "Escape") closeAuthModal();
+            if (e.key === "Escape") {
+                closeAuthModal();
+                closeTierLockModal();
+            }
         });
 
         const indexSelect = document.getElementById("index_type");
         const yearSelect = document.getElementById("year");
 
-        // Track last allowed values (for guests)
+        // last allowed values (used for guest + tier rollback)
         let lastAllowedIndex = indexSelect?.value ?? "Composite Risk Index";
-        let lastAllowedYear = yearSelect?.value ?? "";
+        let lastAllowedYear = yearSelect?.value ?? String(CURRENT_YEAR);
 
-        // Create charts FIRST
+        // Charts
         const treemapEl = document.querySelector("#treemap-chart");
         const lineEl = document.querySelector("#fatality-line-chart");
-
         if (!treemapEl || !lineEl) {
             console.error("Missing chart containers (#treemap-chart or #fatality-line-chart).");
             return;
         }
 
-        const treemapOptions = {
+        const chart = new ApexCharts(treemapEl, {
             series: [],
             chart: {
                 height: 400,
@@ -407,7 +493,7 @@
                                 from: 7.01,
                                 to: 100,
                                 color: "#c40000"
-                            }
+                            },
                         ]
                     },
                     dataLabels: {
@@ -421,21 +507,18 @@
                 theme: "dark",
                 y: {
                     formatter: function(value) {
-                        const category = getRiskCategory(value);
-                        const formattedValue = parseFloat(value).toFixed(2);
-                        return formattedValue + "% Risk (" + category + ")";
+                        return parseFloat(value).toFixed(2) + "% Risk (" + getRiskCategory(value) +
+                            ")";
                     }
                 }
             },
             noData: {
                 text: "Loading Risk Data..."
             }
-        };
-
-        const chart = new ApexCharts(treemapEl, treemapOptions);
+        });
         chart.render();
 
-        const lineOptions = {
+        const fatalityChart = new ApexCharts(lineEl, {
             series: [{
                 name: "Fatalities",
                 data: []
@@ -476,19 +559,68 @@
             tooltip: {
                 theme: "dark"
             }
-        };
-
-        const fatalityChart = new ApexCharts(lineEl, lineOptions);
+        });
         fatalityChart.render();
 
-        // ✅ Update function - NOW WORKS FOR BOTH AUTH AND GUEST
+        // If your tab is hidden by default, fire this event when opened
+        window.addEventListener("risk-analysis:open", function() {
+            setTimeout(() => {
+                try {
+                    chart?.resize?.();
+                } catch (e) {}
+                try {
+                    fatalityChart?.resize?.();
+                } catch (e) {}
+            }, 50);
+        });
+
+        function setLoadingPlaceholders() {
+            document.getElementById("risk-table-body").innerHTML =
+                `<tr><td colspan="7" class="py-10 px-4 text-center text-gray-500">Loading risk table...</td></tr>`;
+            document.getElementById("card-risk-index").textContent = "...";
+            document.getElementById("card-top-threats").textContent = "Loading...";
+            document.getElementById("card-fatalities").textContent = "...";
+        }
+
+        // ✅ HARD GATE for Tier2 (TRIGGERS MODAL)
+        function enforceTier2RulesOrRollback() {
+            if (!IS_AUTH || !IS_TIER2) return true;
+
+            const chosenIndex = indexSelect?.value ?? "Composite Risk Index";
+            const chosenYear = parseInt(yearSelect?.value ?? String(CURRENT_YEAR), 10);
+
+            const allowed = (chosenIndex === "Composite Risk Index") && (chosenYear === CURRENT_YEAR);
+            if (allowed) return true;
+
+            // rollback selects to last allowed
+            if (indexSelect) indexSelect.value = lastAllowedIndex;
+            if (yearSelect) yearSelect.value = lastAllowedYear;
+
+            openTierLockModal({
+                message: "This filter is available on Premium.",
+                locked_option: `${chosenIndex} / ${chosenYear}`,
+                switch_available_at: "Upgrade to unlock full history & premium indices."
+            });
+
+            // IMPORTANT: ensure UI is not stuck
+            hideInsightsLoading();
+            setLoadingPlaceholders();
+
+            // re-run allowed dataset
+            updateChartData();
+            return false;
+        }
+
         const updateChartData = function() {
             const titleElement = document.getElementById("main-title");
             const tableTitleElement = document.getElementById("table-title");
 
-            const selectedIndexText = indexSelect?.options?.[indexSelect.selectedIndex]?.text ??
-                "Composite Risk Index";
-            const selectedYear = yearSelect?.value ?? "";
+            const selectedIndexText =
+                indexSelect?.options?.[indexSelect.selectedIndex]?.text ?? "Composite Risk Index";
+            const selectedYear = yearSelect?.value ?? String(CURRENT_YEAR);
+
+            // ✅ Tier2 gate BEFORE loading UI / fetching
+            if (!enforceTier2RulesOrRollback()) return;
 
             if (titleElement) titleElement.textContent = `${selectedIndexText} - ${selectedYear}`;
             if (tableTitleElement) tableTitleElement.textContent =
@@ -498,42 +630,67 @@
             const year = selectedYear;
 
             showInsightsLoading();
-
             chart.updateOptions({
                 noData: {
                     text: "Loading filtered data..."
                 }
             });
-            document.getElementById("risk-table-body").innerHTML =
-                `<tr><td colspan="7" class="py-10 px-4 text-center text-gray-500">Loading risk table...</td></tr>`;
+            setLoadingPlaceholders();
 
-            document.getElementById("card-risk-index").textContent = "...";
-            document.getElementById("card-top-threats").textContent = "Loading...";
-            document.getElementById("card-fatalities").textContent = "...";
-
-            // ✅ Choose endpoint based on auth status
             const endpoint = IS_AUTH ?
                 `/risk-treemap-data?year=${encodeURIComponent(year)}&index_type=${encodeURIComponent(indexType)}` :
-                '/risk-preview-data';
+                "/risk-preview-data";
 
             fetch(endpoint, {
                     headers: {
                         "X-Requested-With": "XMLHttpRequest"
                     }
                 })
-                .then((r) => r.json())
+                .then(async (r) => {
+                    const data = await r.json().catch(() => ({}));
+
+                    if (!r.ok) {
+                        // If you ALSO enforce on backend, handle it safely
+                        if (r.status === 403 && data?.upgrade) {
+                            // revert to allowed if provided
+                            if (data.allowed?.index_type && indexSelect) indexSelect.value = data
+                                .allowed.index_type;
+                            if (data.allowed?.year && yearSelect) yearSelect.value = data.allowed
+                                .year;
+
+                            lastAllowedIndex = indexSelect?.value ?? lastAllowedIndex;
+                            lastAllowedYear = yearSelect?.value ?? lastAllowedYear;
+
+                            openTierLockModal(data);
+                            hideInsightsLoading();
+                            setLoadingPlaceholders();
+
+                            // reload allowed
+                            updateChartData();
+                            return null;
+                        }
+                        throw new Error(data?.message || "Request failed");
+                    }
+                    return data;
+                })
                 .then((data) => {
+                    if (!data) return;
+
+                    // ✅ update last allowed only after success
+                    lastAllowedIndex = indexSelect?.value ?? lastAllowedIndex;
+                    lastAllowedYear = yearSelect?.value ?? lastAllowedYear;
+
                     chart.updateSeries(data.treemapSeries || []);
                     updateRiskTable(data.tableData || []);
 
-                    document.getElementById("card-risk-index").textContent = data?.cardData
-                        ?.totalTrackedIncidents ?? 0;
-                    document.getElementById("card-top-threats").textContent = data?.cardData
-                        ?.topThreatGroups ?? "N/A";
-                    document.getElementById("card-fatalities").textContent = new Intl.NumberFormat()
-                        .format(
-                            data?.cardData?.totalFatalities ?? 0
-                        );
+                    document.getElementById("card-risk-index").textContent =
+                        data?.cardData?.totalTrackedIncidents ?? 0;
+
+                    document.getElementById("card-top-threats").textContent =
+                        data?.cardData?.topThreatGroups ?? "N/A";
+
+                    document.getElementById("card-fatalities").textContent =
+                        new Intl.NumberFormat().format(data?.cardData?.totalFatalities ?? 0);
 
                     if (data?.trendSeries?.labels) {
                         fatalityChart.updateOptions({
@@ -557,7 +714,7 @@
                         badge.textContent =
                             data?.aiMeta?.source === "groq" ?
                             `${selectedIndexText} Analysis` :
-                            `${selectedIndexText} ${IS_AUTH ? 'Fallback' : 'Preview'} Insights`;
+                            `${selectedIndexText} ${IS_AUTH ? "Fallback" : "Preview"} Insights`;
                     }
                 })
                 .catch((error) => {
@@ -578,7 +735,7 @@
                 });
         };
 
-        // ✅ Guest: block select opening
+        // ✅ Guests: block opening (you already had this)
         if (!IS_AUTH) {
             indexSelect?.addEventListener("pointerdown", (e) => blockSelectOpen(e, indexSelect, () =>
                 lastAllowedIndex));
@@ -594,17 +751,19 @@
             yearSelect?.addEventListener("focus", (e) => blockSelectOpen(e, yearSelect, () => lastAllowedYear));
         }
 
-        // ✅ Change handlers - WRAPPED for authenticated users only
-        const guardedChange = requireAuth(function() {
-            lastAllowedIndex = indexSelect?.value ?? lastAllowedIndex;
-            lastAllowedYear = yearSelect?.value ?? lastAllowedYear;
-            updateChartData();
-        });
+        // ✅ Change handlers
+        const guardedChange = IS_AUTH ?
+            function() {
+                updateChartData();
+            } :
+            requireAuth(function() {
+                updateChartData();
+            });
 
         indexSelect?.addEventListener("change", guardedChange);
         yearSelect?.addEventListener("change", guardedChange);
 
-        // ✅ ALWAYS LOAD INITIAL DATA (removed auth check)
+        // initial load
         updateChartData();
     });
 </script>
