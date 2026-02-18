@@ -61,7 +61,8 @@
                 <ul class="space-y-4 text-base">
                     <li><a class="text-gray-400 hover:text-white transition-colors" href="#">About Us</a></li>
                     <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Methodology</a></li>
-                    <li><a class="text-gray-400 hover:text-white transition-colors" href="#">Contact</a></li>
+                    <li><a class="text-gray-400 hover:text-white transition-colors"
+                            href="{{ route('enterprise-access.create') }}">Contact</a></li>
                 </ul>
             </div>
 

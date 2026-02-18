@@ -4,12 +4,8 @@
 
             {{-- Header --}}
             <div class="mb-8">
-                <p class="text-xs font-semibold tracking-wider text-emerald-300 uppercase">
-                    Enterprise onboarding
-                </p>
-
                 <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-white">
-                    Request Enterprise Access
+                    Request Premium Access
                 </h1>
 
                 <p class="mt-3 text-sm sm:text-base text-slate-300">
@@ -45,7 +41,8 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('enterprise-access.store') }}" class="mt-8 space-y-8">
+            <form method="POST" action="{{ route('enterprise-access.store') }}" class="mt-8 space-y-8"
+                id="enterpriseForm">
                 @csrf
 
                 {{-- Attribution (from tier-lock CTA query params) --}}
@@ -56,10 +53,10 @@
 
                 @php
                     $field = 'w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white shadow-sm
-                         placeholder:text-slate-400
-                         focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-emerald-400';
+                             placeholder:text-slate-400
+                             focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-emerald-400';
                     $select = 'w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white shadow-sm
-                         focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-emerald-400';
+                             focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-emerald-400';
                 @endphp
 
                 {{-- A) Organization --}}
@@ -103,7 +100,6 @@
                                 ];
                             @endphp
 
-                            {{-- NOTE: inline style helps some browsers render option text properly --}}
                             <select id="orgType" name="organization_type" class="mt-1 {{ $select }}"
                                 style="background-color: rgba(255,255,255,0.05); color: #fff;" required>
                                 <option value="" class="bg-[#0B1220] text-slate-200">Select...</option>
@@ -180,6 +176,7 @@
                                     'Other',
                                 ];
                             @endphp
+
                             <select id="useCase" name="primary_use_case" class="mt-1 {{ $select }}"
                                 style="background-color: rgba(255,255,255,0.05); color: #fff;" required>
                                 <option value="" class="bg-[#0B1220] text-slate-200">Select...</option>
@@ -207,6 +204,7 @@
                         <div>
                             <label class="text-xs font-medium text-slate-200">Geographic Focus* (select all that
                                 apply)</label>
+
                             @php
                                 $geoOptions = [
                                     'Specific states',
@@ -221,7 +219,7 @@
                                 @foreach ($geoOptions as $g)
                                     <label
                                         class="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm
-                                               hover:border-emerald-400/30 hover:bg-emerald-500/5 transition">
+                                                  hover:border-emerald-400/30 hover:bg-emerald-500/5 transition">
                                         <input type="checkbox" name="geographic_focus[]" value="{{ $g }}"
                                             @checked(in_array($g, $oldGeo))
                                             class="mt-0.5 h-4 w-4 rounded border-white/20 text-emerald-400 focus:ring-emerald-400/30">
@@ -237,8 +235,8 @@
 
                         <div id="statesWrap" class="hidden">
                             <label class="text-xs font-medium text-slate-200">Which states?</label>
-                            <textarea id="statesInput" class="mt-1 {{ $field }}"
-                                placeholder="Enter states separated by commas (e.g. Lagos, Kano, Rivers)">{{ old('statesInput') }}</textarea>
+                            <textarea id="statesInput" name="focus_states_text" class="mt-1 {{ $field }}"
+                                placeholder="Enter states separated by commas (e.g. Lagos, Kano, Rivers)">{{ old('focus_states_text') }}</textarea>
                             <p class="text-[11px] text-slate-400 mt-1">We’ll parse this into a list.</p>
                         </div>
 
@@ -262,6 +260,7 @@
                         <div>
                             <label class="text-xs font-medium text-slate-200">Features of Interest* (select all that
                                 apply)</label>
+
                             @php
                                 $features = [
                                     'Real-time incident tracking',
@@ -277,7 +276,7 @@
                                 @foreach ($features as $f)
                                     <label
                                         class="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm
-                                               hover:border-emerald-400/30 hover:bg-emerald-500/5 transition">
+                                                  hover:border-emerald-400/30 hover:bg-emerald-500/5 transition">
                                         <input type="checkbox" name="features_of_interest[]"
                                             value="{{ $f }}" @checked(in_array($f, $oldFeatures))
                                             class="mt-0.5 h-4 w-4 rounded border-white/20 text-emerald-400 focus:ring-emerald-400/30">
@@ -355,16 +354,28 @@
                     </div>
 
                     <div class="mt-7 flex flex-col sm:flex-row gap-3">
-                        <button
+                        <button type="submit" id="submitBtn"
                             class="inline-flex items-center justify-center rounded-xl bg-emerald-500 hover:bg-emerald-600
-                                   px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition
-                                   focus:outline-none focus:ring-4 focus:ring-emerald-400/20">
-                            Submit Request
+                                       px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition
+                                       focus:outline-none focus:ring-4 focus:ring-emerald-400/20
+                                       disabled:opacity-60 disabled:cursor-not-allowed">
+                            <span id="submitText">Submit Request</span>
+
+                            <span id="submitSpinner" style="display:none; margin-left:8px; align-items:center;">
+                                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"
+                                    aria-hidden="true">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10"
+                                        stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" d="M4 12a8 8 0 018-8" stroke="currentColor"
+                                        stroke-width="4" stroke-linecap="round"></path>
+                                </svg>
+                            </span>
+
                         </button>
 
                         <a href="/"
                             class="inline-flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10
-                                   border border-white/10 px-5 py-2.5 text-sm font-semibold text-slate-200 transition">
+                                  border border-white/10 px-5 py-2.5 text-sm font-semibold text-slate-200 transition">
                             Cancel
                         </a>
                     </div>
@@ -388,6 +399,16 @@
                     const sectorsWrap = document.getElementById('sectorsWrap');
                     const citiesWrap = document.getElementById('citiesWrap');
 
+                    const form = document.getElementById('enterpriseForm');
+                    const statesInput = document.getElementById('statesInput');
+
+                    const submitBtn = document.getElementById('submitBtn');
+                    const submitText = document.getElementById('submitText');
+                    const submitSpinner = document.getElementById('submitSpinner');
+
+                    // ✅ Always ensure spinner is hidden on load
+                    if (submitSpinner) submitSpinner.style.display = 'none';
+
                     function getCheckedGeo() {
                         return Array.from(document.querySelectorAll('input[name="geographic_focus[]"]:checked'))
                             .map(i => i.value);
@@ -408,14 +429,27 @@
 
                     orgType?.addEventListener('change', syncConditionalUI);
                     useCase?.addEventListener('change', syncConditionalUI);
-                    document.querySelectorAll('input[name="geographic_focus[]"]').forEach(cb => cb.addEventListener('change',
-                        syncConditionalUI));
+                    document.querySelectorAll('input[name="geographic_focus[]"]').forEach(cb =>
+                        cb.addEventListener('change', syncConditionalUI)
+                    );
 
-                    // Parse "statesInput" into focus_states[] on submit
-                    const form = document.querySelector('form');
-                    const statesInput = document.getElementById('statesInput');
+                    let submitting = false;
 
-                    form?.addEventListener('submit', function() {
+                    form?.addEventListener('submit', function(e) {
+                        // prevent double-submit
+                        if (submitting) {
+                            e.preventDefault();
+                            return;
+                        }
+
+                        // don't lock UI if browser validation fails
+                        if (form && !form.checkValidity()) {
+                            return;
+                        }
+
+                        submitting = true;
+
+                        // Build focus_states[] from textarea (only if "Specific states" checked)
                         document.querySelectorAll('input[name="focus_states[]"]').forEach(el => el.remove());
 
                         const geo = getCheckedGeo();
@@ -432,11 +466,19 @@
                                 form.appendChild(i);
                             });
                         }
+
+                        // lock + spinner
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            if (submitText) submitText.textContent = 'Submitting...';
+                            if (submitSpinner) submitSpinner.style.display = 'inline-flex';
+                        }
                     });
 
                     syncConditionalUI();
                 })();
             </script>
+
 
         </div>
     </div>

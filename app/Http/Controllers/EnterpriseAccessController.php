@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Mail;
+use App\Mail\EnterpriseAccessConfirmation;
+use App\Mail\EnterpriseAccessAdminNotification;
 use App\Models\EnterpriseAccessRequest;
 use Illuminate\Http\Request;
 
@@ -54,6 +57,16 @@ class EnterpriseAccessController extends Controller
             'attempted_year'     => ['nullable', 'string', 'max:20'],
         ]);
 
+        $statesText = (string) $request->input('focus_states_text', '');
+        if (!empty($statesText) && empty($data['focus_states'])) {
+            $data['focus_states'] = collect(explode(',', $statesText))
+                ->map(fn($s) => trim($s))
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+
         // Conditional guard: if corporate, industry is required
         if (($data['organization_type'] ?? '') === 'Corporate/Private Sector' && empty($data['industry_sector'])) {
             return back()
@@ -68,7 +81,22 @@ class EnterpriseAccessController extends Controller
                 ->withInput();
         }
 
-        EnterpriseAccessRequest::create($data);
+        $record = EnterpriseAccessRequest::create($data);
+
+        // Admin email from env (recommended)
+        $adminEmail = env('ENTERPRISE_ACCESS_ADMIN_EMAIL', config('mail.from.address'));
+
+        try {
+            // user confirmation
+            Mail::to($data['contact_email'])->send(new EnterpriseAccessConfirmation($data));
+
+            // admin notification (with full details)
+            if ($adminEmail) {
+                Mail::to($adminEmail)->send(new EnterpriseAccessAdminNotification($data));
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Enterprise access emails failed: ' . $e->getMessage());
+        }
 
         return redirect()
             ->route('enterprise-access.create')

@@ -43,7 +43,7 @@
                 Okay
             </button>
 
-            <a id="tierLockCta" href="{{ route('enterprise-access.create') }}" target="_blank"
+            <a id="tierLockCta" href="{{ route('enterprise-access.create') }}"
                 class="flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 transition text-center">
                 Contact for Premium
             </a>

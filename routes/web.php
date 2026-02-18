@@ -16,6 +16,9 @@ use App\Http\Controllers\RiskToolController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EnterpriseAccessController;
+use App\Mail\EnterpriseAccessConfirmation;
+use App\Mail\EnterpriseAccessAdminNotification;
+
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
     ->name('register')
@@ -60,6 +63,53 @@ Route::get('/enterprise-access', [EnterpriseAccessController::class, 'create'])
 
 Route::post('/enterprise-access', [EnterpriseAccessController::class, 'store'])
     ->name('enterprise-access.store');
+
+
+
+Route::get('/preview/enterprise-email', function () {
+
+    $fakeData = [
+        'contact_name' => 'John Doe',
+        'organization_name' => 'Risk Analytics Ltd',
+        'primary_use_case' => 'Security Monitoring',
+        'primary_use_case_other' => null,
+        'preferred_contact_method' => 'Email',
+    ];
+
+    return new EnterpriseAccessConfirmation($fakeData);
+});
+
+Route::get('/preview/enterprise-admin-email', function () {
+
+    $fakeData = [
+        'contact_name' => 'John Doe',
+        'contact_email' => 'john.doe@gmail.com',
+        'contact_phone' => '+234 801 234 5678',
+        'preferred_contact_method' => 'Email',
+
+        'organization_name' => 'Risk Analytics Ltd',
+        'organization_type' => 'Private Company',
+        'industry_sector' => 'Security & Risk',
+        'company_size' => '201-500',
+
+        'primary_use_case' => 'Security Monitoring',
+        'primary_use_case_other' => null,
+
+        'geographic_focus' => ['National', 'Urban'],
+        'focus_states' => ['Lagos', 'Abuja (FCT)'],
+        'focus_sectors_regions' => 'Transport corridors, critical infrastructure',
+        'focus_cities_lgas' => 'Ikeja, Lekki, Wuse',
+        'features_of_interest' => ['Risk Map', 'Location Insights', 'Alerts'],
+
+        'source_page' => '/enterprise-access',
+        'attempted_risk_type' => 'Kidnapping',
+        'attempted_year' => '2025',
+    ];
+
+    return new EnterpriseAccessAdminNotification($fakeData);
+});
+
+
 
 
 Route::get('/risk-map', [RiskMapController::class, 'showMapPage'])

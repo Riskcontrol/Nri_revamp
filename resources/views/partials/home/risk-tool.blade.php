@@ -4,16 +4,15 @@
             Nigeria Risk Assessment Calculator
         </h6>
         <h1 class="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-[#0f172a] mb-8">
-            Calculate Your Organization's Risk Score
+            Get Your Risk Score
         </h1>
         <p class="text-lg md:text-xl text-slate-600 mb-12 max-w-3xl mx-auto">
-            Get a personalized risk assessment for your location and industry. Our interactive tool analyzes security
-            data to provide actionable intelligence.
+            Instantly analyze treats in your chosen LGA. Use the Data to make informed security decisions
         </p>
 
         <button onclick="toggleRiskModal(true)"
             class="inline-flex items-center gap-2 bg-card hover:bg-[#111a2e] text-white font-semibold text-sm px-6 py-6 rounded-lg shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 uppercase tracking-wider">
-            <span>Start Risk Assessment</span>
+            <span>Launch Risk Calculator</span>
             <i class="fa-solid fa-arrow-right text-xs"></i>
         </button>
     </div>

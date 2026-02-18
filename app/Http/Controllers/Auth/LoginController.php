@@ -30,19 +30,12 @@ class LoginController extends Controller implements HasMiddleware
 
         return property_exists($this, 'redirectTo') ? $this->redirectTo : '/home';
     }
-    protected $redirectTo = '/location-intelligence/Lagos';
+    protected $redirectTo = '/';
 
 
     protected function authenticated(Request $request, $user)
     {
-        // If the user is registered but not yet authorized for full data
-        if ($user->access_level < 1) {
-            return redirect()->route('locationIntelligence', ['state' => 'Lagos'])
-                ->with('show_demo_popup', true);
-        }
-
-        // If they are a verified client, just let them in normally
-        return redirect()->intended($this->redirectPath());
+        return redirect()->intended(route('home'));
     }
 
     /**

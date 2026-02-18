@@ -12,9 +12,10 @@
             @guest
                 <div class="mt-4 bg-blue-900/30 border border-blue-500 rounded-lg p-4 text-center">
                     <p class="text-blue-200 text-sm">
-                        <strong>Preview Mode:</strong> Showing current year data only.
-                        <a href="{{ route('login') }}" class="underline hover:text-blue-100">Sign in</a>
-                        to access full historical data and analytics.
+                        You are getting a limited view of the current year data. To access the full picture, including
+                        historical data and analytics, <a href="{{ route('login') }}"
+                            class="underline hover:text-blue-100">Sign in Now</a>!
+
                     </p>
                 </div>
             @endguest

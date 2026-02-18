@@ -45,7 +45,7 @@
                                     <option value="Terrorism" data-premium="0">Terrorism</option>
 
                                     <option value="Kidnapping" data-premium="1">Kidnapping (Premium)</option>
-                                    <option value="Crime" data-premium="1">Crime (Premium)</option>
+                                    <option value="Crime" data-premium="1">Operational Risk (Premium)</option>
                                     <option value="Homicide" data-premium="1">Homicide (Premium)</option>
                                     <option value="Property-Risk" data-premium="1">Property Risk (Premium)</option>
                                 </select>
