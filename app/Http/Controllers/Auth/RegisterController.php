@@ -30,7 +30,7 @@ class RegisterController extends Controller implements HasMiddleware
         ];
     }
 
-    protected $redirectTo = '/location-intelligence/Lagos';
+    protected $redirectTo = '/';
 
     /**
      * Get a validator for an incoming registration request.
@@ -41,6 +41,7 @@ class RegisterController extends Controller implements HasMiddleware
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'organization' => ['required', 'string', 'max:255'],
+            'organization_other' => ['nullable', 'string', 'max:255', 'required_if:organization,Other'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
     }
@@ -50,10 +51,16 @@ class RegisterController extends Controller implements HasMiddleware
      */
     protected function create(array $data)
     {
+
+        $org = $data['organization'] ?? null;
+
+        if ($org === 'Other') {
+            $org = trim($data['organization_other'] ?? '');
+        }
         return User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'organization' => $data['organization'],
+            'organization' => $org,
             'password' => Hash::make($data['password']),
             'access_level' => 0, // Keeps filters locked until demo
         ]);
@@ -74,7 +81,6 @@ class RegisterController extends Controller implements HasMiddleware
         */
 
         // 2. Redirect back to the Hub with the flash message
-        return redirect()->route('locationIntelligence', ['state' => 'Lagos'])
-                         ->with('show_demo_popup', true);
+        return redirect()->route('/home');
     }
 }
