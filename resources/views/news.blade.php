@@ -188,8 +188,7 @@
                     <div class="pt-4 flex flex-wrap justify-start gap-6">
 
                         {{-- Button 1: Download Report --}}
-                        <a href="{{ route('reports.download') }}" target="_blank"
-                            class="inline-flex items-center gap-4 group">
+                        <a href="" target="_blank" class="inline-flex items-center gap-4 group">
                             <div
                                 class="w-10 h-10 rounded-full bg-white flex items-center justify-center transition-transform group-hover:scale-110">
                                 <i class="fa-solid fa-arrow-right text-black text-lg"></i>

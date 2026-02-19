@@ -16,7 +16,7 @@ class ReportController extends Controller
                 'period' => '2018 – 2024',
                 'description' => "Nigeria's security landscape from 2018 to 2024 reveals a counterintuitive reality - incidents increased significantly by 160.8%, yet annual deaths have fallen by 41.0%. This comprehensive report is based on 25,945 verified incidents.",
                 'image' => 'images/download.png',
-                'download_link' => route('reports.download', ['id' => 1]),
+                'download_link' => '',
             ],
             // [
             //     'id' => 2,
