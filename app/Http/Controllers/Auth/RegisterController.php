@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Http\Controllers\Auth\RegistersUsers; // Ensure this file exists in this folder
+use App\Http\Controllers\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\DemoRequestReceived;
 
-// Required for Laravel 11 Middleware
+use App\Mail\WelcomeEmail; // ✅ use welcome email
+
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
@@ -19,10 +19,6 @@ class RegisterController extends Controller implements HasMiddleware
 {
     use RegistersUsers;
 
-    /**
-     * Fixes the "Call to undefined method middleware()" error.
-     * In Laravel 11, we use this static method instead of the constructor.
-     */
     public static function middleware(): array
     {
         return [
@@ -32,9 +28,6 @@ class RegisterController extends Controller implements HasMiddleware
 
     protected $redirectTo = '/';
 
-    /**
-     * Get a validator for an incoming registration request.
-     */
     protected function validator(array $data)
     {
         return Validator::make($data, [
@@ -46,41 +39,43 @@ class RegisterController extends Controller implements HasMiddleware
         ]);
     }
 
-    /**
-     * Create a new user instance after a valid registration.
-     */
     protected function create(array $data)
     {
-
         $org = $data['organization'] ?? null;
 
         if ($org === 'Other') {
             $org = trim($data['organization_other'] ?? '');
         }
+
         return User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'organization' => $org,
             'password' => Hash::make($data['password']),
-            'access_level' => 0, // Keeps filters locked until demo
+            'access_level' => 0,
         ]);
     }
 
-    /**
-     * The user has been registered.
-     */
     protected function registered(Request $request, $user)
     {
-        // Email logic (Disabled for testing as per your request)
-        /*
         try {
-            Mail::to($user->email)->send(new DemoRequestReceived($user));
-        } catch (\Exception $e) {
-            \Log::error("Registration Email Failed: " . $e->getMessage());
-        }
-        */
+            $payload = [
+                'first_name' => $user->name, // (optional) split if you want first name only
+                'name' => $user->name,
+                'cta_url' => config('app.url'),
+            ];
 
-        // 2. Redirect back to the Hub with the flash message
-        return redirect()->route('/home');
+            Mail::to($user->email)->send(new WelcomeEmail($payload));
+        } catch (\Exception $e) {
+            \Log::error("Welcome Email Failed: " . $e->getMessage());
+        }
+
+        // ✅ FIX: use a named route OR a URL redirect
+
+        // If your route name is "home"
+        // return redirect()->route('home');
+
+        // If you just want /home URL
+        return redirect('/');
     }
 }

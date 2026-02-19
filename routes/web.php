@@ -18,6 +18,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EnterpriseAccessController;
 use App\Mail\EnterpriseAccessConfirmation;
 use App\Mail\EnterpriseAccessAdminNotification;
+use App\Mail\WelcomeEmail;
 
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
@@ -76,7 +77,26 @@ Route::get('/preview/enterprise-email', function () {
         'preferred_contact_method' => 'Email',
     ];
 
+
     return new EnterpriseAccessConfirmation($fakeData);
+});
+
+Route::get('/preview/welcome-email', function () {
+
+    $payload = [
+        'first_name' => 'Tunde',
+        'name' => 'Tunde Adeyemi',
+        'cta_url' => url('/home'),
+        'snapshot_title' => 'Nigeria Security Snapshot - January 2025',
+        'highlights' => [
+            'Lagos security incidents down 12%',
+            'New terror threats in Middle Belt region',
+            'Kidnapping hotspots shifting eastward',
+            'Economic impact analysis: ₦2.3B losses',
+        ],
+    ];
+
+    return new WelcomeEmail($payload);
 });
 
 Route::get('/preview/enterprise-admin-email', function () {

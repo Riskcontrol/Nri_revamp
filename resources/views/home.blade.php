@@ -41,8 +41,8 @@
                             Register. It's Free
                         </a>
 
-                        <button onclick="toggleRiskModal(true)"
-                            class="w-full sm:w-auto px-8 py-4 rounded-lg border-2 border-white bg-transparent text-white text-lg font-semibold transition hover:bg-white/10">
+                        <button onclick="scrollToRiskTool()"
+                            class="w-full sm:w-auto px-8 py-4 rounded-lg border-1 border-white bg-transparent text-white text-lg font-semibold transition hover:bg-white/10">
                             How Safe is Your Area?
                         </button>
                     </div>
@@ -117,6 +117,56 @@
 
     @include('partials.home.insight-section')
     @include('partials.home.risk-tool')
+
+    <script>
+        function scrollToRiskTool() {
+            const target = document.getElementById('risk-tool-section');
+            if (!target) return;
+
+            // offset for sticky header (adjust)
+            const headerOffset = 90;
+            const targetY = target.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+
+            smoothScrollTo(targetY, 900, () => {
+                // Tailwind-ish highlight by toggling classes
+                target.classList.add('ring-2', 'ring-blue-400/40', 'shadow-lg', 'shadow-blue-500/10',
+                'rounded-2xl');
+
+                setTimeout(() => {
+                    target.classList.remove('ring-2', 'ring-blue-400/40', 'shadow-lg',
+                    'shadow-blue-500/10');
+                }, 1200);
+            });
+        }
+
+        function smoothScrollTo(targetY, duration = 900, onDone = null) {
+            const startY = window.pageYOffset;
+            const diff = targetY - startY;
+            let start = null;
+
+            // easing (easeInOutCubic)
+            const ease = (t) => t < 0.5 ?
+                4 * t * t * t :
+                1 - Math.pow(-2 * t + 2, 3) / 2;
+
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const time = timestamp - start;
+                const progress = Math.min(time / duration, 1);
+
+                window.scrollTo(0, startY + diff * ease(progress));
+
+                if (time < duration) {
+                    requestAnimationFrame(step);
+                } else if (typeof onDone === 'function') {
+                    onDone();
+                }
+            }
+
+            requestAnimationFrame(step);
+        }
+    </script>
+
 
 
 </x-layout>

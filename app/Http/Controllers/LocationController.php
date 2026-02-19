@@ -743,9 +743,9 @@ class LocationController extends Controller
         return response()->json($lgaCounts);
     }
 
-    public function getComparisonRiskCounts(Request $request, $state)
+    public function getComparisonRiskCounts(Request $request)
     {
-        $this->enforceTier2LocationLock($state, $request);
+
         $state = $request->input('state');
         $year = $request->input('year');
         $indicators = $request->input('indicators');
@@ -754,6 +754,7 @@ class LocationController extends Controller
             return response()->json(['counts' => []]);
         }
 
+        $this->enforceTier2LocationLock($state, $request);
         $data = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)

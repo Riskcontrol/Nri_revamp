@@ -77,7 +77,7 @@
 
                 <button type="submit"
                     class="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-500 focus:outline-none transition-all uppercase tracking-widest">
-                    Request Demo Access
+                    Register
                 </button>
             </form>
 
@@ -119,7 +119,7 @@
                     // 2. Change text to "Requesting Access..." with a spinner
                     submitBtn.innerHTML = `
                     <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                    REQUESTING ACCESS...
+                    Registering...
                 `;
                 });
             }

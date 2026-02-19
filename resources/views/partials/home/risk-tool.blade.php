@@ -1,4 +1,4 @@
-<section class="bg-[#f8fafc] py-16 md:py-24">
+<section id="risk-tool-section" class="bg-[#f8fafc] py-16 md:py-24 scroll-mt-28 transition-all duration-700">
     <div class="max-w-7xl mx-auto px-4 text-center">
         <h6 class="text-sm md:text-base font-semibold tracking-tight text-[#10b981] mb-6">
             Nigeria Risk Assessment Calculator

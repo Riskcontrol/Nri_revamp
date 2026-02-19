@@ -87,7 +87,7 @@
             <div
                 class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 relative group flex flex-col justify-center min-h-[140px]">
                 <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
-                    Crime Index Score
+                    Operational Index Score
                 </h3>
 
                 {{-- Flex row to place Rank beside the Score --}}
@@ -880,6 +880,44 @@
                     if (c) c.innerHTML = '<p class="text-red-400 p-4">Error loading data.</p>';
                 });
 
+        }
+
+        function renderInsights(insights) {
+            const container = document.getElementById('insights-container');
+            container.innerHTML = '';
+
+            if (!insights || insights.length === 0) {
+                container.innerHTML =
+                    '<div class="col-span-1 md:col-span-2 text-center text-gray-500 italic py-4">Insufficient data pattern to generate strategic insights for this period.</div>';
+                return;
+            }
+
+            insights.forEach(insight => {
+                // MATCHING THE INITIAL RENDER LOGIC: Use text-gray-400 for all
+                let titleColor = 'text-gray-400';
+                let friendlyTitle = insight.type;
+
+                // Map technical types to friendly titles as seen in your Blade switch
+                if (insight.type === 'Velocity') {
+                    friendlyTitle = 'Activity Pace';
+                } else if (insight.type === 'Emerging Threat') {
+                    friendlyTitle = 'Rising Risk';
+                } else if (insight.type === 'Lethality') {
+                    friendlyTitle = 'Severity Level';
+                } else if (insight.type === 'Forecast') {
+                    friendlyTitle = 'Future Outlook';
+                }
+
+                container.innerHTML += `
+            <div class="bg-[#1E2D3D] p-4 rounded shadow-md">
+                <h4 class="text-xs font-semibold ${titleColor} uppercase mb-1 tracking-wider">
+                    ${friendlyTitle}
+                </h4>
+                <p class="text-white text-md font-light">
+                    ${insight.text}
+                </p>
+            </div>`;
+            });
         }
 
         // ✅ Visitor-block: prevent opening select
