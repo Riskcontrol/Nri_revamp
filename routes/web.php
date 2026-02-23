@@ -151,12 +151,15 @@ Route::get('/insight/{id}', [HomeNewController::class, 'showDataInsights'])->nam
 Route::get('/news', [SecurityHubController::class, 'index'])->name('news');;
 
 Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])->name('api.calc-risk');
-Route::get('/download-security-report', [SecurityHubController::class, 'downloadReport'])->name('reports.download');
+Route::get('/download-security-report', [SecurityHubController::class, 'downloadReport'])
+    ->name('security.report.download');
 
 Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
-// If you haven't defined the download route yet, here is a placeholder pointing to the same controller
-Route::get('/reports/download/{id?}', [ReportController::class, 'download'])->name('reports.download');
+// only logged-in users can attempt downloads
+Route::get('/reports/{report}/download', [ReportController::class, 'download'])
+    ->name('reports.download')
+    ->middleware('auth.interact');
 
 
 // Keep the name the same so your form works automatically
