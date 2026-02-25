@@ -82,7 +82,7 @@ Route::get('/enterprise-access', [EnterpriseAccessController::class, 'create'])
 
 Route::post('/enterprise-access', [EnterpriseAccessController::class, 'store'])
     ->name('enterprise-access.store')
-    ->middleware(['throttle:3,60']);
+    ->middleware(['throttle:4,60']);
 
 
 
@@ -105,8 +105,8 @@ Route::get('/insight/{id}', [HomeNewController::class, 'showDataInsights'])->nam
 Route::get('/news', [SecurityHubController::class, 'index'])->name('news');;
 
 Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])
-    ->name('api.calc-risk')
-    ->middleware(['throttle:30,1']);
+    ->name('api.calc-risk');
+
 
 Route::get('/download-security-report', [SecurityHubController::class, 'downloadReport'])
     ->name('security.report.download');
@@ -123,7 +123,7 @@ Route::post('/api/risk-analysis', [HomeNewController::class, 'analyze'])
     ->name('risk-tool.analyze')
     ->middleware(['throttle:30,1']);
 // Allows both POST (from your form) and GET (if you want to test via URL parameters)
-Route::match(['get', 'post'], '/download-risk-report', [HomeNewController::class, 'downloadReport'])->name('report.download');
+Route::match(['get', 'post'], '/download-risk-report', [HomeNewController::class, 'requestReport'])->name('report.download');
 // Admin Dashboard Route
 Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
