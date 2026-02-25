@@ -21,6 +21,7 @@ class GenerateRiskReportJob implements ShouldQueue
     // Increase timeout for this specific job to 5 minutes
     public $timeout = 300;
     public $tries = 2;
+    public $backoff = 120;
 
     protected $lga;
     protected $state;
@@ -37,6 +38,7 @@ class GenerateRiskReportJob implements ShouldQueue
 
     public function handle()
     {
+        ini_set('memory_limit', '512M'); // Add this line
         Log::info("Job Started: Processing report for {$this->email}");
 
         $lga = $this->lga;
@@ -101,9 +103,7 @@ class GenerateRiskReportJob implements ShouldQueue
 
         // 3. RENDER PDF
         $logoPath = public_path('images/nri-logo.png');
-        $logoSrc = file_exists($logoPath)
-            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
-            : '';
+        $logoSrc  = file_exists($logoPath) ? $logoPath : '';
 
         $pdf = Pdf::loadView('reports.risk_profile', [
             'state' => $state,
@@ -115,9 +115,13 @@ class GenerateRiskReportJob implements ShouldQueue
             'incidents' => $reportData['incidents'],
             'advisory' => $advisory,
             'logoSrc' => $logoSrc
-        ]);
-
-        $pdf->setPaper('a4', 'portrait');
+        ])->setPaper('a4', 'portrait')
+            ->setOptions([                      // ← Fix #3: DomPDF options
+                'isRemoteEnabled'        => false,
+                'isHtml5ParserEnabled'   => true,
+                'isFontSubsettingEnabled' => true,
+                'chroot'                 => public_path(),
+            ]);
 
         // 4. SEND EMAIL
         // We output the PDF as a string to attach it
