@@ -121,7 +121,19 @@ class GenerateRiskReportJob implements ShouldQueue
 
         // 4. SEND EMAIL
         // We output the PDF as a string to attach it
-        Mail::to($this->email)->send(new RiskReportMail($pdf->output(), $lga, $year));
+        // Mail::to($this->email)->send(new RiskReportMail($pdf->output(), $lga, $year));
+
+        $path = storage_path("app/reports/Risk_Report_{$lga}_{$year}.pdf");
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        $pdf->save($path);
+
+        Mail::to($this->email)->send(new RiskReportMail($path, $lga, $year));
+
+        // optional cleanup
+        @unlink($path);
 
         Log::info("Email sent successfully to {$this->email}");
     }

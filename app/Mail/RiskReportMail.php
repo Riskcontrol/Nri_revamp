@@ -17,28 +17,47 @@ class RiskReportMail extends Mailable
     public $lga;
     public $year;
 
-    // We keep the PDF content protected because we don't need to print binary data in the HTML
-    protected $pdfContent;
+    // // We keep the PDF content protected because we don't need to print binary data in the HTML
+    // protected $pdfContent;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct($pdfContent, $lga, $year)
+    // /**
+    //  * Create a new message instance.
+    //  */
+    // public function __construct($pdfContent, $lga, $year)
+    // {
+    //     $this->pdfContent = $pdfContent;
+    //     $this->lga = $lga;
+    //     $this->year = $year;
+    // }
+
+    // /**
+    //  * Build the message.
+    //  */
+    // public function build()
+    // {
+    //     return $this->subject("Risk Report: {$this->lga} ({$this->year})")
+    //         // Ensure this View name matches your actual file name exactly
+    //         ->view('emails.risk_report_template')
+    //         ->attachData($this->pdfContent, "Risk_Report_{$this->lga}_{$this->year}.pdf", [
+    //             'mime' => 'application/pdf',
+    //         ]);
+    // }
+
+    protected $pdfPath;
+
+    public function __construct($pdfPath, $lga, $year)
     {
-        $this->pdfContent = $pdfContent;
+        $this->pdfPath = $pdfPath;
         $this->lga = $lga;
         $this->year = $year;
     }
 
-    /**
-     * Build the message.
-     */
     public function build()
     {
         return $this->subject("Risk Report: {$this->lga} ({$this->year})")
-            // Ensure this View name matches your actual file name exactly
             ->view('emails.risk_report_template')
-            ->attachData($this->pdfContent, "Risk_Report_{$this->lga}_{$this->year}.pdf", [
+            ->attach($this->pdfPath, [
+                'as' => "Risk_Report_{$this->lga}_{$this->year}.pdf",
                 'mime' => 'application/pdf',
             ]);
     }
