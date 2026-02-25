@@ -16,9 +16,8 @@ use App\Http\Controllers\RiskToolController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EnterpriseAccessController;
-use App\Mail\EnterpriseAccessConfirmation;
-use App\Mail\EnterpriseAccessAdminNotification;
-use App\Mail\WelcomeEmail;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
@@ -26,10 +25,29 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
     ->middleware('guest');
 
 Route::post('/register', [RegisterController::class, 'register'])
-    ->middleware('guest');
+    ->middleware(['guest', 'throttle:5,10']);
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [LoginController::class, 'login']);
+
+Route::post('/login', [LoginController::class, 'login'])
+    ->middleware(['throttle:10,1']);
+
+Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])
+    ->name('password.request')
+    ->middleware('guest');
+
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
+    ->name('password.email')
+    ->middleware(['guest', 'throttle:5,10']);
+
+Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])
+    ->name('password.reset')
+    ->middleware('guest');
+
+Route::post('/reset-password', [ResetPasswordController::class, 'reset'])
+    ->name('password.update')
+    ->middleware(['guest', 'throttle:5,10']);
+
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/', [HomeNewController::class, 'getStateRiskReports'])
@@ -63,72 +81,8 @@ Route::get('/enterprise-access', [EnterpriseAccessController::class, 'create'])
     ->name('enterprise-access.create');
 
 Route::post('/enterprise-access', [EnterpriseAccessController::class, 'store'])
-    ->name('enterprise-access.store');
-
-
-
-Route::get('/preview/enterprise-email', function () {
-
-    $fakeData = [
-        'contact_name' => 'John Doe',
-        'organization_name' => 'Risk Analytics Ltd',
-        'primary_use_case' => 'Security Monitoring',
-        'primary_use_case_other' => null,
-        'preferred_contact_method' => 'Email',
-    ];
-
-
-    return new EnterpriseAccessConfirmation($fakeData);
-});
-
-Route::get('/preview/welcome-email', function () {
-
-    $payload = [
-        'first_name' => 'Tunde',
-        'name' => 'Tunde Adeyemi',
-        'cta_url' => url('/home'),
-        'snapshot_title' => 'Nigeria Security Snapshot - January 2025',
-        'highlights' => [
-            'Lagos security incidents down 12%',
-            'New terror threats in Middle Belt region',
-            'Kidnapping hotspots shifting eastward',
-            'Economic impact analysis: ₦2.3B losses',
-        ],
-    ];
-
-    return new WelcomeEmail($payload);
-});
-
-Route::get('/preview/enterprise-admin-email', function () {
-
-    $fakeData = [
-        'contact_name' => 'John Doe',
-        'contact_email' => 'john.doe@gmail.com',
-        'contact_phone' => '+234 801 234 5678',
-        'preferred_contact_method' => 'Email',
-
-        'organization_name' => 'Risk Analytics Ltd',
-        'organization_type' => 'Private Company',
-        'industry_sector' => 'Security & Risk',
-        'company_size' => '201-500',
-
-        'primary_use_case' => 'Security Monitoring',
-        'primary_use_case_other' => null,
-
-        'geographic_focus' => ['National', 'Urban'],
-        'focus_states' => ['Lagos', 'Abuja (FCT)'],
-        'focus_sectors_regions' => 'Transport corridors, critical infrastructure',
-        'focus_cities_lgas' => 'Ikeja, Lekki, Wuse',
-        'features_of_interest' => ['Risk Map', 'Location Insights', 'Alerts'],
-
-        'source_page' => '/enterprise-access',
-        'attempted_risk_type' => 'Kidnapping',
-        'attempted_year' => '2025',
-    ];
-
-    return new EnterpriseAccessAdminNotification($fakeData);
-});
-
+    ->name('enterprise-access.store')
+    ->middleware(['throttle:3,60']);
 
 
 
@@ -150,7 +104,10 @@ Route::get('/all-insights', [HomeNewController::class, 'allInsights'])->name('in
 Route::get('/insight/{id}', [HomeNewController::class, 'showDataInsights'])->name('insight.show');
 Route::get('/news', [SecurityHubController::class, 'index'])->name('news');;
 
-Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])->name('api.calc-risk');
+Route::post('/api/calc-risk', [HomeNewController::class, 'calculateHomepageRisk'])
+    ->name('api.calc-risk')
+    ->middleware(['throttle:30,1']);
+
 Route::get('/download-security-report', [SecurityHubController::class, 'downloadReport'])
     ->name('security.report.download');
 
@@ -162,8 +119,9 @@ Route::get('/reports/{report}/download', [ReportController::class, 'download'])
     ->middleware('auth.interact');
 
 
-// Keep the name the same so your form works automatically
-Route::post('/api/risk-analysis', [HomeNewController::class, 'analyze'])->name('risk-tool.analyze');
+Route::post('/api/risk-analysis', [HomeNewController::class, 'analyze'])
+    ->name('risk-tool.analyze')
+    ->middleware(['throttle:30,1']);
 // Allows both POST (from your form) and GET (if you want to test via URL parameters)
 Route::match(['get', 'post'], '/download-risk-report', [HomeNewController::class, 'downloadReport'])->name('report.download');
 // Admin Dashboard Route

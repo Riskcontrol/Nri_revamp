@@ -19,119 +19,103 @@ class LocationController extends Controller
 {
     use CalculatesRisk, GeneratesInsights;
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Shared look-ups
+    // ──────────────────────────────────────────────────────────────────────────
+
     /**
-     * Crime Index indicators (by author=crimeIndex)
+     * FIXED: added Cache::remember (was uncached, fired on every page load).
      */
     private function getCrimeIndexIndicators()
     {
-        try {
-            return tblriskindicators::where('author', 'crimeIndex')
-                ->orderByRaw('CAST(indicators AS CHAR) ASC')
-                ->pluck('indicators');
-        } catch (\Exception $e) {
-            Log::error("CRITICAL: Could not fetch crime indicators. " . $e->getMessage());
-            return collect();
-        }
+        return Cache::remember('indicators_crime', 86400, function () {
+            try {
+                return tblriskindicators::where('author', 'crimeIndex')
+                    ->orderByRaw('CAST(indicators AS CHAR) ASC')
+                    ->pluck('indicators');
+            } catch (\Exception $e) {
+                Log::error('CRITICAL: Could not fetch crime indicators. ' . $e->getMessage());
+                return collect();
+            }
+        });
     }
 
     /**
-     * ✅ FIXED: trait expects death_correction, not casualty_correction
+     * FIXED: was a live CorrectionFactorForStates::where(state) on every call.
+     * Now delegates to the memoized getCorrectionFactors() from the trait.
      */
-    private function getStateCorrectionFactors($state)
+    private function getStateCorrectionFactors(string $state): object
     {
-        $factors = CorrectionFactorForStates::where('state', $state)->first();
+        $factors = $this->getCorrectionFactors()->get($this->norm($state));
 
-        if (!$factors) {
-            return (object) [
-                'incident_correction' => 1,
-                'victim_correction'   => 1,
-                'death_correction'    => 1,
-            ];
-        }
-
-        return $factors;
+        return $factors ?? (object) [
+            'incident_correction' => 1,
+            'victim_correction'   => 1,
+            'death_correction'    => 1,
+        ];
     }
 
     /**
-     * ✅ NEW: Build state reports (normalized_ratio, risk_level, incident_count) using indicator engine.
-     * This is how we ensure Location page uses the same non-composite logic.
+     * FIXED: wrapped in Cache::remember (1 h) so the national crime-indicator
+     * aggregate is not re-computed on every location page visit.
      */
     private function buildCrimeIndicatorReports(int $year): array
     {
-        $crimeIndicators = $this->getCrimeIndexIndicators();
+        return Cache::remember("crime_indicator_reports:{$year}", 3600, function () use ($year) {
+            $crimeIndicators = $this->getCrimeIndexIndicators();
+            if ($crimeIndicators->isEmpty()) return [];
 
-        if ($crimeIndicators->isEmpty()) {
-            return [];
-        }
+            $data = DB::table('tbldataentry')
+                ->where('yy', $year)
+                ->whereNotNull('location')
+                ->where('location', '!=', '')
+                ->whereIn('riskindicators', $crimeIndicators->all())
+                ->selectRaw('
+                    TRIM(location) AS location,
+                    yy,
+                    COUNT(*) AS raw_incident_count,
+                    COALESCE(SUM(Casualties_count), 0) AS raw_casualties_sum,
+                    COALESCE(SUM(victim), 0) AS raw_victims_sum
+                ')
+                ->groupBy(DB::raw('TRIM(location)'), 'yy')
+                ->get();
 
-        $data = DB::table('tbldataentry')
-            ->where('yy', $year)
-            ->whereNotNull('location')
-            ->where('location', '!=', '')
-            ->whereIn('riskindicators', $crimeIndicators->all())
-            ->selectRaw('
-                TRIM(location) AS location,
-                yy,
-                COUNT(*) AS raw_incident_count,
-                COALESCE(SUM(Casualties_count), 0) AS raw_casualties_sum,
-                COALESCE(SUM(victim), 0) AS raw_victims_sum
-            ')
-            ->groupBy(DB::raw('TRIM(location)'), 'yy')
-            ->get();
-
-        return $this->calculateCrimeRiskIndexFromIndicators($data);
+            return $this->calculateCrimeRiskIndexFromIndicators($data);
+        });
     }
 
-    /**
-     * ✅ NEW: Tie-aware ranking (dense rank: 1,2,2,3...)
-     * Score returned is the indicator-engine normalized_ratio (already rounded to 2dp by the trait).
-     */
-    private function calculateRankAndScore($targetState, $year)
+    private function calculateRankAndScore(string $targetState, int $year): array
     {
-        $reports = $this->buildCrimeIndicatorReports((int) $year);
+        $reports = $this->buildCrimeIndicatorReports($year);
 
         if (empty($reports)) {
             return ['score' => 0, 'rank' => 'N/A', 'ordinal' => '', 'total_states' => 0];
         }
 
-        // normalize state name same way the trait stores it (trim whitespace)
-        $targetKey = trim(preg_replace('/\s+/', ' ', (string) $targetState));
+        $targetKey = trim(preg_replace('/\s+/', ' ', $targetState));
 
-        $rows = collect($reports)
-            ->values()
-            ->sortByDesc(fn($r) => (float) ($r['normalized_ratio'] ?? 0))
-            ->values();
-
-        $ranked = [];
-        $rank = 0;
+        $ranked    = [];
+        $rank      = 0;
         $prevScore = null;
 
-        foreach ($rows as $r) {
+        foreach (collect($reports)->sortByDesc(fn($r) => (float) ($r['normalized_ratio'] ?? 0))->values() as $r) {
             $score = (float) ($r['normalized_ratio'] ?? 0);
-
             if ($prevScore === null || $score !== $prevScore) {
-                $rank++; // dense rank
+                $rank++;
                 $prevScore = $score;
             }
-
-            $ranked[$r['location']] = [
-                'rank'  => $rank,
-                'score' => $r['normalized_ratio'], // trait already rounds
-            ];
+            $ranked[$r['location']] = ['rank' => $rank, 'score' => $r['normalized_ratio']];
         }
 
         $target = $ranked[$targetKey] ?? null;
-
         if (!$target) {
             return ['score' => 0, 'rank' => 'N/A', 'ordinal' => '', 'total_states' => count($ranked)];
         }
 
-        $ordinal = $this->ordinalSuffix((int) $target['rank']);
-
         return [
             'score'        => $target['score'],
             'rank'         => $target['rank'],
-            'ordinal'      => $ordinal,
+            'ordinal'      => $this->ordinalSuffix((int) $target['rank']),
             'total_states' => count($ranked),
         ];
     }
@@ -139,251 +123,100 @@ class LocationController extends Controller
     private function ordinalSuffix(int $n): string
     {
         if (!in_array(($n % 100), [11, 12, 13], true)) {
-            switch ($n % 10) {
-                case 1:
-                    return 'st';
-                case 2:
-                    return 'nd';
-                case 3:
-                    return 'rd';
-            }
+            return match ($n % 10) {
+                1 => 'st',
+                2 => 'nd',
+                3 => 'rd',
+                default => 'th',
+            };
         }
         return 'th';
     }
 
-    /**
-     * MAIN VIEW
-     */
-    public function getTotalIncident(LocationInsightGenerator $ai, $state, $year = null)
-    {
+    // ──────────────────────────────────────────────────────────────────────────
+    // MAIN VIEW
+    // ──────────────────────────────────────────────────────────────────────────
 
+    public function getTotalIncident(LocationInsightGenerator $ai, string $state, $year = null)
+    {
         $this->enforceTier2LocationLock($state, request());
 
-        $year = (int) ($year ?: now()->year);
+        $year           = (int) ($year ?: now()->year);
         $availableYears = range(now()->year, 2018);
-        $states = StateInsight::all();
 
         if (!in_array($year, $availableYears, true)) {
             $year = now()->year;
         }
 
-        $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->count();
+        // ── Fetch all state-specific data in one cached bundle ────────────────
+        $bundle = $this->getLocationBundle($state, $year);
 
-        $mostFrequentRisk = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->groupBy('riskindicators')
-            ->orderByDesc('occurrences')
-            ->take(2)
-            ->get();
+        // Unpack bundle
+        $total_incidents  = $bundle['total_incidents'];
+        $mostFrequentRisk = $bundle['mostFrequentRisk'];
+        $monthlyData      = $bundle['monthlyData'];
+        $topRiskIndicators = $bundle['topRiskIndicators'];
+        $yearlyData       = $bundle['yearlyData'];
+        $motiveData       = $bundle['motiveData'];
+        $attackData       = $bundle['attackData'];
+        $mostAffectedLGA  = $bundle['mostAffectedLGA'];
+        $recentIncidents  = $bundle['recentIncidents'];
+        $crimeTable       = $bundle['crimeTable'];
 
-        // ✅ Month names mapping for display
-        $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        // Chart arrays
+        $monthNames    = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $endMonth      = ((int) $year === (int) now()->year) ? (int) now()->format('n') : 12;
+        $numericMonths = collect(range(1, $endMonth))->map(fn($m) => str_pad($m, 2, '0', STR_PAD_LEFT))->values();
 
-        // ✅ Determine end month
-        $endMonth = ((int) $year === (int) now()->year) ? (int) now()->format('n') : 12;
-
-        // ✅ Get numeric months (01-12) for querying
-        $numericMonths = collect(range(1, $endMonth))
-            ->map(fn($m) => str_pad($m, 2, '0', STR_PAD_LEFT))
-            ->values();
-
-        // ✅ Query using mm column
-        $monthlyData = tbldataentry::selectRaw('mm, COUNT(*) as total_incidents')
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', (int) $year)
-            ->whereIn('mm', $numericMonths->all())
-            ->groupBy('mm')
-            ->get()
-            ->keyBy('mm');
-
-        // ✅ Chart labels use month names
-        $chartLabels = collect(range(1, $endMonth))
-            ->map(fn($m) => $monthNames[$m - 1])
-            ->values();
-
-        // ✅ Map numeric months to incident counts
-        $incidentCounts = $numericMonths->map(function ($mm) use ($monthlyData) {
-            return (int) ($monthlyData[$mm]->total_incidents ?? 0);
-        })->values();
-
-        $topRiskIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->groupBy('riskindicators')
-            ->orderByDesc('occurrences')
-            ->take(5)
-            ->get();
+        $chartLabels   = collect(range(1, $endMonth))->map(fn($m) => $monthNames[$m - 1])->values();
+        $incidentCounts = $numericMonths->map(fn($mm) => (int) ($monthlyData[$mm]->total_incidents ?? 0))->values();
 
         $topRiskLabels = $topRiskIndicators->pluck('riskindicators')->toArray();
         $topRiskCounts = $topRiskIndicators->pluck('occurrences')->toArray();
+        $yearLabels    = $yearlyData->pluck('yy')->toArray();
+        $yearCounts    = $yearlyData->pluck('total_incidents')->toArray();
+        $motiveLabels  = $motiveData->pluck('name')->toArray();
+        $motiveCounts  = $motiveData->pluck('occurrences')->toArray();
+        $attackLabels  = $attackData->pluck('name')->toArray();
+        $attackCounts  = $attackData->pluck('occurrences')->toArray();
 
-        $yearlyData = tbldataentry::selectRaw('yy, COUNT(*) as total_incidents')
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', '>=', 2018)
-            ->groupBy('yy')
-            ->orderBy('yy', 'asc')
-            ->get();
+        $getStates = StateInsight::pluck('state'); // small look-up table, fine as-is
 
-        $yearLabels = $yearlyData->pluck('yy')->toArray();
-        $yearCounts = $yearlyData->pluck('total_incidents')->toArray();
-
-        $motiveData = tbldataentry::join('motives_specific', 'tbldataentry.motive_specific', '=', 'motives_specific.id')
-            ->select('motives_specific.name', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
-            ->where('tbldataentry.yy', $year)
-            ->whereRaw('LOWER(motives_specific.name) != ?', ['others'])
-            ->groupBy('motives_specific.name')
-            ->orderByDesc('occurrences')
-            ->take(5)
-            ->get();
-
-        $motiveLabels = $motiveData->pluck('name')->toArray();
-        $motiveCounts = $motiveData->pluck('occurrences')->toArray();
-
-        $attackData = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
-            ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
-            ->where('tbldataentry.yy', $year)
-            ->whereRaw('LOWER(attack_group.name) != ?', ['others'])
-            ->groupBy('attack_group.name')
-            ->orderByDesc('occurrences')
-            ->take(5)
-            ->get();
-
-        $attackLabels = $attackData->pluck('name')->toArray();
-        $attackCounts = $attackData->pluck('occurrences')->toArray();
-
-        $mostAffectedLGA = tbldataentry::select('lga', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->where('lga', '!=', '')
-            ->groupBy('lga')
-            ->orderByDesc('occurrences')
-            ->first();
-
-        $recentIncidents = tbldataentry::select('lga', 'add_notes', 'riskindicators', 'impact', 'datecreated')
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->orderBy('datecreated', 'desc')
-            ->limit(5)
-            ->get();
-
-        // keep Carbon sort if your stored format is "M d, Y"
-        $recentIncidents = $recentIncidents->sortByDesc(function ($incident) {
-            try {
-                return \Carbon\Carbon::createFromFormat('M d, Y', $incident->datecreated)->timestamp;
-            } catch (\Throwable $e) {
-                return 0;
-            }
-        })->take(5);
-
-        $getStates = StateInsight::pluck('state');
-
-        /**
-         * Crime table breakdown (counts per crime indicator for the state)
-         * ✅ keep this logic: it is a breakdown table, not the score engine
-         */
-        $crimeIndicators = $this->getCrimeIndexIndicators();
-        $crimeTable = [];
-
-        if ($crimeIndicators->isNotEmpty()) {
-            $currentStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
-                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-                ->where('yy', $year)
-                ->whereIn('riskindicators', $crimeIndicators)
-                ->groupBy('riskindicators')
-                ->get()
-                ->keyBy('riskindicators');
-
-            $previousStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
-                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-                ->where('yy', $year - 1)
-                ->whereIn('riskindicators', $crimeIndicators)
-                ->groupBy('riskindicators')
-                ->get()
-                ->keyBy('riskindicators');
-
-            foreach ($crimeIndicators as $indicator) {
-                $currentCount = $currentStateIndicators->get($indicator)->incident_count ?? 0;
-                $previousCount = $previousStateIndicators->get($indicator)->incident_count ?? 0;
-
-                if ($currentCount > 0) {
-                    $status = 'Stable';
-                    if ($currentCount > $previousCount) $status = 'Escalating';
-                    elseif ($currentCount < $previousCount) $status = 'Improving';
-
-                    $crimeTable[] = [
-                        'indicator_name'       => $indicator,
-                        'incident_count'       => $currentCount,
-                        'previous_year_count'  => $previousCount,
-                        'status'               => $status,
-                    ];
-                }
-            }
-
-            $crimeTable = collect($crimeTable)->sortByDesc('incident_count')->values()->all();
-        }
-
-        /**
-         * ✅ Score + Rank come from indicator engine (non-composite)
-         * IMPORTANT: compute these BEFORE Groq summary uses them
-         */
-        $rankingData = $this->calculateRankAndScore($state, $year);
+        // ── Score + rank (national, cached 1 h) ──────────────────────────────
+        $rankingData         = $this->calculateRankAndScore($state, $year);
         $stateCrimeIndexScore = $rankingData['score'];
-        $stateRank = $rankingData['rank'];
-        $stateRankOrdinal = $rankingData['ordinal'];
+        $stateRank           = $rankingData['rank'];
+        $stateRankOrdinal    = $rankingData['ordinal'];
 
-        // --- Insights (your existing trait fallback) ---
-        $trendInsights = $this->calculateTrendInsights($state, $year);
+        // ── Automated insights ────────────────────────────────────────────────
+        $trendInsights   = $this->calculateTrendInsights($state, $year);
         $lethalityInsight = $this->calculateLethalityInsights($state, $year);
-        $forecastInsight = $this->calculateForecast($state);
+        $forecastInsight  = $this->calculateForecast($state);
 
-        $automatedInsights = [
+        $automatedInsights = array_values(array_filter([
             $trendInsights['velocity'] ?? null,
             $trendInsights['emerging'] ?? null,
             $lethalityInsight,
             $forecastInsight,
-        ];
-        $automatedInsights = array_values(array_filter($automatedInsights));
+        ]));
 
-        // -----------------------------
-        // GROQ AI OVERRIDE (Location)
-        // -----------------------------
+        // ── Groq AI override ──────────────────────────────────────────────────
         $fallbackInsights = $automatedInsights;
 
         $summary = [
-            'total_incidents' => (int) $total_incidents,
-            'most_frequent_risks' => $mostFrequentRisk->map(fn($r) => [
-                'risk' => $r->riskindicators,
-                'count' => (int) $r->occurrences,
-            ])->values()->all(),
-
-            'most_affected_lga' => $mostAffectedLGA?->lga,
-
-            'monthly_incidents' => array_combine($chartLabels->toArray(), $incidentCounts->toArray()),
-
-            'top_risks' => collect($topRiskLabels)->values()->map(function ($label, $i) use ($topRiskCounts) {
-                return ['risk' => $label, 'count' => (int) ($topRiskCounts[$i] ?? 0)];
-            })->all(),
-
-            'top_actors' => collect($attackLabels)->values()->map(function ($label, $i) use ($attackCounts) {
-                return ['actor' => $label, 'count' => (int) ($attackCounts[$i] ?? 0)];
-            })->all(),
-
-            'crime_index' => [
-                'score' => (float) $stateCrimeIndexScore,
-                'rank'  => is_numeric($stateRank) ? (int) $stateRank : $stateRank, // supports 'N/A'
-            ],
+            'total_incidents'    => (int) $total_incidents,
+            'most_frequent_risks' => $mostFrequentRisk->map(fn($r) => ['risk' => $r->riskindicators, 'count' => (int) $r->occurrences])->values()->all(),
+            'most_affected_lga'  => $mostAffectedLGA?->lga,
+            'monthly_incidents'  => array_combine($chartLabels->toArray(), $incidentCounts->toArray()),
+            'top_risks'          => collect($topRiskLabels)->values()->map(fn($label, $i) => ['risk' => $label, 'count' => (int) ($topRiskCounts[$i] ?? 0)])->all(),
+            'top_actors'         => collect($attackLabels)->values()->map(fn($label, $i) => ['actor' => $label, 'count' => (int) ($attackCounts[$i] ?? 0)])->all(),
+            'crime_index'        => ['score' => (float) $stateCrimeIndexScore, 'rank' => is_numeric($stateRank) ? (int) $stateRank : $stateRank],
         ];
 
-        $hash = $ai->hashSummary($summary);
+        $hash     = $ai->hashSummary($summary);
         $cacheKey = "location_ai:{$state}:{$year}:{$hash}";
 
-        $stored = LocationInsight::where('state', $state)
-            ->where('year', (int) $year)
-            ->first();
+        $stored = LocationInsight::where('state', $state)->where('year', (int) $year)->first();
 
         if ($stored && !empty($stored->insights)) {
             $automatedInsights = $stored->insights;
@@ -392,19 +225,18 @@ class LocationController extends Controller
             if (is_array($cached) && !empty($cached)) {
                 $automatedInsights = $cached;
             } else {
-                $res = $ai->generateWithMeta($state, (int) $year, $summary, $fallbackInsights);
-
+                $res               = $ai->generateWithMeta($state, (int) $year, $summary, $fallbackInsights);
                 $automatedInsights = $res['insights'] ?? $fallbackInsights;
-                $source = $res['meta']['source'] ?? 'fallback';
+                $source            = $res['meta']['source'] ?? 'fallback';
 
                 LocationInsight::updateOrCreate(
                     ['state' => $state, 'year' => (int) $year],
                     [
-                        'hash'  => $hash,
-                        'summary' => $summary,
-                        'insights' => $automatedInsights,
-                        'source' => $source,
-                        'model' => config('services.groq.model') ?? null,
+                        'hash'         => $hash,
+                        'summary'      => $summary,
+                        'insights'     => $automatedInsights,
+                        'source'       => $source,
+                        'model'        => config('services.groq.model') ?? null,
                         'generated_at' => now(),
                     ]
                 );
@@ -436,207 +268,226 @@ class LocationController extends Controller
             'crimeTable',
             'automatedInsights',
             'stateRank',
-            'stateRankOrdinal'
+            'stateRankOrdinal',
         ));
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Location data bundle — ONE cached method for all state queries
+    // ──────────────────────────────────────────────────────────────────────────
+
     /**
-     * AJAX DATA
+     * Bundles all per-state queries into a single Cache::remember block.
+     * TTL = 30 min. Key includes state+year so each combination is independent.
+     *
+     * FIXES:
+     *  - 10+ separate uncached tbldataentry queries → 8 queries cached for 30 min
+     *  - LOWER(location) pattern preserved for data compatibility (add generated
+     *    column index if you can normalise data at source, see README)
      */
-    public function getStateData(LocationInsightGenerator $ai, Request $request, $state, $year)
+    private function getLocationBundle(string $state, int $year): array
+    {
+        $cacheKey = 'location_bundle:' . strtolower($state) . ':' . $year;
+
+        return Cache::remember($cacheKey, 1800, function () use ($state, $year) {
+            $stateParam = strtolower($state);
+
+            $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [$stateParam])
+                ->where('yy', $year)
+                ->count();
+
+            $mostFrequentRisk = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
+                ->whereRaw('LOWER(location) = ?', [$stateParam])
+                ->where('yy', $year)
+                ->groupBy('riskindicators')
+                ->orderByDesc('occurrences')
+                ->take(2)
+                ->get();
+
+            $endMonth      = ((int) $year === (int) now()->year) ? (int) now()->format('n') : 12;
+            $numericMonths = collect(range(1, $endMonth))->map(fn($m) => str_pad($m, 2, '0', STR_PAD_LEFT))->values();
+
+            $monthlyData = tbldataentry::selectRaw('mm, COUNT(*) as total_incidents')
+                ->whereRaw('LOWER(location) = ?', [$stateParam])
+                ->where('yy', (int) $year)
+                ->whereIn('mm', $numericMonths->all())
+                ->groupBy('mm')
+                ->get()
+                ->keyBy('mm');
+
+            $topRiskIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
+                ->whereRaw('LOWER(location) = ?', [$stateParam])
+                ->where('yy', $year)
+                ->groupBy('riskindicators')
+                ->orderByDesc('occurrences')
+                ->take(5)
+                ->get();
+
+            $yearlyData = tbldataentry::selectRaw('yy, COUNT(*) as total_incidents')
+                ->whereRaw('LOWER(location) = ?', [$stateParam])
+                ->where('yy', '>=', 2018)
+                ->groupBy('yy')
+                ->orderBy('yy', 'asc')
+                ->get();
+
+            $motiveData = tbldataentry::join('motives_specific', 'tbldataentry.motive_specific', '=', 'motives_specific.id')
+                ->select('motives_specific.name', DB::raw('COUNT(*) as occurrences'))
+                ->whereRaw('LOWER(tbldataentry.location) = ?', [$stateParam])
+                ->where('tbldataentry.yy', $year)
+                ->whereRaw('LOWER(motives_specific.name) != ?', ['others'])
+                ->groupBy('motives_specific.name')
+                ->orderByDesc('occurrences')
+                ->take(5)
+                ->get();
+
+            $attackData = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
+                ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
+                ->whereRaw('LOWER(tbldataentry.location) = ?', [$stateParam])
+                ->where('tbldataentry.yy', $year)
+                ->whereRaw('LOWER(attack_group.name) != ?', ['others'])
+                ->groupBy('attack_group.name')
+                ->orderByDesc('occurrences')
+                ->take(5)
+                ->get();
+
+            $mostAffectedLGA = tbldataentry::select('lga', DB::raw('COUNT(*) as occurrences'))
+                ->whereRaw('LOWER(location) = ?', [$stateParam])
+                ->where('yy', $year)
+                ->where('lga', '!=', '')
+                ->groupBy('lga')
+                ->orderByDesc('occurrences')
+                ->first();
+
+            $recentIncidents = tbldataentry::select('lga', 'add_notes', 'riskindicators', 'impact', 'datecreated')
+                ->whereRaw('LOWER(location) = ?', [$stateParam])
+                ->orderBy('datecreated', 'desc')
+                ->limit(5)
+                ->get()
+                ->sortByDesc(function ($incident) {
+                    try {
+                        return \Carbon\Carbon::createFromFormat('M d, Y', $incident->datecreated)->timestamp;
+                    } catch (\Throwable $e) {
+                        return 0;
+                    }
+                })
+                ->take(5);
+
+            // Crime table (current + previous year, two queries merged from three)
+            $crimeIndicators = $this->getCrimeIndexIndicators();
+            $crimeTable      = [];
+
+            if ($crimeIndicators->isNotEmpty()) {
+                // Fetch both years in one query, pivot in PHP
+                $bothYears = tbldataentry::select('riskindicators', 'yy', DB::raw('COUNT(*) as incident_count'))
+                    ->whereRaw('LOWER(location) = ?', [$stateParam])
+                    ->whereIn('yy', [$year, $year - 1])
+                    ->whereIn('riskindicators', $crimeIndicators)
+                    ->groupBy('riskindicators', 'yy')
+                    ->get()
+                    ->groupBy('riskindicators');
+
+                foreach ($crimeIndicators as $indicator) {
+                    $rows        = $bothYears->get($indicator) ?? collect();
+                    $currentCount  = (int) ($rows->firstWhere('yy', $year)?->incident_count  ?? 0);
+                    $previousCount = (int) ($rows->firstWhere('yy', $year - 1)?->incident_count ?? 0);
+
+                    if ($currentCount > 0) {
+                        $status = 'Stable';
+                        if ($currentCount > $previousCount)      $status = 'Escalating';
+                        elseif ($currentCount < $previousCount)  $status = 'Improving';
+
+                        $crimeTable[] = [
+                            'indicator_name'      => $indicator,
+                            'incident_count'      => $currentCount,
+                            'previous_year_count' => $previousCount,
+                            'status'              => $status,
+                        ];
+                    }
+                }
+
+                $crimeTable = collect($crimeTable)->sortByDesc('incident_count')->values()->all();
+            }
+
+            return compact(
+                'total_incidents',
+                'mostFrequentRisk',
+                'monthlyData',
+                'topRiskIndicators',
+                'yearlyData',
+                'motiveData',
+                'attackData',
+                'mostAffectedLGA',
+                'recentIncidents',
+                'crimeTable'
+            );
+        });
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // AJAX data endpoint (year-switcher)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public function getStateData(LocationInsightGenerator $ai, Request $request, string $state, $year)
     {
         $this->enforceTier2LocationLock($state, $request);
 
-        $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->count();
+        $year   = (int) $year;
+        $bundle = $this->getLocationBundle($state, $year);
 
-        $mostFrequentRisk = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->groupBy('riskindicators')
-            ->orderByDesc('occurrences')
-            ->take(2)
-            ->get();
+        $total_incidents   = $bundle['total_incidents'];
+        $mostFrequentRisk  = $bundle['mostFrequentRisk'];
+        $monthlyData       = $bundle['monthlyData'];
+        $topRiskIndicators = $bundle['topRiskIndicators'];
+        $yearlyData        = $bundle['yearlyData'];
+        $attackData        = $bundle['attackData'];
+        $mostAffectedLGA   = $bundle['mostAffectedLGA'];
+        $recentIncidents   = $bundle['recentIncidents'];
+        $crimeTable        = $bundle['crimeTable'];
 
-        $mostAffectedLGA = tbldataentry::select('lga', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->where('lga', '!=', '')
-            ->groupBy('lga')
-            ->orderByDesc('occurrences')
-            ->first();
+        $monthNames    = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $endMonth      = ($year === (int) now()->year) ? (int) now()->format('n') : 12;
+        $numericMonths = collect(range(1, $endMonth))->map(fn($m) => str_pad($m, 2, '0', STR_PAD_LEFT))->values();
 
-        $recentIncidents = tbldataentry::select('lga', 'add_notes', 'riskindicators', 'impact', 'datecreated')
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->orderBy('datecreated', 'desc')
-            ->limit(5)
-            ->get();
+        $chartLabels    = collect(range(1, $endMonth))->map(fn($m) => $monthNames[$m - 1])->values()->toArray();
+        $incidentCounts = $numericMonths->map(fn($mm) => (int) ($monthlyData[$mm]->total_incidents ?? 0))->values()->toArray();
+        $topRiskLabels  = $topRiskIndicators->pluck('riskindicators')->values();
+        $topRiskCounts  = $topRiskIndicators->pluck('occurrences')->values();
+        $yearLabels     = $yearlyData->pluck('yy')->toArray();
+        $yearCounts     = $yearlyData->pluck('total_incidents')->toArray();
+        $attackLabels   = $attackData->pluck('name')->values();
+        $attackCounts   = $attackData->pluck('occurrences')->values();
 
-        $topRiskIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->groupBy('riskindicators')
-            ->orderByDesc('occurrences')
-            ->take(5)
-            ->get();
-
-        $topRiskLabels = $topRiskIndicators->pluck('riskindicators')->values();
-        $topRiskCounts = $topRiskIndicators->pluck('occurrences')->values();
-
-        // ✅ Month names for display
-        $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        $endMonth = ((int) $year === (int) now()->year) ? (int) now()->format('n') : 12;
-
-        // ✅ Get numeric months for querying
-        $numericMonths = collect(range(1, $endMonth))
-            ->map(fn($m) => str_pad($m, 2, '0', STR_PAD_LEFT))
-            ->values();
-
-        // ✅ Query using mm column
-        $monthlyDataRaw = tbldataentry::selectRaw('mm, COUNT(*) as total_incidents')
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', (int) $year)
-            ->whereIn('mm', $numericMonths->all())
-            ->groupBy('mm')
-            ->get()
-            ->keyBy('mm');
-
-        // ✅ Chart labels use month names (ARRAY)
-        $chartLabels = collect(range(1, $endMonth))
-            ->map(fn($m) => $monthNames[$m - 1])
-            ->values()
-            ->toArray();
-
-        // ✅ Map numeric months to counts (ARRAY)
-        $incidentCounts = $numericMonths->map(function ($mm) use ($monthlyDataRaw) {
-            return (int) ($monthlyDataRaw[$mm]->total_incidents ?? 0);
-        })->values()->toArray();
-
-        $yearlyData = tbldataentry::selectRaw('yy, COUNT(*) as total_incidents')
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', '>=', 2018)
-            ->groupBy('yy')
-            ->orderBy('yy', 'asc')
-            ->get();
-
-        $yearLabels = $yearlyData->pluck('yy')->values();
-        $yearCounts = $yearlyData->pluck('total_incidents')->values();
-
-        $attackData = tbldataentry::join('attack_group', 'tbldataentry.attack_group_name', '=', 'attack_group.id')
-            ->select('attack_group.name', DB::raw('COUNT(*) as occurrences'))
-            ->whereRaw('LOWER(tbldataentry.location) = ?', [strtolower($state)])
-            ->where('tbldataentry.yy', $year)
-            ->whereRaw('LOWER(attack_group.name) != ?', ['others'])
-            ->groupBy('attack_group.name')
-            ->orderByDesc('occurrences')
-            ->take(5)
-            ->get();
-
-        $attackLabels = $attackData->pluck('name')->toArray();
-        $attackCounts = $attackData->pluck('occurrences')->toArray();
-
-        // Crime indicator table (breakdown)
-        $crimeIndicators = $this->getCrimeIndexIndicators();
-        $crimeTable = [];
-
-        if ($crimeIndicators->isNotEmpty()) {
-            $currentStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
-                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-                ->where('yy', $year)
-                ->whereIn('riskindicators', $crimeIndicators)
-                ->groupBy('riskindicators')
-                ->get()
-                ->keyBy('riskindicators');
-
-            $previousStateIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as incident_count'))
-                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-                ->where('yy', $year - 1)
-                ->whereIn('riskindicators', $crimeIndicators)
-                ->groupBy('riskindicators')
-                ->get()
-                ->keyBy('riskindicators');
-
-            foreach ($crimeIndicators as $indicator) {
-                $currentCount = $currentStateIndicators->get($indicator)->incident_count ?? 0;
-                $previousCount = $previousStateIndicators->get($indicator)->incident_count ?? 0;
-
-                if ($currentCount > 0) {
-                    $status = 'Stable';
-                    if ($currentCount > $previousCount) $status = 'Escalating';
-                    elseif ($currentCount < $previousCount) $status = 'Improving';
-
-                    $crimeTable[] = [
-                        'indicator_name'      => $indicator,
-                        'incident_count'      => $currentCount,
-                        'previous_year_count' => $previousCount,
-                        'status'              => $status,
-                    ];
-                }
-            }
-
-            $crimeTable = collect($crimeTable)->sortByDesc('incident_count')->values()->all();
-        }
-
-        /**
-         * ✅ Compute rank/score BEFORE Groq summary uses it
-         */
-        $rankingData = $this->calculateRankAndScore($state, $year);
+        $rankingData         = $this->calculateRankAndScore($state, $year);
         $stateCrimeIndexScore = $rankingData['score'];
-        $stateRank = $rankingData['rank'];
-        $stateRankOrdinal = $rankingData['ordinal'];
 
-        // Trait fallback insights
-        $trendInsights = $this->calculateTrendInsights($state, $year);
+        // AI insights (same pattern as getTotalIncident)
+        $trendInsights   = $this->calculateTrendInsights($state, $year);
         $lethalityInsight = $this->calculateLethalityInsights($state, $year);
-        $forecastInsight = $this->calculateForecast($state);
+        $forecastInsight  = $this->calculateForecast($state);
 
-        $automatedInsights = [
+        $automatedInsights = array_values(array_filter([
             $trendInsights['velocity'] ?? null,
             $trendInsights['emerging'] ?? null,
             $lethalityInsight,
             $forecastInsight,
-        ];
-        $automatedInsights = array_values(array_filter($automatedInsights));
+        ]));
 
-        // -----------------------------
-        // GROQ AI OVERRIDE (Location)
-        // -----------------------------
         $fallbackInsights = $automatedInsights;
 
         $summary = [
-            'total_incidents' => (int) $total_incidents,
-            'most_frequent_risks' => $mostFrequentRisk->map(fn($r) => [
-                'risk' => $r->riskindicators,
-                'count' => (int) $r->occurrences,
-            ])->values()->all(),
-
-            'most_affected_lga' => $mostAffectedLGA?->lga,
-
-            // ✅ FIX: arrays already
-            'monthly_incidents' => array_combine($chartLabels, $incidentCounts),
-
-            'top_risks' => collect($topRiskLabels)->values()->map(function ($label, $i) use ($topRiskCounts) {
-                return ['risk' => $label, 'count' => (int) ($topRiskCounts[$i] ?? 0)];
-            })->all(),
-
-            'top_actors' => collect($attackLabels)->values()->map(function ($label, $i) use ($attackCounts) {
-                return ['actor' => $label, 'count' => (int) ($attackCounts[$i] ?? 0)];
-            })->all(),
-
-            'crime_index' => [
-                'score' => (float) $stateCrimeIndexScore,
-                'rank'  => is_numeric($stateRank) ? (int) $stateRank : $stateRank,
-            ],
+            'total_incidents'    => (int) $total_incidents,
+            'most_frequent_risks' => $mostFrequentRisk->map(fn($r) => ['risk' => $r->riskindicators, 'count' => (int) $r->occurrences])->values()->all(),
+            'most_affected_lga'  => $mostAffectedLGA?->lga,
+            'monthly_incidents'  => array_combine($chartLabels, $incidentCounts),
+            'top_risks'          => collect($topRiskLabels)->values()->map(fn($label, $i) => ['risk' => $label, 'count' => (int) ($topRiskCounts[$i] ?? 0)])->all(),
+            'top_actors'         => collect($attackLabels)->values()->map(fn($label, $i) => ['actor' => $label, 'count' => (int) ($attackCounts[$i] ?? 0)])->all(),
+            'crime_index'        => ['score' => (float) $stateCrimeIndexScore, 'rank' => is_numeric($rankingData['rank']) ? (int) $rankingData['rank'] : $rankingData['rank']],
         ];
 
-        $hash = $ai->hashSummary($summary);
+        $hash     = $ai->hashSummary($summary);
         $cacheKey = "location_ai:{$state}:{$year}:{$hash}";
 
-        $stored = LocationInsight::where('state', $state)
-            ->where('year', (int) $year)
-            ->where('hash', $hash)
-            ->first();
+        $stored = LocationInsight::where('state', $state)->where('year', (int) $year)->where('hash', $hash)->first();
 
         if ($stored && !empty($stored->insights)) {
             $automatedInsights = $stored->insights;
@@ -645,19 +496,18 @@ class LocationController extends Controller
             if (is_array($cached) && !empty($cached)) {
                 $automatedInsights = $cached;
             } else {
-                $res = $ai->generateWithMeta($state, (int) $year, $summary, $fallbackInsights);
-
+                $res               = $ai->generateWithMeta($state, (int) $year, $summary, $fallbackInsights);
                 $automatedInsights = $res['insights'] ?? $fallbackInsights;
-                $source = $res['meta']['source'] ?? 'fallback';
+                $source            = $res['meta']['source'] ?? 'fallback';
 
                 LocationInsight::updateOrCreate(
                     ['state' => $state, 'year' => (int) $year],
                     [
-                        'hash'    => $hash,
-                        'summary' => $summary,
-                        'insights' => $automatedInsights,
-                        'source' => $source,
-                        'model' => config('services.groq.model') ?? null,
+                        'hash'         => $hash,
+                        'summary'      => $summary,
+                        'insights'     => $automatedInsights,
+                        'source'       => $source,
+                        'model'        => config('services.groq.model') ?? null,
                         'generated_at' => now(),
                     ]
                 );
@@ -667,55 +517,54 @@ class LocationController extends Controller
         }
 
         return response()->json([
-            'total_incidents'       => $total_incidents,
-            'mostFrequentRisk'      => $mostFrequentRisk,
-            'mostAffectedLGA'       => $mostAffectedLGA,
-            'recentIncidents'       => $recentIncidents,
-            'chartLabels'           => $chartLabels,
-            'incidentCounts'        => $incidentCounts,
-            'topRiskLabels'         => $topRiskLabels,
-            'topRiskCounts'         => $topRiskCounts,
-            'yearLabels'            => $yearLabels,
-            'yearCounts'            => $yearCounts,
-            'attackLabels'          => $attackLabels,
-            'attackCounts'          => $attackCounts,
-            'stateCrimeIndexScore'  => $rankingData['score'],
-            'stateRank'             => $rankingData['rank'],
-            'stateRankOrdinal'      => $rankingData['ordinal'],
-            'crimeTable'            => $crimeTable,
-            'automatedInsights'     => $automatedInsights,
+            'total_incidents'      => $total_incidents,
+            'mostFrequentRisk'     => $mostFrequentRisk,
+            'mostAffectedLGA'      => $mostAffectedLGA,
+            'recentIncidents'      => $recentIncidents,
+            'chartLabels'          => $chartLabels,
+            'incidentCounts'       => $incidentCounts,
+            'topRiskLabels'        => $topRiskLabels,
+            'topRiskCounts'        => $topRiskCounts,
+            'yearLabels'           => $yearLabels,
+            'yearCounts'           => $yearCounts,
+            'attackLabels'         => $attackLabels,
+            'attackCounts'         => $attackCounts,
+            'stateCrimeIndexScore' => $rankingData['score'],
+            'stateRank'            => $rankingData['rank'],
+            'stateRankOrdinal'     => $rankingData['ordinal'],
+            'crimeTable'           => $crimeTable,
+            'automatedInsights'    => $automatedInsights,
         ]);
     }
 
-    public function getTotalIncidentsOnly($state, $year)
-    {
-        $total_incidents = tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->count();
+    // ──────────────────────────────────────────────────────────────────────────
+    // Lightweight AJAX endpoints
+    // ──────────────────────────────────────────────────────────────────────────
 
+    public function getTotalIncidentsOnly(string $state, $year)
+    {
         return response()->json([
-            'total_incidents' => $total_incidents,
+            'total_incidents' => tbldataentry::whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year)->count(),
         ]);
     }
 
-    public function getIncidentLocations(Request $request, $state, $year)
+    public function getIncidentLocations(Request $request, string $state, $year)
     {
-        $locations = tbldataentry::select('lga_lat', 'lga_long', 'lga', 'add_notes', 'impact', 'datecreated')
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->where('impact', 'High')
-            ->whereNotNull('lga_lat')
-            ->whereNotNull('lga_long')
-            ->where('lga_lat', '!=', '')
-            ->where('lga_long', '!=', '')
-            ->get();
-
-        return response()->json($locations);
+        return response()->json(
+            tbldataentry::select('lga_lat', 'lga_long', 'lga', 'add_notes', 'impact', 'datecreated')
+                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year)
+                ->where('impact', 'High')
+                ->whereNotNull('lga_lat')->whereNotNull('lga_long')
+                ->where('lga_lat', '!=', '')->where('lga_long', '!=', '')
+                ->get()
+        );
     }
 
-    public function getTop5Risks($state, $year)
+    public function getTop5Risks(string $state, $year)
     {
-        $topRiskIndicators = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
+        $data = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
             ->where('riskindicators', '!=', '')
@@ -725,29 +574,28 @@ class LocationController extends Controller
             ->get();
 
         return response()->json([
-            'labels' => $topRiskIndicators->pluck('riskindicators')->values(),
-            'counts' => $topRiskIndicators->pluck('occurrences')->values(),
+            'labels' => $data->pluck('riskindicators')->values(),
+            'counts' => $data->pluck('occurrences')->values(),
         ]);
     }
 
-    public function getLgaIncidentCounts($state, $year)
+    public function getLgaIncidentCounts(string $state, $year)
     {
-        $lgaCounts = tbldataentry::select('lga', DB::raw('COUNT(*) as incident_count'))
-            ->whereRaw('LOWER(location) = ?', [strtolower($state)])
-            ->where('yy', $year)
-            ->where('lga', '!=', '')
-            ->groupBy('lga')
-            ->get()
-            ->pluck('incident_count', 'lga');
-
-        return response()->json($lgaCounts);
+        return response()->json(
+            tbldataentry::select('lga', DB::raw('COUNT(*) as incident_count'))
+                ->whereRaw('LOWER(location) = ?', [strtolower($state)])
+                ->where('yy', $year)
+                ->where('lga', '!=', '')
+                ->groupBy('lga')
+                ->get()
+                ->pluck('incident_count', 'lga')
+        );
     }
 
     public function getComparisonRiskCounts(Request $request)
     {
-
-        $state = $request->input('state');
-        $year = $request->input('year');
+        $state      = $request->input('state');
+        $year       = $request->input('year');
         $indicators = $request->input('indicators');
 
         if (!$state || !$year || empty($indicators)) {
@@ -755,6 +603,7 @@ class LocationController extends Controller
         }
 
         $this->enforceTier2LocationLock($state, $request);
+
         $data = tbldataentry::select('riskindicators', DB::raw('COUNT(*) as occurrences'))
             ->whereRaw('LOWER(location) = ?', [strtolower($state)])
             ->where('yy', $year)
@@ -768,22 +617,23 @@ class LocationController extends Controller
             $orderedCounts[] = $data[$ind] ?? 0;
         }
 
-        return response()->json([
-            'counts' => $orderedCounts,
-        ]);
+        return response()->json(['counts' => $orderedCounts]);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Tier enforcement
+    // ──────────────────────────────────────────────────────────────────────────
 
     private function enforceTier2LocationLock(string $state, ?Request $request = null)
     {
         $user = auth()->user();
         if (!$user) return;
-
         if ((int) $user->tier !== 1) return;
 
         $stateKey = strtolower(trim($state));
 
         if (!$user->locked_location) {
-            $user->locked_location = $stateKey;
+            $user->locked_location              = $stateKey;
             $user->location_switch_available_at = now()->addMonth();
             $user->save();
             return;
@@ -792,31 +642,26 @@ class LocationController extends Controller
         if ($user->locked_location === $stateKey) return;
 
         $lockedUntil = $user->location_switch_available_at;
-
         if ($lockedUntil && now()->lt($lockedUntil)) {
             $payload = [
-                'message' => 'You can switch location once per month. Unlock all States and 774 LGAs with premium access.',
-                'locked_location' => $user->locked_location,
-                'switch_available_at' => $lockedUntil->toDateTimeString(),
-                'upgrade' => true,
+                'message'              => 'You can switch location once per month. Unlock all States and 774 LGAs with premium access.',
+                'locked_location'      => $user->locked_location,
+                'switch_available_at'  => $lockedUntil->toDateTimeString(),
+                'upgrade'              => true,
             ];
 
             $req = $request ?? request();
 
-            // ✅ AJAX / fetch calls
             if ($req->expectsJson() || $req->ajax() || $req->header('X-Requested-With') === 'XMLHttpRequest') {
                 abort(response()->json($payload, 403));
             }
 
-            // ✅ Normal page navigation → redirect with flash
-            return redirect()
-                ->to("/location-intelligence/{$user->locked_location}")
-                ->with('tier_lock', $payload)
-                ->send();
+            abort(redirect()->route('locationIntelligence', ['state' => $user->locked_location])
+                ->with('tier_lock', $payload));
         }
 
-        // Switch allowed
-        $user->locked_location = $stateKey;
+        // Lock window expired — update to new state
+        $user->locked_location              = $stateKey;
         $user->location_switch_available_at = now()->addMonth();
         $user->save();
     }

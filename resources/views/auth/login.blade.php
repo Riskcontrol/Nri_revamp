@@ -6,6 +6,14 @@
                 <p class="mt-2 text-sm text-gray-400">Sign in to access your intelligence dashboard</p>
             </div>
 
+            {{-- Post-reset success message --}}
+            @if (session('status'))
+                <div
+                    class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-xl text-sm text-center">
+                    {{ session('status') }}
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="bg-red-500 border border-red-500 text-white p-4 rounded-xl text-xs">
                     Invalid credentials. Please check your email and password.
@@ -14,6 +22,10 @@
 
             <form class="mt-8 space-y-6" action="{{ route('login') }}" method="POST">
                 @csrf
+
+                {{-- reCAPTCHA v3: hidden token injected by JS before submit --}}
+                <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response-login">
+
                 <div class="space-y-4">
                     <div>
                         <label class="text-xs font-semibold text-gray-500 uppercase tracking-widest ml-1">Email
@@ -35,9 +47,12 @@
                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/10 rounded bg-[#131C27]">
                         <label for="remember_me" class="ml-2 block text-sm text-gray-400">Remember me</label>
                     </div>
+                    <a href="{{ route('password.request') }}" class="text-sm text-blue-400 hover:text-blue-300">
+                        Forgot password?
+                    </a>
                 </div>
 
-                <button type="submit"
+                <button type="submit" id="login-btn"
                     class="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-500 focus:outline-none transition-all uppercase tracking-widest">
                     Sign In
                 </button>
@@ -49,23 +64,66 @@
             </p>
         </div>
     </div>
+
+    {{--
+        FIX: Use config() instead of env() for the reCAPTCHA site key.
+
+        WHY env('RECAPTCHA_SITE_KEY') was causing "Invalid reCAPTCHA client id: ":
+          - env() returns null/empty when Laravel's config cache is active
+            (php artisan config:cache clears the .env runtime values)
+          - This rendered as: api.js?render=  →  grecaptcha.execute('')
+          - Google reCAPTCHA received an empty string as the client ID → error
+
+        FIX: config('services.recaptcha.site_key') reads from the config array
+        which is always available, cached or not.
+    --}}
+    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const loginForm = document.querySelector('form');
+            const form = document.querySelector('form[action="{{ route('login') }}"]');
+            const btn = document.getElementById('login-btn');
 
-            if (loginForm) {
-                loginForm.addEventListener('submit', function() {
-                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+            // Safety guard: if the site key is empty, warn in console and skip CAPTCHA
+            // so the form can still submit (server will reject with empty-token error)
+            const siteKey = '{{ config('services.recaptcha.site_key') }}';
+            if (!siteKey) {
+                console.error('[reCAPTCHA] RECAPTCHA_SITE_KEY is not set in your .env file.');
+            }
 
-                    // 1. Disable the button so it can't be clicked again
-                    submitBtn.disabled = true;
-                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
 
-                    // 2. Change the text to give user feedback
-                    submitBtn.innerHTML = `
-                    <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                    SIGNING IN...
-                `;
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.innerHTML = `
+                        <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                        SIGNING IN...
+                    `;
+
+                    if (!siteKey) {
+                        // No site key configured — submit directly; server handles it
+                        form.submit();
+                        return;
+                    }
+
+                    grecaptcha.ready(function() {
+                        grecaptcha.execute(siteKey, {
+                                action: 'login'
+                            })
+                            .then(function(token) {
+                                document.getElementById('g-recaptcha-response-login').value =
+                                    token;
+                                form.submit();
+                            })
+                            .catch(function(err) {
+                                console.error('[reCAPTCHA] Token fetch failed:', err);
+                                // Re-enable button so user can retry
+                                btn.disabled = false;
+                                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                                btn.innerHTML = 'Sign In';
+                            });
+                    });
                 });
             }
         });

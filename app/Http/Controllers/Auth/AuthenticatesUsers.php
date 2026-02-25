@@ -7,19 +7,25 @@ use Illuminate\Support\Facades\Auth;
 
 trait AuthenticatesUsers
 {
-    public function showLoginForm() { return view('auth.login'); }
-
-    public function login(Request $request)
+    public function showLoginForm()
     {
-        $credentials = $request->only('email', 'password');
-
-        if (Auth::attempt($credentials, $request->filled('remember'))) {
-            $request->session()->regenerate();
-            return $this->authenticated($request, Auth::user()) ?: redirect()->intended($this->redirectPath());
-        }
-
-        return back()->withErrors(['email' => 'The provided credentials do not match our records.']);
+        return view('auth.login');
     }
 
-    protected function guard() { return Auth::guard(); }
+    /**
+     * NOTE: This trait's login() method is intentionally removed.
+     *
+     * LoginController defines its own login() method which fully overrides
+     * this trait. Keeping a duplicate login() here was dead code and a
+     * maintenance hazard — developers editing the trait version would see
+     * no effect in production.
+     *
+     * All login logic (reCAPTCHA + credential check) lives exclusively in:
+     *   app/Http/Controllers/Auth/LoginController::login()
+     */
+
+    protected function guard()
+    {
+        return Auth::guard();
+    }
 }

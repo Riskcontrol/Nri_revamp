@@ -41,5 +41,9 @@ return [
         'timeout' => env('GROQ_TIMEOUT', 30),
         'retry_attempts' => env('GROQ_RETRY_ATTEMPTS', 2),
     ],
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY'),    // used in Blade views
+        'secret'   => env('RECAPTCHA_SECRET_KEY'),  // used in controllers
+    ],
 
 ];

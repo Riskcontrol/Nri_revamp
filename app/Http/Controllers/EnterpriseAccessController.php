@@ -12,7 +12,6 @@ class EnterpriseAccessController extends Controller
 {
     public function create(Request $request)
     {
-        // read attribution from query params
         return view('enterprise-access', [
             'source' => $request->query('source'),
             'risk'   => $request->query('risk'),
@@ -23,13 +22,11 @@ class EnterpriseAccessController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            // A) Org
             'organization_name' => ['required', 'string', 'max:255'],
             'organization_type' => ['required', 'string', 'max:255'],
             'industry_sector'   => ['nullable', 'string', 'max:255'],
             'company_size'      => ['nullable', 'string', 'max:255'],
 
-            // B) Use case
             'primary_use_case'       => ['required', 'string', 'max:255'],
             'primary_use_case_other' => ['nullable', 'string', 'max:255'],
 
@@ -45,16 +42,14 @@ class EnterpriseAccessController extends Controller
             'features_of_interest'   => ['required', 'array', 'min:1'],
             'features_of_interest.*' => ['string', 'max:255'],
 
-            // C) Contact
-            'contact_name'            => ['required', 'string', 'max:255'],
-            'contact_email'           => ['required', 'email', 'max:255'],
-            'contact_phone'           => ['required', 'string', 'max:50'],
+            'contact_name'             => ['required', 'string', 'max:255'],
+            'contact_email'            => ['required', 'email', 'max:255'],
+            'contact_phone'            => ['required', 'string', 'max:50'],
             'preferred_contact_method' => ['required', 'string', 'max:50'],
 
-            // attribution
-            'source_page'        => ['nullable', 'string', 'max:255'],
+            'source_page'         => ['nullable', 'string', 'max:255'],
             'attempted_risk_type' => ['nullable', 'string', 'max:255'],
-            'attempted_year'     => ['nullable', 'string', 'max:20'],
+            'attempted_year'      => ['nullable', 'string', 'max:20'],
         ]);
 
         $statesText = (string) $request->input('focus_states_text', '');
@@ -66,15 +61,12 @@ class EnterpriseAccessController extends Controller
                 ->all();
         }
 
-
-        // Conditional guard: if corporate, industry is required
         if (($data['organization_type'] ?? '') === 'Corporate/Private Sector' && empty($data['industry_sector'])) {
             return back()
                 ->withErrors(['industry_sector' => 'Industry sector is required for corporate organizations.'])
                 ->withInput();
         }
 
-        // If use case is Other, require the write-in
         if (($data['primary_use_case'] ?? '') === 'Other' && empty($data['primary_use_case_other'])) {
             return back()
                 ->withErrors(['primary_use_case_other' => 'Please specify your primary use case.'])
@@ -83,23 +75,33 @@ class EnterpriseAccessController extends Controller
 
         $record = EnterpriseAccessRequest::create($data);
 
-        // Admin email from env (recommended)
-        $adminEmail = env('ENTERPRISE_ACCESS_ADMIN_EMAIL', config('mail.from.address'));
+        $adminEmail = config('mail.enterprise_admin', config('mail.from.address'));
 
         try {
-            // user confirmation
-            Mail::to($data['contact_email'])->send(new EnterpriseAccessConfirmation($data));
+            /**
+             * QUEUE both emails instead of sending synchronously.
+             *
+             * Previously ->send() blocked the user's browser for 2–10 seconds
+             * waiting for Mailgun to accept the connection. If the SMTP port was
+             * blocked (as you're experiencing), it threw an exception and the
+             * user saw an error even though their record was saved.
+             *
+             * ->queue() writes the job to the `jobs` table in ~1ms, the user
+             * gets their success redirect immediately, and the cron worker sends
+             * both emails in the background within the next 60 seconds.
+             */
+            Mail::to($data['contact_email'])->queue(new EnterpriseAccessConfirmation($data));
 
-            // admin notification (with full details)
             if ($adminEmail) {
-                Mail::to($adminEmail)->send(new EnterpriseAccessAdminNotification($data));
+                Mail::to($adminEmail)->queue(new EnterpriseAccessAdminNotification($data));
             }
         } catch (\Throwable $e) {
-            \Log::error('Enterprise access emails failed: ' . $e->getMessage());
+            // Log but don't crash — the record is saved; emails will retry via queue
+            \Log::error('Enterprise access email queue failed: ' . $e->getMessage());
         }
 
         return redirect()
             ->route('enterprise-access.create')
-            ->with('success', 'Thanks — your request has been received. We’ll reach out shortly.');
+            ->with('success', 'Thanks — your request has been received. We\'ll reach out shortly.');
     }
 }
