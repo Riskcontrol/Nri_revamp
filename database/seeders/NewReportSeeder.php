@@ -12,29 +12,14 @@ class NewReportSeeder extends Seeder
     {
         $reports = [
             [
-                'title'       => 'Quarterly Security Report- Q1 2025',
-                'period'      => 'Q1 2025',
-                'description' => "The first quarter of 2025 marks a concerning escalation in Nigeria's security landscape",
-                'file_path'   => 'reports/Q1-2025.pdf',      // ✅ was: private/reports/Q1-2025.pdf
-                'image_path'  => 'images/reports/download.png',
+                'title'       => 'Half-Year Security Report',
+                'period'      => 'H1 2025 (January - June)',
+                'description' => "The Nigeria Risk Index (NRI) Half-Year Report for H1 2025 documents a significant security concer",
+                'file_path'   => 'reports/H1-2025.pdf',      // ✅ was: private/reports/Q1-2025.pdf
+                'image_path'  => 'images/reports/half-year.png',
                 'min_tier'    => 1,
             ],
-            [
-                'title'       => 'Quarterly Security Report - Q2 2025',
-                'period'      => 'Q2 2025',
-                'description' => "The Nigeria Risk Index (NRI) report for Q2 2025 ...",
-                'file_path'   => 'reports/Q2-2025.pdf',      // ✅ was: private/reports/Q2-2025.pdf
-                'image_path'  => 'images/reports/download.png',
-                'min_tier'    => 1,
-            ],
-            [
-                'title'       => 'ANNUAL REPORT 2025',
-                'period'      => '2025',
-                'description' => 'A Comprehensive Analysis of Security Threats...',
-                'file_path'   => 'reports/NIGERIA-RISK-INDEX-2.pdf', // ✅ was: private/reports/NIGERIA-RISK-INDEX-2.pdf
-                'image_path'  => 'images/reports/NIGERIA-RISK-INDEX-2.png',
-                'min_tier'    => 2,
-            ],
+
         ];
 
         foreach ($reports as $report) {
