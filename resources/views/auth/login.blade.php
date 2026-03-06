@@ -33,11 +33,26 @@
                         <input name="email" type="email" value="{{ old('email') }}" required autofocus
                             class="appearance-none relative block w-full px-4 py-4 border border-white/10 bg-[#131C27] text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm">
                     </div>
+
+                    {{-- Password field with show/hide toggle --}}
                     <div>
                         <label
                             class="text-xs font-semibold text-gray-500 uppercase tracking-widest ml-1">Password</label>
-                        <input name="password" type="password" required
-                            class="appearance-none relative block w-full px-4 py-4 border border-white/10 bg-[#131C27] text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm">
+                        <div class="relative">
+                            <input name="password" id="login-password" type="password" required
+                                class="appearance-none relative block w-full px-4 py-4 pr-12 border border-white/10 bg-[#131C27] text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm">
+                            <button type="button" onclick="togglePassword('login-password', 'eye-login')"
+                                class="absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 hover:text-gray-300 transition-colors"
+                                tabindex="-1" aria-label="Toggle password visibility">
+                                <svg id="eye-login" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -65,27 +80,29 @@
         </div>
     </div>
 
-    {{--
-        FIX: Use config() instead of env() for the reCAPTCHA site key.
-
-        WHY env('RECAPTCHA_SITE_KEY') was causing "Invalid reCAPTCHA client id: ":
-          - env() returns null/empty when Laravel's config cache is active
-            (php artisan config:cache clears the .env runtime values)
-          - This rendered as: api.js?render=  →  grecaptcha.execute('')
-          - Google reCAPTCHA received an empty string as the client ID → error
-
-        FIX: config('services.recaptcha.site_key') reads from the config array
-        which is always available, cached or not.
-    --}}
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
     <script>
+        // ── Show / hide password ───────────────────────────────────────────────
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (!input || !icon) return;
+
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+
+            // Swap between eye and eye-slash SVG paths
+            icon.innerHTML = isHidden ? // Eye-slash (password visible)
+                `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.187-3.39M6.53 6.533A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.068 5.189M15 12a3 3 0 01-3.536 2.95M9.88 9.88A3 3 0 0115 12M3 3l18 18" />` : // Eye (password hidden)
+                `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
+        }
+
+        // ── reCAPTCHA + form submit ────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('form[action="{{ route('login') }}"]');
             const btn = document.getElementById('login-btn');
-
-            // Safety guard: if the site key is empty, warn in console and skip CAPTCHA
-            // so the form can still submit (server will reject with empty-token error)
             const siteKey = '{{ config('services.recaptcha.site_key') }}';
+
             if (!siteKey) {
                 console.error('[reCAPTCHA] RECAPTCHA_SITE_KEY is not set in your .env file.');
             }
@@ -102,7 +119,6 @@
                     `;
 
                     if (!siteKey) {
-                        // No site key configured — submit directly; server handles it
                         form.submit();
                         return;
                     }
@@ -118,7 +134,6 @@
                             })
                             .catch(function(err) {
                                 console.error('[reCAPTCHA] Token fetch failed:', err);
-                                // Re-enable button so user can retry
                                 btn.disabled = false;
                                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                                 btn.innerHTML = 'Sign In';

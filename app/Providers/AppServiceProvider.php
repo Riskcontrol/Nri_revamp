@@ -5,6 +5,9 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use App\Models\StateInsight;
 use App\Services\GroqAIService;
 use App\Services\SpreadsheetProcessorService;
@@ -28,8 +31,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::define('admin-access', function (User $user) {
-            // Returns true if access_level is 1 (Admin) or higher
-            // Adjust this logic if you have different levels (e.g. > 0)
             return $user->admin_access >= 1;
         });
 
@@ -39,6 +40,25 @@ class AppServiceProvider extends ServiceProvider
             });
 
             $view->with('headerStates', $states);
+        });
+
+        // ── Named rate limiters ───────────────────────────────────────────────
+        // These complement the route-level throttle middleware and allow the
+        // RegisterController to call RateLimiter::tooManyAttempts() by name.
+
+        // Registration: 3 attempts per IP per hour
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perHour(3)->by($request->ip());
+        });
+
+        // Login: 10 attempts per IP per minute (existing behaviour — keep in sync)
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        // Password reset: 5 per IP per 10 minutes (keep in sync with route throttle)
+        RateLimiter::for('password-reset', function (Request $request) {
+            return Limit::perMinutes(10, 5)->by($request->ip());
         });
     }
 }

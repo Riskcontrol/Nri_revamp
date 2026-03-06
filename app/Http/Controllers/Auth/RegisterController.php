@@ -5,14 +5,15 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Http\Controllers\Auth\RegistersUsers;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Validation\ValidationException;
 
 use App\Mail\WelcomeEmail;
 
@@ -37,32 +38,55 @@ class RegisterController extends Controller implements HasMiddleware
             'organization'       => ['required', 'string', 'max:255'],
             'organization_other' => ['nullable', 'string', 'max:255', 'required_if:organization,Other'],
             'password'           => ['required', 'string', 'min:8', 'confirmed'],
-
-            // reCAPTCHA is OPTIONAL at the validation layer.
-            // The soft check happens in register() below instead.
-            // Removing 'required' here means a missing token no longer
-            // causes a hard validation failure.
             'g-recaptcha-response' => ['nullable', 'string'],
-
-            'website' => ['nullable', 'max:0'], // honeypot
+            'website'            => ['nullable', 'max:0'], // honeypot
         ]);
     }
 
-    /**
-     * Override the register method to add soft reCAPTCHA checking
-     * before calling the parent create() and login logic.
-     */
     public function register(Request $request)
     {
-        // ── reCAPTCHA soft check ─────────────────────────────────────────────
-        // Same approach as LoginController: never hard-block a real user.
-        // Only reject score < 0.1 (clear bots). Log everything else.
-        $recaptchaToken  = $request->input('g-recaptcha-response', '');
-        $recaptchaSecret = config('services.recaptcha.secret');
+        // ── 1. Honeypot — silent reject ───────────────────────────────────────
+        if ($request->filled('website')) {
+            return redirect('/');
+        }
 
-        if (! empty($recaptchaToken) && ! empty($recaptchaSecret)) {
+        // ── 2. IP-based rate limit — 3 registrations per IP per hour ──────────
+        $ipKey = 'register:ip:' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($ipKey, 3)) {
+            $seconds = RateLimiter::availableIn($ipKey);
+
+            Log::warning('Registration IP rate limit hit', [
+                'ip'      => $request->ip(),
+                'email'   => $request->input('email'),
+                'seconds' => $seconds,
+            ]);
+
+            throw ValidationException::withMessages([
+                'email' => 'Too many registration attempts. Please try again in ' . ceil($seconds / 60) . ' minute(s).',
+            ]);
+        }
+
+        // ── 3. reCAPTCHA v3 — skipped on local, hard-required on production ───
+        $recaptchaSecret = config('services.recaptcha.secret');
+        $isLocal         = app()->environment('local');
+
+        if (! $isLocal && ! empty($recaptchaSecret)) {
+            $recaptchaToken = $request->input('g-recaptcha-response', '');
+
+            if (empty($recaptchaToken)) {
+                Log::warning('Registration blocked: missing reCAPTCHA token', [
+                    'email' => $request->input('email'),
+                    'ip'    => $request->ip(),
+                ]);
+
+                throw ValidationException::withMessages([
+                    'email' => 'Security check failed. Please refresh the page and try again.',
+                ]);
+            }
+
             try {
-                $resp = Http::timeout(5)->asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                $resp    = Http::timeout(5)->asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
                     'secret'   => $recaptchaSecret,
                     'response' => $recaptchaToken,
                     'remoteip' => $request->ip(),
@@ -78,31 +102,38 @@ class RegisterController extends Controller implements HasMiddleware
                     'ip'      => $request->ip(),
                 ]);
 
-                // Only block the absolute clearest bot signals (score < 0.1)
-                if ($success && $score < 0.1) {
-                    Log::warning('reCAPTCHA hard block on registration (score < 0.1)', [
-                        'email' => $request->input('email'),
-                        'score' => $score,
-                        'ip'    => $request->ip(),
+                // Block score below 0.5 on registration (stricter than login's 0.1)
+                if (! $success || $score < 0.5) {
+                    Log::warning('Registration blocked by reCAPTCHA', [
+                        'email'   => $request->input('email'),
+                        'score'   => $score,
+                        'success' => $success,
+                        'ip'      => $request->ip(),
                     ]);
 
-                    return back()
-                        ->withErrors(['email' => 'Automated activity detected. Please try again.'])
-                        ->withInput($request->except('password', 'password_confirmation'));
+                    RateLimiter::hit($ipKey, 3600);
+
+                    throw ValidationException::withMessages([
+                        'email' => 'Security check failed. Please refresh the page and try again.',
+                    ]);
                 }
+            } catch (ValidationException $e) {
+                throw $e;
             } catch (\Exception $e) {
-                // reCAPTCHA API unreachable — log and continue. Never fail a
-                // registration because Google's servers are slow or blocked.
-                Log::warning('reCAPTCHA API unreachable on registration — skipping check', [
+                // reCAPTCHA API unreachable — log and allow through
+                Log::warning('reCAPTCHA API unreachable on registration — allowing through', [
                     'error' => $e->getMessage(),
                 ]);
             }
         }
 
-        // ── Standard validation (name, email, password, honeypot) ───────────
+        // ── 4. Standard field validation ──────────────────────────────────────
         $this->validator($request->all())->validate();
 
-        // ── Create user + fire Registered event + login + redirect ──────────
+        // ── 5. Count against the IP limiter ───────────────────────────────────
+        RateLimiter::hit($ipKey, 3600);
+
+        // ── 6. Create user + fire event + login ───────────────────────────────
         $user = $this->create($request->all());
 
         event(new \Illuminate\Auth\Events\Registered($user));
@@ -116,9 +147,6 @@ class RegisterController extends Controller implements HasMiddleware
         return redirect($this->redirectPath());
     }
 
-    /**
-     * Create a new user in the database.
-     */
     protected function create(array $data)
     {
         $org = $data['organization'] ?? null;
@@ -136,9 +164,6 @@ class RegisterController extends Controller implements HasMiddleware
         ]);
     }
 
-    /**
-     * Handle post-registration logic: send welcome email and redirect home.
-     */
     protected function registered(Request $request, $user)
     {
         try {
