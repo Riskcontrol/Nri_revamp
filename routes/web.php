@@ -18,6 +18,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EnterpriseAccessController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\NewsletterController;
 
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
@@ -124,6 +125,16 @@ Route::post('/api/risk-analysis', [HomeNewController::class, 'analyze'])
     ->middleware(['throttle:30,1']);
 // Allows both POST (from your form) and GET (if you want to test via URL parameters)
 Route::match(['get', 'post'], '/download-risk-report', [HomeNewController::class, 'requestReport'])->name('report.download');
+
+// ─── Newsletter routes ───────────────────────────────────────────────────────
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
+    ->name('newsletter.subscribe');
+
+Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm'])
+    ->name('newsletter.confirm');
+
+Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
+    ->name('newsletter.unsubscribe');
 // Admin Dashboard Route
 Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
