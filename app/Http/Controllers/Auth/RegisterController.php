@@ -102,8 +102,16 @@ class RegisterController extends Controller implements HasMiddleware
                     'ip'      => $request->ip(),
                 ]);
 
-                // Block score below 0.5 on registration (stricter than login's 0.1)
-                if (! $success || $score < 0.5) {
+                // Block only clear bots: token invalid (success:false) OR score below 0.3.
+                //
+                // Why 0.3 and not 0.5?
+                // Real users on Nigerian IPs, fresh browser sessions, or users with
+                // privacy extensions routinely score 0.3–0.5. Google's own docs say
+                // 0.5 is a "suggested" threshold for low-risk actions — registration
+                // with email+password already has its own honeypot + IP rate limiting
+                // as additional layers, so we don't need reCAPTCHA to be overly strict.
+                // Actual bots score 0.0–0.1 with success:false.
+                if (! $success || $score < 0.3) {
                     Log::warning('Registration blocked by reCAPTCHA', [
                         'email'   => $request->input('email'),
                         'score'   => $score,
@@ -115,6 +123,15 @@ class RegisterController extends Controller implements HasMiddleware
 
                     throw ValidationException::withMessages([
                         'email' => 'Security check failed. Please refresh the page and try again.',
+                    ]);
+                }
+
+                // Borderline score (0.3–0.5): allow through but flag for monitoring
+                if ($score < 0.5) {
+                    Log::warning('reCAPTCHA borderline score — allowed through', [
+                        'email' => $request->input('email'),
+                        'score' => $score,
+                        'ip'    => $request->ip(),
                     ]);
                 }
             } catch (ValidationException $e) {
