@@ -87,7 +87,7 @@
             <div
                 class="bg-[#1E2D3D] p-6 rounded-xl shadow-lg text-center border border-white/5 relative group flex flex-col justify-center min-h-[140px]">
                 <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
-                    Operational Index Score
+                    Operational Score
                 </h3>
 
                 {{-- Flex row to place Rank beside the Score --}}
@@ -202,7 +202,7 @@
 
 
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-6 mb-12 overflow-hidden">
-            <h4 class="text-lg font-semibold  text-gray-400 mb-4">Operational Risk Index</h4>
+            <h4 class="text-lg font-semibold  text-gray-400 mb-4">Operational Risk </h4>
             <div class="overflow-x-auto">
                 <table class="min-w-full">
                     <thead>

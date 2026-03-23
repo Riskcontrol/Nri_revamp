@@ -23,7 +23,6 @@ class RiskMapController extends Controller
         'All'           => null,
         'Terrorism'     => 'Terrorism',
         'Kidnapping'    => 'Kidnapping',
-        'Homicide'      => 'Homicide',
         'Crime'         => 'Crime',
         'Property-Risk' => 'Property-Risk',
     ];

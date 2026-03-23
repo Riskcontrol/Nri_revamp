@@ -46,7 +46,6 @@
 
                                     <option value="Kidnapping" data-premium="1">Kidnapping (Premium)</option>
                                     <option value="Crime" data-premium="1">Operational Risk (Premium)</option>
-                                    <option value="Homicide" data-premium="1">Homicide (Premium)</option>
                                     <option value="Property-Risk" data-premium="1">Property Risk (Premium)</option>
                                 </select>
 
@@ -306,7 +305,7 @@
                     label2: "How to unlock",
                     when: "Upgrade to Premium",
 
-                    footer: "Premium unlocks Kidnapping, Crime, Homicide and Property Risk on the Risk Map.",
+                    footer: "Premium unlocks Kidnapping, Crime and Property Risk on the Risk Map.",
                     // Put your real route here when ready:
                     cta_url: "/enterprise-access"
                 });
