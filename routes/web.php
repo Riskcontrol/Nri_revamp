@@ -18,6 +18,7 @@ use App\Http\Controllers\EnterpriseAccessController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\Admin\AdminReportController;
 
 // ─── Auth routes ─────────────────────────────────────────────────────────────
 
@@ -154,4 +155,15 @@ Route::prefix('admin')
         });
         Route::post('/announcement',   [AdminController::class, 'updateAnnouncement'])->name('announcement.update');
         Route::delete('/announcement', [AdminController::class, 'deleteAnnouncement'])->name('announcement.delete');
+
+        // ── Report management ─────────────────────────────────────────────────────
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/',                         [AdminReportController::class, 'index'])->name('index');
+            Route::get('/create',                   [AdminReportController::class, 'create'])->name('create');
+            Route::post('/',                        [AdminReportController::class, 'store'])->name('store');
+            Route::get('/{report}/edit',            [AdminReportController::class, 'edit'])->name('edit');
+            Route::put('/{report}',                 [AdminReportController::class, 'update'])->name('update');
+            Route::post('/{report}/toggle-publish', [AdminReportController::class, 'togglePublish'])->name('toggle-publish');
+            Route::delete('/{report}',              [AdminReportController::class, 'destroy'])->name('destroy');
+        });
     });

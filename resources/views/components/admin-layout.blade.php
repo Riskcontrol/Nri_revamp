@@ -238,8 +238,8 @@
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
                 <img src="{{ asset('images/nri-logo.png') }}" alt="Nigeria Risk Index"
                     class="h-10 w-auto object-contain flex-shrink-0">
-                {{-- <span class="font-mono text-[9px] tracking-widest uppercase leading-none"
-                    style="color:var(--text-dim)">Control<br>Centre</span> --}}
+                <span class="font-mono text-[9px] tracking-widest uppercase leading-none"
+                    style="color:var(--text-dim)">Control<br>Centre</span>
             </a>
             <button onclick="closeSidebar()" class="lg:hidden p-1 rounded" style="color:var(--text-dim)">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
@@ -310,7 +310,18 @@
                     <line x1="16" y1="17" x2="8" y2="17" />
                     <polyline points="10 9 9 9 8 9" />
                 </svg>
-                Insights & Reports
+                Insights
+            </a>
+
+            <a href="{{ route('admin.reports.index') }}"
+                class="nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="12" y1="12" x2="12" y2="18" />
+                    <polyline points="9 15 12 12 15 15" />
+                </svg>
+                Reports
             </a>
 
             <div class="nav-section-label">Access</div>
