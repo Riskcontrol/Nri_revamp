@@ -206,11 +206,11 @@
                     <option value="critical"
                         {{ ($announcement['impact_level'] ?? 'critical') === 'critical' ? 'selected' : '' }}>Critical
                     </option>
-                    <option value="high"
-                        {{ ($announcement['impact_level'] ?? '') === 'high' ? 'selected' : '' }}>High
+                    <option value="high" {{ ($announcement['impact_level'] ?? '') === 'high' ? 'selected' : '' }}>
+                        High
                     </option>
-                    <option value="medium"
-                        {{ ($announcement['impact_level'] ?? '') === 'medium' ? 'selected' : '' }}>Medium
+                    <option value="medium" {{ ($announcement['impact_level'] ?? '') === 'medium' ? 'selected' : '' }}>
+                        Medium
                     </option>
                 </select>
             </div>
@@ -637,7 +637,7 @@
                             {{ $imp->sheet_name }}
                         </p>
                         <p class="font-mono text-[10px] mt-0.5" style="color:var(--text-dim)">
-                            {{ $imp->created_at->diffForHumans() }}
+                            {{ $imp->created_at ? \Carbon\Carbon::parse($imp->created_at)->diffForHumans() : '—' }}
                             &bull;
                             <span style="color:var(--green)">{{ $imp->rows_inserted }}↑</span>
                             @if ($imp->rows_failed > 0)
