@@ -54,8 +54,8 @@
 
                     {{-- 1. National Threat Level --}}
                     <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
-                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">National Threat Outlook
-                            (2025)
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">
+                            National Threat Outlook ({{ $periodLabel }})
                         </h3>
 
                         @php
@@ -130,11 +130,11 @@
             smoothScrollTo(targetY, 900, () => {
                 // Tailwind-ish highlight by toggling classes
                 target.classList.add('ring-2', 'ring-blue-400/40', 'shadow-lg', 'shadow-blue-500/10',
-                'rounded-2xl');
+                    'rounded-2xl');
 
                 setTimeout(() => {
                     target.classList.remove('ring-2', 'ring-blue-400/40', 'shadow-lg',
-                    'shadow-blue-500/10');
+                        'shadow-blue-500/10');
                 }, 1200);
             });
         }

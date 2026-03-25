@@ -45,5 +45,8 @@ return [
         'site_key' => env('RECAPTCHA_SITE_KEY'),    // used in Blade views
         'secret'   => env('RECAPTCHA_SECRET_KEY'),  // used in controllers
     ],
+    'tinymce' => [
+        'key' => env('TINYMCE_API_KEY', ''),
+    ],
 
 ];

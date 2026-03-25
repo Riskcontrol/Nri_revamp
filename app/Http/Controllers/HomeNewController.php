@@ -25,37 +25,60 @@ class HomeNewController extends Controller
     /**
      * Main route for the Homepage Dashboard
      *
-     * OPTIMISED:
-     *  - Removed separate totalIncidents COUNT (derived from $data)
-     *  - trendingRiskFactors now cached 30 min
-     *  - recentIncidentsCount + auditedTime cached 5 min
-     *  - homeInsights cached 1 h
-     *  - calculateCompositeIndexByRiskFactors result is now cached inside the trait
+     * Hero stats now use a ROLLING 12-MONTH window rather than a fixed
+     * calendar year. This means:
+     *
+     *   - $windowStart = today minus 12 months  (e.g. 26 Mar 2025)
+     *   - $windowEnd   = today                   (e.g. 26 Mar 2026)
+     *
+     * The query filters on `eventdateToUse BETWEEN $windowStart AND $windowEnd`
+     * instead of `WHERE yy = 2025`. The cache key includes today's date so it
+     * refreshes daily rather than serving the same year-old slice forever.
+     *
+     * The "National Threat Outlook" card label also becomes dynamic:
+     *   "(Apr 2025 – Mar 2026)" — regenerated from $windowStart/$windowEnd.
+     *
+     * Everything else (trending risk factors, recent stats, threat level,
+     * insights) is unchanged.
      */
     public function getStateRiskReports(Request $request)
     {
         $securityIndexRows = $this->getCurrentCrimeRiskYearSecurityIndexRows();
 
-        $year = (int) ($request->query('year') ?: now()->subYear()->year);
+        // ── Rolling 12-month window ────────────────────────────────────────────
+        // Window: exactly 12 calendar months back from today.
+        // Using date strings for the DB query (eventdateToUse is a DATE column).
+        $windowEnd   = Carbon::today();
+        $windowStart = Carbon::today()->subMonths(12)->startOfDay();
 
-        // ── 1. Main aggregate (state × indicator for the year) ─────────────
-        $data = Cache::remember("home_state_data:{$year}", 600, function () use ($year) {
+        // Human-readable label for the hero card: "Apr 2025 – Mar 2026"
+        $periodLabel = $windowStart->format('M Y') . ' – ' . $windowEnd->format('M Y');
+
+        // Cache key includes today's date so it rolls forward day by day
+        $cacheKey = 'home_state_data_rolling:' . $windowEnd->format('Y-m-d');
+
+        // ── 1. Main aggregate (state × indicator, rolling 12 months) ──────────
+        $data = Cache::remember($cacheKey, 600, function () use ($windowStart, $windowEnd) {
             return tbldataentry::selectRaw("
                 TRIM(location) as location,
                 TRIM(riskindicators) as risk_indicator,
-                yy,
                 COUNT(*) as total_incidents,
                 COALESCE(SUM(Casualties_count),0) as total_deaths,
                 COALESCE(SUM(victim),0) as total_victims
             ")
-                ->where('yy', $year)
-                ->groupBy(DB::raw('TRIM(location)'), DB::raw('TRIM(riskindicators)'), 'yy')
+                ->whereNotNull('eventdateToUse')
+                ->where('eventdateToUse', '!=', '')
+                ->whereBetween('eventdateToUse', [
+                    $windowStart->format('Y-m-d'),
+                    $windowEnd->format('Y-m-d'),
+                ])
+                ->groupBy(DB::raw('TRIM(location)'), DB::raw('TRIM(riskindicators)'))
                 ->get();
         });
 
         // Derive totals from the already-loaded collection — no extra query needed
         $totalFatalities = (int) $data->sum('total_deaths');
-        $totalIncidents  = (int) $data->sum('total_incidents'); // ← was a separate COUNT
+        $totalIncidents  = (int) $data->sum('total_incidents');
 
         $stateRiskReports = $this->calculateStateRiskFromIndicators($data);
 
@@ -71,16 +94,25 @@ class HomeNewController extends Controller
             ->pluck('location')
             ->implode(', ');
 
-        // ── 2. Trending risk factors (cached 30 min) ───────────────────────
-        $trendingRiskFactors = Cache::remember('home_trending_risk_factors', 1800, function () {
-            return tbldataentry::selectRaw('riskindicators, COUNT(*) as frequency, SUM(victim) as total_victims, SUM(Casualties_count) as total_casualties')
-                ->groupBy('riskindicators')
-                ->orderByDesc('frequency')
-                ->take(4)
-                ->get();
-        });
+        // ── 2. Trending risk factors — rolling 12 months (cached 30 min) ──────
+        // Also scoped to the rolling window so it matches the hero numbers.
+        $trendingRiskFactors = Cache::remember(
+            'home_trending_risk_factors_rolling:' . $windowEnd->format('Y-m-d'),
+            1800,
+            function () use ($windowStart, $windowEnd) {
+                return tbldataentry::selectRaw('riskindicators, COUNT(*) as frequency, SUM(victim) as total_victims, SUM(Casualties_count) as total_casualties')
+                    ->whereBetween('eventdateToUse', [
+                        $windowStart->format('Y-m-d'),
+                        $windowEnd->format('Y-m-d'),
+                    ])
+                    ->groupBy('riskindicators')
+                    ->orderByDesc('frequency')
+                    ->take(4)
+                    ->get();
+            }
+        );
 
-        // ── 3. Recent incidents stats (cached 5 min) ───────────────────────
+        // ── 3. Recent incidents stats (cached 5 min — unchanged) ──────────────
         [$recentIncidentsCount, $auditedTime] = Cache::remember('home_recent_incident_stats', 300, function () {
             $now   = Carbon::now();
             $count = tbldataentry::where('audittimecreated', '>=', $now->copy()->subDay())->count();
@@ -91,18 +123,22 @@ class HomeNewController extends Controller
             return [$count, $time];
         });
 
-        // ── 4. Threat level (composite index is now cached inside the trait) ─
+        // ── 4. Threat level — use current year for composite index ────────────
+        // The composite index calculation is tied to yearly risk factor weights,
+        // so we keep using the current calendar year here. Only the raw
+        // incident/fatality counts on the hero card use the rolling window.
+        $year = (int) now()->year;
         $compositeIndexes = $this->calculateCompositeIndexByRiskFactors($year);
 
-        $values = array_values($compositeIndexes);
+        $values  = array_values($compositeIndexes);
         rsort($values);
 
-        $avg    = !empty($values) ? array_sum($values) / count($values) : 0;
-        $top5   = array_slice($values, 0, 5);
+        $avg     = !empty($values) ? array_sum($values) / count($values) : 0;
+        $top5    = array_slice($values, 0, 5);
         $top5Avg = !empty($top5) ? array_sum($top5) / count($top5) : 0;
 
-        $nationalScore    = ($top5Avg * 0.6) + ($avg * 0.4);
-        $level            = $this->determineBusinessRiskLevel($nationalScore);
+        $nationalScore      = ($top5Avg * 0.6) + ($avg * 0.4);
+        $level              = $this->determineBusinessRiskLevel($nationalScore);
         $currentThreatLevel = match ($level) {
             1       => 'LOW',
             2       => 'MEDIUM',
@@ -111,7 +147,7 @@ class HomeNewController extends Controller
             default => 'LOW',
         };
 
-        // ── 5. Insights (cached 1 h) ───────────────────────────────────────
+        // ── 5. Insights (cached 1 h) ───────────────────────────────────────────
         $homeInsights = Cache::remember('home_insights', 3600, function () {
             return DataInsights::with('category')->latest()->take(4)->get();
         });
@@ -129,6 +165,7 @@ class HomeNewController extends Controller
             'currentThreatLevel',
             'homeInsights',
             'states',
+            'periodLabel',   // ← new: "Apr 2025 – Mar 2026"
         ));
     }
 
@@ -223,7 +260,7 @@ class HomeNewController extends Controller
                 ->groupBy(DB::raw('TRIM(location)'), 'yy')
                 ->get();
 
-            $nciReports   = $this->calculateCrimeRiskIndexFromIndicators($rawData);
+            $nciReports    = $this->calculateCrimeRiskIndexFromIndicators($rawData);
             $sortedReports = collect($nciReports)->sortBy('location')->take(8);
 
             $levelMap = [1 => 'Low', 2 => 'Medium', 3 => 'High', 4 => 'Very High'];
@@ -333,7 +370,7 @@ class HomeNewController extends Controller
             'email' => 'required|email|max:255',
         ]);
 
-        $recipient = ReportRecipient::updateOrCreate(
+        ReportRecipient::updateOrCreate(
             ['email' => $validated['email']],
             [
                 'last_state_requested' => $validated['state'],
@@ -358,9 +395,7 @@ class HomeNewController extends Controller
 
     private function getSmartAdvisoryOptimized($lga, $state, $topRisk, $year)
     {
-        $advisoryCacheKey = "advisory_{$lga}_{$year}";
-
-        return Cache::remember($advisoryCacheKey, 7200, function () use ($lga, $state, $topRisk, $year) {
+        return Cache::remember("advisory_{$lga}_{$year}", 7200, function () use ($lga, $state, $topRisk, $year) {
             $trendData = DB::table('tbldataentry')
                 ->where('lga', $lga)
                 ->whereIn('eventyear', [$year, $year - 1])
@@ -418,36 +453,26 @@ class HomeNewController extends Controller
     private function getMitigationAdvice($risk)
     {
         $strategies = [
-            'Terrorism'        => 'Terrorism threat elevated. Avoid crowded public spaces, government installations, and strengthen perimeter security at all operational bases.',
-            'Insurgency'       => 'High insurgency risk. Suspend non-essential travel to remote areas and coordinate movement with state security forces.',
-            'Militancy'        => 'Militant activity detected. Secure oil/gas infrastructure and maintain a safe standoff distance from waterways and creeks.',
-            'Kidnapping'       => 'High kidnap risk. Implement strict journey management, vary travel routes/times, and utilize convoy security for high-profile staff.',
-            'Piracy'           => 'Maritime threat. Ensure vessels maintain secure anchorage watches, harden decks, and adhere strictly to BMP West Africa guidelines.',
-            'Armed Robbery'    => 'Criminality high. Upgrade physical security (lighting, perimeter walls), reduce cash handling, and conduct staff security awareness training.',
-            'Communal'         => 'Inter-communal tension. Avoid areas with boundary disputes and maintain strict neutrality in local community engagements.',
-            'Homicide'         => 'Violent crime spike. Avoid high-risk neighborhoods after dark and ensure all staff accommodation has reinforced access control.',
-            'Electoral'        => 'Election-related volatility. Avoid political rallies, campaign offices, and wearing partisan colors. Prepare for potential movement restrictions.',
-            'Protest'          => 'Civil unrest likely. Monitor local news for gathering points, maintain a low profile, and prepare business continuity plans for supply chain disruptions.',
-            'Civil Disturbance' => 'Public disorder risk. Direct staff to shelter in place if unrest erupts. Secure glass frontages and movable assets.',
-            'Labour'           => 'Strike action possible. Engage with union representatives proactively and prepare contingency staffing plans.',
-            'Corruption'       => 'Regulatory risk. Enforce strict anti-bribery compliance (FCPA/UKBA) and conduct internal audits on procurement processes.',
-            'Impeachment'      => 'Political instability. Monitor legislative developments and prepare for potential governance vacuums or spontaneous demonstrations.',
-            'LEA Brutality'    => 'Law enforcement misconduct risk. Ensure all vehicle documentation is perfect. Instruct staff to remain compliant, calm, and use dashcams where legal.',
-            'Trafficking'      => 'Human/Organ trafficking risk. Vet all domestic staff and travel agencies thoroughly. Report suspicious recruitment offers immediately.',
-            'Assault'          => 'Personal safety risk. Carry out personal security training for staff and advise against walking alone in unlit or isolated areas.',
-            'Rape'             => 'Gender-based violence risk. Review secure transportation for late shifts and ensure workplace harassment reporting lines are active.',
-            'Suicide'          => 'Mental health indicator. Enhance employee welfare programs and provide access to confidential counseling services.',
-            'Cyber'            => 'Digital threat. Strengthen firewalls, enforce 2FA, and conduct regular phishing simulations for all employees.',
-            'Arson'            => 'Fire sabotage risk. Install surveillance cameras around perimeters and ensure fire suppression systems are serviced and accessible.',
-            'Sabotage'         => 'Infrastructure threat. Increase physical guarding around critical assets (generators, servers) and vet maintenance contractors.',
-            'Burglary'         => 'Intrusion risk. Reinforce locks, install motion-sensor lighting, and test intrusion detection alarms regularly.',
-            'Fraud'            => 'Financial crime risk. Implement multi-level approval processes for transactions and verify all vendor account changes via phone.',
-            'Theft'            => 'Property crime. Implement asset tagging, clear desk policies, and access control logs for storage areas.',
-            'Natural Disaster' => 'Environmental hazard. Review evacuation plans for floods/storms and ensure emergency supplies (food/water/power) are stocked.',
-            'Epidemic'         => 'Health crisis. Activate hygiene protocols, stockpile PPE, and prepare remote work infrastructure for non-essential staff.',
-            'Accident'         => 'Transportation/Industrial risk. Enforce strict HSE compliance, mandate seatbelt usage, and conduct regular fleet maintenance checks.',
-            'Fire'             => 'Fire outbreak risk. Conduct fire drills, clear emergency exits of obstructions, and inspect electrical wiring for faults.',
-            'Route'            => 'Travel safety risk. Use route planning software to avoid known ambush points and travel only during daylight hours.',
+            'Terrorism'         => 'Terrorism threat elevated. Avoid crowded public spaces, government installations, and strengthen perimeter security at all operational bases.',
+            'Insurgency'        => 'High insurgency risk. Suspend non-essential travel to remote areas and coordinate movement with state security forces.',
+            'Militancy'         => 'Militant activity detected. Secure oil/gas infrastructure and maintain a safe standoff distance from waterways and creeks.',
+            'Kidnapping'        => 'High kidnap risk. Implement strict journey management, vary travel routes/times, and utilize convoy security for high-profile staff.',
+            'Piracy'            => 'Maritime threat. Ensure vessels maintain secure anchorage watches, harden decks, and adhere strictly to BMP West Africa guidelines.',
+            'Armed Robbery'     => 'Criminality high. Upgrade physical security, reduce cash handling, and conduct staff security awareness training.',
+            'Communal'          => 'Inter-communal tension. Avoid areas with boundary disputes and maintain strict neutrality in local community engagements.',
+            'Homicide'          => 'Violent crime spike. Avoid high-risk neighborhoods after dark and ensure all staff accommodation has reinforced access control.',
+            'Electoral'         => 'Election-related volatility. Avoid political rallies, campaign offices, and wearing partisan colors.',
+            'Protest'           => 'Civil unrest likely. Monitor local news for gathering points, maintain a low profile, and prepare business continuity plans.',
+            'Civil Disturbance' => 'Public disorder risk. Direct staff to shelter in place if unrest erupts.',
+            'Labour'            => 'Strike action possible. Engage with union representatives proactively and prepare contingency staffing plans.',
+            'Corruption'        => 'Regulatory risk. Enforce strict anti-bribery compliance and conduct internal audits on procurement processes.',
+            'Assault'           => 'Personal safety risk. Carry out personal security training for staff and advise against walking alone in unlit areas.',
+            'Cyber'             => 'Digital threat. Strengthen firewalls, enforce 2FA, and conduct regular phishing simulations.',
+            'Arson'             => 'Fire sabotage risk. Install surveillance cameras around perimeters and ensure fire suppression systems are serviced.',
+            'Burglary'          => 'Intrusion risk. Reinforce locks, install motion-sensor lighting, and test intrusion detection alarms regularly.',
+            'Theft'             => 'Property crime. Implement asset tagging and access control logs for storage areas.',
+            'Natural Disaster'  => 'Environmental hazard. Review evacuation plans and ensure emergency supplies are stocked.',
+            'Fire'              => 'Fire outbreak risk. Conduct fire drills, clear emergency exits, and inspect electrical wiring.',
         ];
 
         foreach ($strategies as $key => $advice) {

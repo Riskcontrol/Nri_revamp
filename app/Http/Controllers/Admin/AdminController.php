@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -75,7 +76,6 @@ class AdminController extends Controller
             ->select(['eventid', 'caption', 'location', 'riskfactor', 'dyear', 'datecorrected', 'Casualties_count'])
             ->where('news', 'No')->orderBy('ID', 'desc')->limit(8)->get();
 
-        // ── Announcement banner current state ─────────────────────────────────
         $announcement = Cache::get('site_announcement');
 
         return view('admin.dashboard', compact(
@@ -103,7 +103,6 @@ class AdminController extends Controller
     // USER MANAGEMENT
     // =========================================================================
 
-    // Valid tier values for the application
     private const VALID_TIERS = [
         1 => 'Tier 1 — Free',
         2 => 'Tier 2 — Standard',
@@ -125,11 +124,6 @@ class AdminController extends Controller
         return back()->with('success', 'User deleted successfully.');
     }
 
-    /**
-     * Update a user's tier level (admin only — protected by 'admin' middleware on the route group).
-     *
-     * POST /admin/users/{user}/tier
-     */
     public function updateUserTier(Request $request, User $user)
     {
         $request->validate([
@@ -138,31 +132,40 @@ class AdminController extends Controller
 
         $oldTier = $user->tier;
         $newTier = (int) $request->tier;
-
         $user->update(['tier' => $newTier]);
 
         Log::info('[AdminController] User tier updated', [
-            'admin_id'  => auth()->id(),
-            'user_id'   => $user->id,
+            'admin_id'   => auth()->id(),
+            'user_id'    => $user->id,
             'user_email' => $user->email,
-            'old_tier'  => $oldTier,
-            'new_tier'  => $newTier,
+            'old_tier'   => $oldTier,
+            'new_tier'   => $newTier,
         ]);
 
         if ($request->expectsJson()) {
             return response()->json([
-                'success'  => true,
-                'message'  => "Tier updated to " . (self::VALID_TIERS[$newTier] ?? "Tier {$newTier}") . ".",
-                'new_tier' => $newTier,
+                'success'    => true,
+                'message'    => 'Tier updated to ' . (self::VALID_TIERS[$newTier] ?? "Tier {$newTier}") . '.',
+                'new_tier'   => $newTier,
                 'tier_label' => self::VALID_TIERS[$newTier] ?? "Tier {$newTier}",
             ]);
         }
 
-        return back()->with('success', "User tier updated to " . (self::VALID_TIERS[$newTier] ?? "Tier {$newTier}") . ".");
+        return back()->with('success', 'User tier updated to ' . (self::VALID_TIERS[$newTier] ?? "Tier {$newTier}") . '.');
     }
 
     // =========================================================================
     // INSIGHT MANAGEMENT
+    //
+    // Images are stored directly in public/images/insights/ via move().
+    // The DB column (featureimage) stores the path relative to public/:
+    //   "images/insights/insight-20260325182757-AbCdEf.jpg"
+    //
+    // To display: asset($insight->featureimage)
+    //   → /images/insights/insight-...jpg  ✓
+    //
+    // NOT: asset('storage/uploads/' . $insight->featureimage)  ✗
+    //   → /storage/uploads/images/insights/...  (file doesn't exist there)
     // =========================================================================
 
     public function insights()
@@ -171,63 +174,159 @@ class AdminController extends Controller
         return view('admin.insights.index', compact('insights'));
     }
 
+    // ── CREATE ────────────────────────────────────────────────────────────────
+
+    public function createInsight()
+    {
+        $categories = DataInsightsCategory::orderBy('name')->get();
+        $states     = array_keys(config('nigeria', []));
+
+        return view('admin.insights.create', compact('categories', 'states'));
+    }
+
+    // ── STORE ─────────────────────────────────────────────────────────────────
+
+    public function storeInsight(Request $request)
+    {
+        $request->validate([
+            'title'        => 'required|string|max:255',
+            'state'        => 'required|string|max:100',
+            'category_id'  => 'nullable|integer|exists:data_insights_categories,id',
+            'description'  => 'required|string|max:1000',
+            'content'      => 'required|string',
+            'keywords'     => 'nullable|string|max:500',
+            'featureimage' => 'nullable|image|max:4096',
+        ]);
+
+        // ── Feature image → public/images/insights/ ───────────────────────────
+        $imagePath = null;
+        if ($request->hasFile('featureimage')) {
+            if (!is_dir(public_path('images/insights'))) {
+                mkdir(public_path('images/insights'), 0755, true);
+            }
+            $file     = $request->file('featureimage');
+            $filename = 'insight-' . now()->format('YmdHis') . '-' . Str::random(6)
+                . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('images/insights'), $filename);
+            $imagePath = 'images/insights/' . $filename;
+        }
+
+        // ── Unique slug ───────────────────────────────────────────────────────
+        $slug       = Str::slug($request->title);
+        $uniqueSlug = $slug;
+        $i = 1;
+        while (DataInsights::where('slug', $uniqueSlug)->exists()) {
+            $uniqueSlug = $slug . '-' . $i++;
+        }
+
+        DataInsights::create([
+            'title'         => trim($request->title),
+            'slug'          => $uniqueSlug,
+            'state'         => trim($request->state),
+            'category_id'   => $request->category_id ?: null,
+            'description'   => trim($request->description),
+            'content'       => $request->content,
+            'keywords'      => trim($request->keywords ?? ''),
+            'featureimage'  => $imagePath,
+            'lastupdatedby' => auth()->id(),
+        ]);
+
+        Cache::forget('home_insights');
+
+        return redirect()
+            ->route('admin.insights.index')
+            ->with('success', 'Insight "' . trim($request->title) . '" created successfully.');
+    }
+
+    // ── EDIT ──────────────────────────────────────────────────────────────────
+
     public function editInsight($id)
     {
         $insight    = DataInsights::findOrFail($id);
         $categories = DataInsightsCategory::all();
-        return view('admin.insights.edit', compact('insight', 'categories'));
+        $states     = array_keys(config('nigeria', []));
+
+        return view('admin.insights.edit', compact('insight', 'categories', 'states'));
     }
+
+    // ── UPDATE ────────────────────────────────────────────────────────────────
 
     public function updateInsight(Request $request, $id)
     {
         $insight = DataInsights::findOrFail($id);
 
         $request->validate([
-            'title'       => 'required|string|max:255',
-            'state'       => 'required|string',
-            'description' => 'required|string',
-            'content'     => 'required',
+            'title'              => 'required|string|max:255',
+            'state'              => 'required|string|max:100',
+            'category_id'        => 'nullable|integer|exists:data_insights_categories,id',
+            'description'        => 'required|string|max:1000',
+            'content'            => 'required|string',
+            'keywords'           => 'nullable|string|max:500',
+            'featureimage'       => 'nullable|image|max:4096',
+            'remove_featureimage' => 'nullable|boolean',
         ]);
 
-        $insight->update([
-            'title'         => $request->title,
-            'state'         => $request->state,
-            'category_id'   => $request->category_id,
-            'description'   => $request->description,
+        $updateData = [
+            'title'         => trim($request->title),
+            'state'         => trim($request->state),
+            'category_id'   => $request->category_id ?: null,
+            'description'   => trim($request->description),
             'content'       => $request->content,
+            'keywords'      => trim($request->keywords ?? ''),
             'lastupdatedby' => auth()->id(),
-        ]);
+        ];
 
-        return redirect()->route('admin.insights.index')->with('success', 'Insight updated successfully.');
+        // ── Replace image ─────────────────────────────────────────────────────
+        if ($request->hasFile('featureimage')) {
+            // Delete old image from public folder
+            if ($insight->featureimage && file_exists(public_path($insight->featureimage))) {
+                unlink(public_path($insight->featureimage));
+            }
+            // Store new image
+            if (!is_dir(public_path('images/insights'))) {
+                mkdir(public_path('images/insights'), 0755, true);
+            }
+            $file     = $request->file('featureimage');
+            $filename = 'insight-' . now()->format('YmdHis') . '-' . Str::random(6)
+                . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('images/insights'), $filename);
+            $updateData['featureimage'] = 'images/insights/' . $filename;
+        } elseif ($request->boolean('remove_featureimage') && $insight->featureimage) {
+            // ── Remove image without replacement ──────────────────────────────
+            if (file_exists(public_path($insight->featureimage))) {
+                unlink(public_path($insight->featureimage));
+            }
+            $updateData['featureimage'] = null;
+        }
+
+        $insight->update($updateData);
+
+        Cache::forget('home_insights');
+
+        return redirect()
+            ->route('admin.insights.index')
+            ->with('success', 'Insight updated successfully.');
     }
+
+    // ── DESTROY ───────────────────────────────────────────────────────────────
 
     public function destroyInsight($id)
     {
         $insight = DataInsights::findOrFail($id);
 
-        if ($insight->featureimage) {
-            Storage::delete($insight->featureimage);
+        // Images live in public/images/insights/ — use unlink(), NOT Storage::delete()
+        if ($insight->featureimage && file_exists(public_path($insight->featureimage))) {
+            unlink(public_path($insight->featureimage));
         }
 
         $insight->delete();
+        Cache::forget('home_insights');
+
         return back()->with('success', 'Insight deleted successfully.');
     }
 
     // =========================================================================
     // GLOBAL ANNOUNCEMENT BANNER
-    //
-    // The banner is stored as a JSON blob in the cache under the key
-    // 'site_announcement'. No migration or DB table is needed — the cache
-    // is the single source of truth. TTL is forever (survives restarts if
-    // a persistent cache driver like Redis or database is configured).
-    //
-    // The public layout reads this key on every page load. Because cache reads
-    // are O(1) memory lookups (or a single Redis GET), there is negligible
-    // overhead even on high-traffic pages.
-    //
-    // Admin routes:
-    //   POST   /admin/announcement         → save/update and enable
-    //   DELETE /admin/announcement         → disable (forget from cache)
     // =========================================================================
 
     public function updateAnnouncement(Request $request)
@@ -240,7 +339,6 @@ class AdminController extends Controller
             'eventid'      => 'nullable|string|max:30',
         ]);
 
-        // ── If an incident was selected, enrich from the DB ───────────────────
         $incidentData = null;
         if ($request->filled('eventid')) {
             $inc = DB::table('tbldataentry as e')
@@ -272,15 +370,15 @@ class AdminController extends Controller
         }
 
         $announcement = [
-            'active'          => true,
-            'headline'        => trim($request->headline),
-            'location'        => trim($request->location ?? $incidentData['location'] ?? ''),
-            'time'            => trim($request->time ?? ''),
-            'impact_level'    => $request->impact_level ?? 'critical',
-            'eventid'         => $request->eventid,
-            'incident'        => $incidentData,   // full row for the detail page
-            'updated_at'      => now()->toIso8601String(),
-            'updated_by'      => auth()->user()->name ?? auth()->user()->email,
+            'active'       => true,
+            'headline'     => trim($request->headline),
+            'location'     => trim($request->location ?? $incidentData['location'] ?? ''),
+            'time'         => trim($request->time ?? ''),
+            'impact_level' => $request->impact_level ?? 'critical',
+            'eventid'      => $request->eventid,
+            'incident'     => $incidentData,
+            'updated_at'   => now()->toIso8601String(),
+            'updated_by'   => auth()->user()->name ?? auth()->user()->email,
         ];
 
         Cache::forever('site_announcement', $announcement);

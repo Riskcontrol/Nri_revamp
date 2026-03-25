@@ -1,10 +1,9 @@
 <x-admin-layout>
-    <x-slot:title>Edit Insight</x-slot:title>
+    <x-slot:title>Create Insight</x-slot:title>
 
     {{-- TinyMCE --}}
     <script src="https://cdn.tiny.cloud/1/{{ config('services.tinymce.key') }}/tinymce/6/tinymce.min.js"
         referrerpolicy="origin"></script>
-
     <div class="max-w-4xl mx-auto">
 
         <div class="flex items-center gap-4 mb-6">
@@ -16,7 +15,7 @@
                 </svg>
                 Back
             </a>
-            <h2 class="text-2xl font-bold text-white">Edit Insight</h2>
+            <h2 class="text-2xl font-bold text-white">Create New Insight</h2>
         </div>
 
         @if ($errors->any())
@@ -31,10 +30,9 @@
         @endif
 
         <div class="bg-[#1E2D3D] border border-white/5 rounded-xl p-6 shadow-xl">
-            <form action="{{ route('admin.insights.update', $insight->id) }}" method="POST"
-                enctype="multipart/form-data" id="edit-insight-form">
+            <form action="{{ route('admin.insights.store') }}" method="POST" enctype="multipart/form-data"
+                id="create-insight-form">
                 @csrf
-                @method('PUT')
 
                 <div class="space-y-6">
 
@@ -43,7 +41,8 @@
                         <label class="block text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">
                             Title *
                         </label>
-                        <input type="text" name="title" value="{{ old('title', $insight->title) }}"
+                        <input type="text" name="title" value="{{ old('title') }}"
+                            placeholder="e.g. Security Analysis: Borno State Q1 2025"
                             class="w-full bg-[#0F172A] border border-white/10 rounded p-3 text-white
                                   focus:border-blue-500 focus:outline-none transition"
                             required>
@@ -58,13 +57,11 @@
                             <select name="state"
                                 class="w-full bg-[#0F172A] border border-white/10 rounded p-3 text-white
                                        focus:border-blue-500 focus:outline-none transition">
-                                <option value="National"
-                                    {{ old('state', $insight->state) === 'National' ? 'selected' : '' }}>
+                                <option value="National" {{ old('state') === 'National' ? 'selected' : '' }}>
                                     National
                                 </option>
                                 @foreach ($states as $state)
-                                    <option value="{{ $state }}"
-                                        {{ old('state', $insight->state) === $state ? 'selected' : '' }}>
+                                    <option value="{{ $state }}" {{ old('state') === $state ? 'selected' : '' }}>
                                         {{ $state }}
                                     </option>
                                 @endforeach
@@ -81,7 +78,7 @@
                                 <option value="">— No category —</option>
                                 @foreach ($categories as $category)
                                     <option value="{{ $category->id }}"
-                                        {{ old('category_id', $insight->category_id) == $category->id ? 'selected' : '' }}>
+                                        {{ old('category_id') == $category->id ? 'selected' : '' }}>
                                         {{ $category->name }}
                                     </option>
                                 @endforeach
@@ -94,9 +91,10 @@
                         <label class="block text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">
                             Short Description / Excerpt *
                         </label>
-                        <textarea name="description" rows="3"
+                        <textarea name="description" rows="3" placeholder="A brief summary shown on listing pages and cards…"
                             class="w-full bg-[#0F172A] border border-white/10 rounded p-3 text-white
-                                     focus:border-blue-500 focus:outline-none transition">{{ old('description', $insight->description) }}</textarea>
+                                     focus:border-blue-500 focus:outline-none transition">{{ old('description') }}</textarea>
+                        <p class="text-gray-500 text-xs mt-1">Max 1000 characters.</p>
                     </div>
 
                     {{-- Full content --}}
@@ -104,7 +102,7 @@
                         <label class="block text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">
                             Full Content *
                         </label>
-                        <textarea id="insight-content" name="content">{{ old('content', $insight->content) }}</textarea>
+                        <textarea id="insight-content" name="content">{{ old('content') }}</textarea>
                     </div>
 
                     {{-- Keywords --}}
@@ -112,76 +110,42 @@
                         <label class="block text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">
                             Keywords (optional)
                         </label>
-                        <input type="text" name="keywords" value="{{ old('keywords', $insight->keywords) }}"
+                        <input type="text" name="keywords" value="{{ old('keywords') }}"
                             placeholder="e.g. terrorism, Borno, kidnapping, northeast"
                             class="w-full bg-[#0F172A] border border-white/10 rounded p-3 text-white
                                   focus:border-blue-500 focus:outline-none transition">
                         <p class="text-gray-500 text-xs mt-1">Comma-separated keywords for SEO.</p>
                     </div>
 
-                    {{-- ── Feature image section ────────────────────────────────── --}}
-                    <div class="border border-white/10 rounded-xl p-4 space-y-4">
-                        <label class="block text-gray-400 text-xs uppercase font-bold tracking-wider">
-                            Feature Image
+                    {{-- Feature image --}}
+                    <div>
+                        <label class="block text-gray-400 text-xs uppercase font-bold tracking-wider mb-2">
+                            Feature Image (optional)
                         </label>
 
-                        @if ($insight->featureimage)
-                            {{-- Current image preview --}}
-                            <div>
-                                <p class="text-gray-500 text-xs mb-2">Current image:</p>
-                                <img src="{{ asset($insight->featureimage) }}" alt="Current feature image"
-                                    class="h-40 w-auto rounded-lg object-cover border border-white/10"
-                                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                                {{-- Fallback if image can't load --}}
-                                <div
-                                    class="hidden h-40 w-40 rounded-lg bg-white/5 border border-white/10
-                                    items-center justify-center text-gray-500 text-xs">
-                                    Image not found
-                                </div>
-
-                                {{-- Remove checkbox --}}
-                                <label class="flex items-center gap-2 mt-3 cursor-pointer group">
-                                    <input type="checkbox" name="remove_featureimage" value="1"
-                                        id="remove_featureimage" class="w-4 h-4 accent-red-500"
-                                        onchange="toggleNewImageField(this.checked)">
-                                    <span class="text-red-400 text-sm group-hover:text-red-300 transition">
-                                        Remove current image
-                                    </span>
-                                </label>
+                        <div id="img-drop"
+                            class="border-2 border-dashed border-white/10 rounded-xl p-6 text-center cursor-pointer
+                                hover:border-blue-500/50 transition"
+                            onclick="document.getElementById('featureimage').click()"
+                            ondragover="event.preventDefault();this.style.borderColor='rgba(59,130,246,0.5)'"
+                            ondragleave="this.style.borderColor='rgba(255,255,255,0.1)'" ondrop="handleImgDrop(event)">
+                            <div id="img-preview" class="hidden mb-3">
+                                <img id="img-preview-src" src="" alt=""
+                                    class="max-h-36 mx-auto rounded object-cover">
                             </div>
-                        @endif
-
-                        {{-- New image upload --}}
-                        <div id="new-image-field" {{ $insight->featureimage ? '' : '' }}>
-                            <p class="text-gray-500 text-xs mb-2">
-                                {{ $insight->featureimage ? 'Or replace with a new image:' : 'Upload an image:' }}
+                            <svg class="mx-auto mb-2 opacity-30" width="28" height="28" fill="none"
+                                stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            <p id="img-label" class="text-gray-400 text-sm">
+                                Drop image here or <span class="text-blue-400">click to browse</span>
                             </p>
-
-                            <div id="img-drop"
-                                class="border-2 border-dashed border-white/10 rounded-xl p-5 text-center
-                                    cursor-pointer hover:border-blue-500/50 transition"
-                                onclick="document.getElementById('featureimage').click()"
-                                ondragover="event.preventDefault();this.style.borderColor='rgba(59,130,246,0.5)'"
-                                ondragleave="this.style.borderColor='rgba(255,255,255,0.1)'"
-                                ondrop="handleImgDrop(event)">
-                                <div id="img-preview" class="hidden mb-3">
-                                    <img id="img-preview-src" src="" alt=""
-                                        class="max-h-36 mx-auto rounded object-cover">
-                                </div>
-                                <svg class="mx-auto mb-2 opacity-30" width="24" height="24" fill="none"
-                                    stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                    <polyline points="21 15 16 10 5 21" />
-                                </svg>
-                                <p id="img-label" class="text-gray-400 text-sm">
-                                    Drop image here or <span class="text-blue-400">click to browse</span>
-                                </p>
-                                <p class="text-gray-600 text-xs mt-1">JPG, PNG, WebP · max 4 MB</p>
-                            </div>
-                            <input type="file" id="featureimage" name="featureimage" accept="image/*"
-                                class="hidden" onchange="previewImg(this)">
+                            <p class="text-gray-600 text-xs mt-1">JPG, PNG, WebP · max 4 MB</p>
                         </div>
+                        <input type="file" id="featureimage" name="featureimage" accept="image/*" class="hidden"
+                            onchange="previewImg(this)">
                     </div>
 
                     {{-- Actions --}}
@@ -193,7 +157,7 @@
                         <button type="submit" id="submit-btn"
                             class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded
                                    font-bold shadow-lg shadow-blue-500/20 transition">
-                            Update Insight
+                            Publish Insight
                         </button>
                     </div>
 
@@ -224,14 +188,6 @@
             });
         });
 
-        // Toggle new image field when "Remove" is checked
-        function toggleNewImageField(isRemoving) {
-            const field = document.getElementById('new-image-field');
-            if (!field) return;
-            field.style.opacity = isRemoving ? '0.4' : '1';
-            field.style.pointerEvents = isRemoving ? 'none' : '';
-        }
-
         // Image preview
         function previewImg(input) {
             if (input.files && input.files[0]) {
@@ -243,10 +199,6 @@
                     document.getElementById('img-preview').classList.remove('hidden');
                 };
                 reader.readAsDataURL(input.files[0]);
-                // Uncheck remove if they pick a new file
-                const removeChk = document.getElementById('remove_featureimage');
-                if (removeChk) removeChk.checked = false;
-                toggleNewImageField(false);
             }
         }
 
@@ -262,11 +214,11 @@
             previewImg(input);
         }
 
-        // Disable submit during save
-        document.getElementById('edit-insight-form').addEventListener('submit', function() {
+        // Disable button during submit
+        document.getElementById('create-insight-form').addEventListener('submit', function() {
             const btn = document.getElementById('submit-btn');
             btn.disabled = true;
-            btn.textContent = 'Saving…';
+            btn.textContent = 'Publishing…';
         });
     </script>
 

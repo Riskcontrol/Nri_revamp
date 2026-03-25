@@ -204,7 +204,8 @@
                                 <td class="font-mono text-[11px]" style="color:var(--text-dim)">{{ $import->id }}
                                 </td>
                                 <td class="whitespace-nowrap font-mono text-[11px]" style="color:var(--text-muted)">
-                                    {{ $import->created_at->format('M d, Y H:i') }}
+
+                                    {{ $import->created_at ? $import->created_at->format('M d, Y H:i') : '—' }}
                                 </td>
                                 <td style="max-width:180px">
                                     <span class="block truncate text-[13px]" style="color:var(--text-head)"

@@ -116,6 +116,8 @@ Route::prefix('admin')
 
         // ── Insight management ────────────────────────────────────────────
         Route::get('/insights', [AdminController::class, 'insights'])->name('insights.index');
+        Route::get('/insights/create', [AdminController::class, 'createInsight'])->name('insights.create');  // ← new
+        Route::post('/insights', [AdminController::class, 'storeInsight'])->name('insights.store');          // ← new
         Route::get('/insights/{id}/edit', [AdminController::class, 'editInsight'])->name('insights.edit');
         Route::put('/insights/{id}', [AdminController::class, 'updateInsight'])->name('insights.update');
         Route::delete('/insights/{id}', [AdminController::class, 'destroyInsight'])->name('insights.destroy');
@@ -141,11 +143,6 @@ Route::prefix('admin')
                 ->name('export-incidents');
         });
 
-        // ── All Incidents data table ──────────────────────────────────────
-        // GET  /admin/incidents            → paginated listing with filters
-        // DELETE /admin/incidents/row      → delete single row (JSON)
-        // DELETE /admin/incidents/bulk     → delete multiple rows (JSON)
-        // POST   /admin/incidents/breaking → toggle Breaking News flag (JSON)
         Route::prefix('incidents')->name('incidents.')->group(function () {
             Route::get('/', [IncidentsController::class, 'index'])->name('index');
             Route::delete('/row', [IncidentsController::class, 'destroy'])->name('destroy');
