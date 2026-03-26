@@ -37,8 +37,12 @@
 
                 {{-- RIGHT COLUMN: Dynamic Image --}}
                 <div class="relative h-30 lg:h-auto w-full">
-                    <img src="{{ asset('storage/uploads/' . $post->featureimage) }}" alt="{{ $post->title }}"
-                        class="absolute inset-0 w-full h-full object-cover">
+                    @if ($post->featureimage)
+                        <img src="{{ asset($post->featureimage) }}" alt="{{ $post->title }}"
+                            class="absolute inset-0 w-full h-full object-cover">
+                    @else
+                        <div class="absolute inset-0 bg-[#0A1628]"></div>
+                    @endif
                 </div>
 
             </div>

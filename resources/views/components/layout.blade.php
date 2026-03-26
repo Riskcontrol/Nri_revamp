@@ -11,8 +11,8 @@
     <meta name="keywords" content="{{ $keywords ?? 'risk, index, Nigeria' }}">
     <meta name="author" content="Nigeria Risk Index">
 
-    <link rel="icon" type="image/x-icon" href="{{ asset('images/nri-logo.ico') }}">
-    <meta property="og:image" content="{{ asset('images/nri-logo.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/nri-logo.png') }}">
+    <meta property="og:image" content="{{ asset('images/nri-logo.png') }}">
     <meta property="og:image:alt" content="Nigeria Risk Index Logo">
 
     <!-- Inter Font -->
@@ -402,8 +402,8 @@
                     <strong class="bn-headline">{{ $bannerHeadlineDisplay }}</strong>
 
                     {{-- Dismiss --}}
-                    <button class="bn-dismiss" onclick="dismissBanner('{{ $annId }}')"
-                        aria-label="Dismiss alert">✕</button>
+                    {{-- <button class="bn-dismiss" onclick="dismissBanner('{{ $annId }}')"
+                        aria-label="Dismiss alert">✕</button> --}}
                 </div>
 
                 {{-- ROW 2: meta · action buttons --}}

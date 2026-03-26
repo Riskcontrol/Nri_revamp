@@ -1,40 +1,40 @@
 <x-layout title="Home"
-    description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk analysis in Nigeria. Access up-to-date insights on terrorism, crime rates, and safety across Nigeria’s regions. Leverage our expert intelligence for businesses, expatriates, and travelers to make informed decisions and enhance safety.">
-    {{-- The header is NOT included here because it's in the x-layout component --}}
+    description="Welcome to the Nigeria Risk Index – your premier source for comprehensive security and risk analysis in Nigeria. Access up-to-date insights on terrorism, crime rates, and safety across Nigeria's regions. Leverage our expert intelligence for businesses, expatriates, and travelers to make informed decisions and enhance safety.">
 
     <main class="min-h-screen bg-primary">
         <div class="relative w-full text-white overflow-hidden"
             style="
-       background-image:
-         url('/images/background-Edited.png');
-       background-size: cover, cover, cover;
-       background-repeat: no-repeat, no-repeat, no-repeat;
-       background-position: center, center, center;
+       background-image: url('/images/background-Edited.png');
+       background-size: cover;
+       background-repeat: no-repeat;
+       background-position: center;
      ">
             <div class="absolute inset-0 bg-gradient-to-b from-[#0A1628]/80 via-[#0A1628]/85 to-[#0A1628]"></div>
-
 
             <div
                 class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-20 grid gap-8 md:gap-12 lg:gap-16 md:grid-cols-3">
 
                 {{-- LEFT COLUMN: Text & Buttons --}}
-                <div class="space-y-6 md:col-span-2">
+                <div class="space-y-6 md:col-span-2 hero-text">
 
-                    <h1 class="text-4xl sm:text-3xl lg:text-5xl font-bold leading-tight tracking-tight">
-                        Nigeria’s Most Comprehensive <br class="hidden sm:block" />Security Intelligence Platform
+                    <h1 class="text-4xl sm:text-3xl lg:text-5xl font-bold leading-tight tracking-tight hero-item"
+                        style="animation-delay:0ms">
+                        Nigeria's Most Comprehensive <br class="hidden sm:block" />Security Intelligence Platform
                     </h1>
 
-                    <p class="text-white text-xl sm:text-xl leading-relaxed mt-4">
+                    <p class="text-white text-xl sm:text-xl leading-relaxed mt-4 hero-item"
+                        style="animation-delay:120ms">
                         Monitor verified security incidents in all 36 states and the FCT. <br> Stop guessing and start
                         planning with tools that track trends <br> and predict future risks for your specific location.
                     </p>
 
-                    <p class="text-[#FDA557] text-lg sm:text-xl mt-6 font-semibold">
-                        Trusted by security professionals across <br> banking, energy, telecom, and logistics
-                        sector
+                    <p class="text-[#FDA557] text-lg sm:text-xl mt-6 font-semibold hero-item"
+                        style="animation-delay:240ms">
+                        Trusted by security professionals across <br> banking, energy, telecom, and logistics sector
                     </p>
 
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-8">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-8 hero-item"
+                        style="animation-delay:360ms">
                         <a href="{{ route('register') }}"
                             class="w-full sm:w-auto px-8 py-4 rounded-lg text-white text-lg font-semibold transition hover:brightness-110 inline-block text-center"
                             style="background-color: #2196F3;">
@@ -46,21 +46,19 @@
                             How Safe is Your Area?
                         </button>
                     </div>
-
                 </div>
 
-                {{-- RIGHT COLUMN: White Stats Cards (Compact Version) --}}
-                <div class="grid gap-3 content-start">
+                {{-- RIGHT COLUMN: Stats Cards --}}
+                <div class="grid gap-3 content-start hero-item" style="animation-delay:200ms">
 
                     {{-- 1. National Threat Level --}}
-                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
+                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white stat-card">
                         <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">
                             National Threat Outlook ({{ $periodLabel }})
                         </h3>
 
                         @php
                             $level = strtoupper(trim($currentThreatLevel));
-
                             $pillClasses = match ($level) {
                                 'VERY HIGH' => 'bg-red-600 text-white border-transparent shadow-sm animate-pulse',
                                 'HIGH' => 'bg-[#fc4444] text-white border-transparent',
@@ -69,7 +67,6 @@
                                 default => 'bg-gray-200 text-gray-800 border-gray-300',
                             };
                         @endphp
-
 
                         <div class="flex items-center mt-2">
                             <span
@@ -80,25 +77,23 @@
                     </div>
 
                     {{-- 2. Total Incidents --}}
-                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
-                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Tracked Incidents
-                        </h3>
+                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white stat-card">
+                        <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Tracked Incidents</h3>
                         <div class="text-xl sm:text-2xl font-normal text-white mt-0.5">
-                            {{ number_format($totalIncidents) }}
+                            <span class="counter" data-target="{{ $totalIncidents }}" data-suffix="+">0</span>
                         </div>
                     </div>
 
-                    {{-- 3. High Risk States --}}
-                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
+                    {{-- 3. Tracked Fatalities --}}
+                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white stat-card">
                         <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Tracked Fatalities</h3>
                         <div class="text-xl sm:text-2xl font-normal text-white mt-0.5">
-                            {{ number_format($totalFatalities) }}
-
+                            <span class="counter" data-target="{{ $totalFatalities }}" data-suffix="+">0</span>
                         </div>
                     </div>
 
                     {{-- 4. Most Affected --}}
-                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white">
+                    <div class="bg-primary rounded-xl shadow-lg p-3 border border-white stat-card">
                         <h3 class="text-gray-400 font-semibold text-sm uppercase tracking-wide">Most Affected</h3>
                         <div class="text-lg sm:text-xl font-normal text-white mt-0.5 truncate">
                             {{ $top3HighRiskStates }}
@@ -107,34 +102,135 @@
 
                 </div>
             </div>
-
         </div>
     </main>
 
     @include('partials.home.location-intelligence')
     @include('partials.home.security-index')
     @include('partials.home.app-section')
-
     @include('partials.home.insight-section')
     @include('partials.home.risk-tool')
 
+    <style>
+        /* ── Hero entrance animations ─────────────────────────────────────── */
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(22px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-item {
+            opacity: 0;
+            animation: fadeSlideUp 0.65s ease-out forwards;
+        }
+
+        /* ── Stat card subtle pop-in ──────────────────────────────────────── */
+        @keyframes cardPop {
+            from {
+                opacity: 0;
+                transform: translateY(14px) scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .stat-card {
+            animation: cardPop 0.5s ease-out both;
+        }
+
+        .stat-card:nth-child(1) {
+            animation-delay: 300ms;
+        }
+
+        .stat-card:nth-child(2) {
+            animation-delay: 420ms;
+        }
+
+        .stat-card:nth-child(3) {
+            animation-delay: 540ms;
+        }
+
+        .stat-card:nth-child(4) {
+            animation-delay: 660ms;
+        }
+
+        /* honour reduced-motion preference */
+        @media (prefers-reduced-motion: reduce) {
+
+            .hero-item,
+            .stat-card {
+                animation: none;
+                opacity: 1;
+            }
+        }
+    </style>
+
     <script>
+        // ── Counter animation ─────────────────────────────────────────────────
+        function animateCounter(el) {
+            const target = parseInt(el.dataset.target, 10);
+            const suffix = el.dataset.suffix || '';
+            const duration = 1800; // ms
+            const start = performance.now();
+
+            // easeOutExpo for a snappy deceleration feel
+            const ease = (t) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+
+            function tick(now) {
+                const elapsed = now - start;
+                const progress = Math.min(elapsed / duration, 1);
+                const value = Math.floor(ease(progress) * target);
+
+                el.textContent = value.toLocaleString() + suffix;
+
+                if (progress < 1) {
+                    requestAnimationFrame(tick);
+                } else {
+                    el.textContent = target.toLocaleString() + suffix;
+                }
+            }
+
+            requestAnimationFrame(tick);
+        }
+
+        // Fire when each counter scrolls into view (or immediately if already visible)
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !entry.target.dataset.animated) {
+                    entry.target.dataset.animated = '1';
+                    animateCounter(entry.target);
+                    counterObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.3
+        });
+
+        document.querySelectorAll('.counter').forEach(el => counterObserver.observe(el));
+
+        // ── Scroll-to-risk-tool ───────────────────────────────────────────────
         function scrollToRiskTool() {
             const target = document.getElementById('risk-tool-section');
             if (!target) return;
 
-            // offset for sticky header (adjust)
             const headerOffset = 90;
             const targetY = target.getBoundingClientRect().top + window.pageYOffset - headerOffset;
 
             smoothScrollTo(targetY, 900, () => {
-                // Tailwind-ish highlight by toggling classes
                 target.classList.add('ring-2', 'ring-blue-400/40', 'shadow-lg', 'shadow-blue-500/10',
-                    'rounded-2xl');
-
+                'rounded-2xl');
                 setTimeout(() => {
                     target.classList.remove('ring-2', 'ring-blue-400/40', 'shadow-lg',
-                        'shadow-blue-500/10');
+                    'shadow-blue-500/10');
                 }, 1200);
             });
         }
@@ -144,7 +240,6 @@
             const diff = targetY - startY;
             let start = null;
 
-            // easing (easeInOutCubic)
             const ease = (t) => t < 0.5 ?
                 4 * t * t * t :
                 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -153,9 +248,7 @@
                 if (!start) start = timestamp;
                 const time = timestamp - start;
                 const progress = Math.min(time / duration, 1);
-
                 window.scrollTo(0, startY + diff * ease(progress));
-
                 if (time < duration) {
                     requestAnimationFrame(step);
                 } else if (typeof onDone === 'function') {
@@ -166,7 +259,5 @@
             requestAnimationFrame(step);
         }
     </script>
-
-
 
 </x-layout>
