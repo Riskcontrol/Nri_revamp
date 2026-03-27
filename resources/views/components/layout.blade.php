@@ -58,8 +58,7 @@
                 : $announcement['headline'] ?? '';
 
             // Truncate — full text shown in the modal
-            $bannerHeadlineDisplay = \Illuminate\Support\Str::limit(strtoupper($bannerHeadline), 100, '…');
-
+            $bannerHeadlineDisplay = \Illuminate\Support\Str::limit(ucfirst(strtolower($bannerHeadline)), 110, '…');
             $modalBadgeBg = match ($announcement['impact_level'] ?? 'critical') {
                 'critical' => '#B91C1C',
                 'high' => '#C2410C',
@@ -160,7 +159,10 @@
             #nri-banner {
                 position: relative;
                 z-index: 9999;
-                background: linear-gradient(135deg, #5C0000 0%, #7F0000 25%, #B91C1C 65%, #991B1B 100%);
+                background: linear-gradient(135deg,
+                        #5a0a0a 0%,
+                        #7f1d1d 40%,
+                        #991b1b 100%);
                 overflow: hidden;
                 animation: bnSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
             }
@@ -219,18 +221,17 @@
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
-                padding: 3px 8px 3px 7px;
-                border-radius: 4px;
-                background: rgba(0, 0, 0, 0.32);
+                padding: 2px 7px;
+                border-radius: 3px;
+                background: rgba(0, 0, 0, 0.35);
                 white-space: nowrap;
                 flex-shrink: 0;
-                animation: bnFlicker 4s ease-in-out infinite;
             }
 
             .bn-badge-text {
                 font-size: 10px;
-                font-weight: 900;
-                letter-spacing: 0.1em;
+                font-weight: 700;
+                letter-spacing: 0.08em;
                 color: #fff;
                 text-transform: uppercase;
             }
@@ -239,12 +240,12 @@
             .bn-headline {
                 flex: 1;
                 min-width: 0;
-                font-size: 15px;
-                font-weight: 800;
+                font-size: 14px;
+                font-weight: 600;
                 color: #fff;
-                line-height: 1.3;
+                line-height: 1.45;
+                /* increased for readability */
                 letter-spacing: 0.01em;
-                /* wraps naturally — no truncation on desktop */
                 word-break: break-word;
                 overflow-wrap: anywhere;
             }
@@ -347,7 +348,7 @@
 
                 /* keep dot, hide long label text */
                 .bn-headline {
-                    font-size: 13px;
+                    font-size: 12px;
                     line-height: 1.35;
                 }
 
@@ -395,8 +396,9 @@
                     {{-- Badge --}}
                     <span class="bn-badge">
                         <span class="bn-dot"></span>
-                        <span class="bn-badge-text">🔴 Breaking Security Alert</span>
+                        <span class="bn-badge-text">🔴 Breaking </span>
                     </span>
+
 
                     {{-- Headline --}}
                     <strong class="bn-headline">{{ $bannerHeadlineDisplay }}</strong>
