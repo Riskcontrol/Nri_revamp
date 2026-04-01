@@ -10,10 +10,10 @@
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-12">
                     <div class="lg:w-1/2 space-y-4">
                         <h1 class="text-3xl md:text-4xl font-medium tracking-tight leading-[1.1] text-primary">
-                            Nigeria Security News Hub
+                            Security in Nigeria
                         </h1>
                         <p class="text-gray-500 text-lg leading-relaxed max-w-md font-medium">
-                            Stay informed on the latest security development across Nigeria.
+                            Security News Hub - Stay informed on the latest security development across Nigeria.
                         </p>
                     </div>
 
@@ -306,7 +306,7 @@
                 </div>
             </div>
         </div>
-
+        @include('partials.news.incident-map')
         {{-- ══════════════════════════════════════════════════════════
              INCIDENTS TABLE
         ══════════════════════════════════════════════════════════ --}}

@@ -18,6 +18,7 @@ use App\Http\Controllers\EnterpriseAccessController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\IncidentMapController;
 use App\Http\Controllers\Admin\AdminReportController;
 
 // ─── Auth routes ─────────────────────────────────────────────────────────────
@@ -88,6 +89,9 @@ Route::match(['get', 'post'], '/download-risk-report', [HomeNewController::class
     ->name('report.download');
 Route::get('/security-alert/{eventid}', [SecurityHubController::class, 'showAlert'])
     ->name('security-alert.show');
+// ─── Map API ──────────────────────────────────────────────────────────────────
+Route::get('/api/incidents/geojson', [IncidentMapController::class, 'geojson'])
+    ->name('incidents.geojson');
 
 // ─── Newsletter ───────────────────────────────────────────────────────────────
 
