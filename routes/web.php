@@ -20,6 +20,8 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\IncidentMapController;
 use App\Http\Controllers\Admin\AdminReportController;
+use App\Http\Controllers\WhatsAppWebhookController;
+use App\Http\Controllers\WhatsAppSubscriptionController;
 
 // ─── Auth routes ─────────────────────────────────────────────────────────────
 
@@ -89,9 +91,12 @@ Route::match(['get', 'post'], '/download-risk-report', [HomeNewController::class
     ->name('report.download');
 Route::get('/security-alert/{eventid}', [SecurityHubController::class, 'showAlert'])
     ->name('security-alert.show');
+Route::get('/api/active-alerts', [SecurityHubController::class, 'activeAlertsJson'])
+    ->name('api.active-alerts');
 // ─── Map API ──────────────────────────────────────────────────────────────────
 Route::get('/api/incidents/geojson', [IncidentMapController::class, 'geojson'])
     ->name('incidents.geojson');
+
 
 // ─── Newsletter ───────────────────────────────────────────────────────────────
 
@@ -101,6 +106,16 @@ Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm
     ->name('newsletter.confirm');
 Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
     ->name('newsletter.unsubscribe');
+
+// ── Public: WhatsApp subscription (goes in the public routes block) ────────
+Route::post('/whatsapp/subscribe', [WhatsAppSubscriptionController::class, 'subscribe'])
+    ->name('whatsapp.subscribe')
+    ->middleware(['throttle:3,60']);
+
+// ── Twilio webhook (public, NO CSRF — Twilio posts here on user reply) ─────
+// IMPORTANT: also add this URI to the CSRF exception list in bootstrap/app.php
+Route::post('/whatsapp/webhook', [WhatsAppWebhookController::class, 'handle'])
+    ->name('whatsapp.webhook');
 
 // ─── Admin routes — ALL require auth + admin middleware ───────────────────────
 
@@ -166,5 +181,11 @@ Route::prefix('admin')
             Route::put('/{report}',                 [AdminReportController::class, 'update'])->name('update');
             Route::post('/{report}/toggle-publish', [AdminReportController::class, 'togglePublish'])->name('toggle-publish');
             Route::delete('/{report}',              [AdminReportController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('whatsapp')->name('whatsapp.')->group(function () {
+            Route::get('/subscribers',        [WhatsAppSubscriptionController::class, 'index'])->name('subscribers');
+            Route::delete('/subscribers/{subscriber}', [WhatsAppSubscriptionController::class, 'destroy'])->name('subscribers.destroy');
+            Route::get('/log',                [WhatsAppSubscriptionController::class, 'log'])->name('log');
         });
     });

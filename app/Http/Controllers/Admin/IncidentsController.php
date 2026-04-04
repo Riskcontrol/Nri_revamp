@@ -300,27 +300,24 @@ class IncidentsController extends Controller
             return response()->json(['success' => false, 'message' => 'Event ID is required.'], 422);
         }
 
-        $weekly = DB::table('tblweeklydataentry')->where('eventid', $eventid)->first();
+        // ── USE ELOQUENT (not DB::table) so the Observer fires ────────────────
+        $weekly = \App\Models\tblweeklydataentry::where('eventid', $eventid)->first();
 
         if (! $weekly) {
             return response()->json([
                 'success' => false,
-                'message' => 'No weekly record found for this event. The incident exists in tbldataentry but has no linked tblweeklydataentry row.',
+                'message' => 'No weekly record found for this event.',
             ], 404);
         }
 
         $newStatus = ($weekly->news === 'Yes') ? 'No' : 'Yes';
 
-        DB::table('tblweeklydataentry')
-            ->where('eventid', $eventid)
-            ->update(['news' => $newStatus]);
+        // This single line triggers the Eloquent 'updated' event → Observer fires
+        $weekly->news = $newStatus;
+        $weekly->save(); // ← Observer::updated() is called here
 
-        // ── Instant frontend reflection ───────────────────────────────────────
-        // Bust the alerts cache so the /news page picks up the change
-        // immediately on the next page load — not after the 10-min TTL.
+        // Bust caches
         Cache::forget('news_active_alerts');
-
-        // Also bust the Breaking News count badge in the admin header
         Cache::forget('admin_incidents_breaking_total');
 
         Log::info('[Incidents] Breaking news toggled', [

@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'tier' => \App\Http\Middleware\RequireTier::class,
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            '/whatsapp/webhook',   // ← add this line
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

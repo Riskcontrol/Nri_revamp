@@ -48,5 +48,13 @@ return [
     'tinymce' => [
         'key' => env('TINYMCE_API_KEY', ''),
     ],
+    'twilio' => [
+        'sid'              => env('TWILIO_SID'),
+        'token'            => env('TWILIO_AUTH_TOKEN'),
+
+        // Sandbox number for testing: +14155238886
+        // Production: your Twilio-approved WhatsApp sender number
+        'whatsapp_number'  => env('TWILIO_WHATSAPP_NUMBER', '+14155238886'),
+    ],
 
 ];

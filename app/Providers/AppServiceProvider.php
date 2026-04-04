@@ -12,6 +12,8 @@ use App\Models\StateInsight;
 use App\Services\GroqAIService;
 use App\Services\SpreadsheetProcessorService;
 use Illuminate\Support\Facades\Gate;
+use App\Models\tblweeklydataentry;
+use App\Observers\WeeklyDataEntryObserver;
 use App\Models\User;
 
 class AppServiceProvider extends ServiceProvider
@@ -60,5 +62,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('password-reset', function (Request $request) {
             return Limit::perMinutes(10, 5)->by($request->ip());
         });
+
+        tblweeklydataentry::observe(WeeklyDataEntryObserver::class);
     }
 }
