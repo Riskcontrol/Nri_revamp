@@ -644,7 +644,7 @@
                     var overlay = document.getElementById('map-loading-overlay');
                     if (overlay) overlay.style.display = 'none';
                     document.getElementById('map-status').textContent =
-                    'Map data unavailable — please refresh.';
+                        'Map data unavailable — please refresh.';
                     console.error('[NRI map]', err);
                 });
         }
