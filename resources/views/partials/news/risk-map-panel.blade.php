@@ -192,7 +192,7 @@
     .nri-alert-title {
         font-size: 12.5px;
         font-weight: 700;
-        color: #f0f4f8;
+        color: rgba(255, 255, 255, 0.35);
         line-height: 1.35;
         margin: 0 0 5px;
         display: -webkit-box;
@@ -203,8 +203,7 @@
 
     .nri-alert-meta {
         font-size: 10.5px;
-        color: rgba(255, 255, 255, 0.35);
-        margin-bottom: 2px;
+        color: #fff margin-bottom: 2px;
         display: flex;
         align-items: center;
         gap: 5px;
@@ -212,7 +211,7 @@
 
     .nri-alert-summary {
         font-size: 11px;
-        color: rgba(255, 255, 255, 0.4);
+        color: #fff;
         line-height: 1.5;
         margin: 6px 0 8px;
         display: -webkit-box;
@@ -507,11 +506,11 @@
                 <div>
 
                     <h2 class="text-2xl sm:text-3xl font-medium text-white leading-tight tracking-tight">
-                        Nigeria Risk Map
+                        Weekly Threat Map (WTM)
                     </h2>
                     <p class="text-sm text-gray-400 mt-2 max-w-xl leading-relaxed">
-                        Access simplified, up-to-date risk information across states. Monitor emerging threats and stay
-                        informed with verified alerts.
+                        The Weekly Threat Map provides accessible, real-time risk information to help individuals,
+                        communities and institutions stay aware of evolving security conditions across Nigeria
                     </p>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
@@ -585,7 +584,7 @@
 
                                     {{-- Context fragment --}}
                                     @if (isset($alert->header_fragment) && $alert->header_fragment)
-                                        <p class="text-[10.5px] text-white/40 font-medium mb-1 truncate">
+                                        <p class="text-[10.5px] text-white font-medium mb-1 truncate">
                                             {{ $alert->header_fragment }}
                                         </p>
                                     @endif

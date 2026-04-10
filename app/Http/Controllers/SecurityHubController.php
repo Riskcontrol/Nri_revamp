@@ -256,7 +256,7 @@ class SecurityHubController extends Controller
         $stats = Cache::remember($statsKey, 300, function () use ($startDate, $endDate, $request, $regionMap) {
             $statsQuery = tbldataentry::selectRaw('
                 COUNT(*) as total_incidents,
-                SUM(CASE WHEN Casualties_count > 0 OR victim > 0 THEN 1 ELSE 0 END) as high_risk_alerts,
+                SUM(CASE WHEN Casualties_count > 5 OR victim > 3 THEN 1 ELSE 0 END) as high_risk_alerts,
                 COUNT(DISTINCT location) as states_affected
             ')->whereBetween('eventdateToUse', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
 

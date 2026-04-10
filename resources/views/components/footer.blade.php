@@ -10,8 +10,7 @@
                         class="h-16 w-auto object-contain transition-transform group-hover:scale-105" />
                 </a>
                 <p class="text-base leading-relaxed text-gray-300 max-w-xs mb-8">
-                    Comprehensive business risk intelligence for operations in Nigeria. We provide data-driven
-                    insights to help businesses protect their assets and personnel.
+                    NRI supports safer decisions through data-driven risk intelligence.
                 </p>
                 <div class="flex gap-3">
                     @php

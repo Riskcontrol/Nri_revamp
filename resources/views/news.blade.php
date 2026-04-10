@@ -175,7 +175,7 @@
                         <div class="space-y-2">
                             <span
                                 class="block text-white/90 font-semibold tracking-[0.2em] text-xs md:text-sm uppercase">
-                                {{ $featuredReport->period }} Report
+                                Security Bulletin
                             </span>
                             <h1 class="text-2xl md:text-3xl font-semibold text-white leading-tight">
                                 {{ $featuredReport->title }}
