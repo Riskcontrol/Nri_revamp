@@ -403,14 +403,24 @@ class SecurityIntelligenceController extends Controller
 
         $user = $request->user();
         if ($user && (int) $user->tier === 1) {
-            $currentYear  = (int) now()->year;
-            $allowedIndex = 'Composite Risk Index';
+            $currentYear = (int) now()->year;
 
-            if ($selectedIndex !== $allowedIndex || $selectedYear !== $currentYear) {
+            // Composite Risk Index is FREE for all years — never gate it.
+            // Only gate: non-Composite indices, OR historical years on non-Composite.
+            $isComposite    = $selectedIndex === 'Composite Risk Index';
+            $isCurrentYear  = $selectedYear === $currentYear;
+
+            // Tier2 rule:
+            //   Composite Risk Index → allowed for ANY year (no restriction)
+            //   Any other index      → only current year allowed
+            $blocked = !$isComposite && !$isCurrentYear;
+
+            if ($blocked) {
                 $payload = [
                     'message' => 'Premium Access: Select other indexes and historical years with premium.',
                     'upgrade' => true,
-                    'allowed' => ['index_type' => $allowedIndex, 'year' => $currentYear],
+                    'context' => 'risk',
+                    'allowed' => ['index_type' => 'Terrorism Index', 'year' => $currentYear],
                 ];
 
                 if ($request->expectsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
@@ -566,7 +576,7 @@ class SecurityIntelligenceController extends Controller
             });
 
             // ── 5. Fatality trend ──────────────────────────────────────────────
-            $trendYears       = range(2018, $selectedYear);
+            $trendYears         = range(2018, $selectedYear);
             $fatalityTrendQuery = tbldataentry::selectRaw('yy, SUM(Casualties_count) as total_deaths')
                 ->whereIn('yy', $trendYears);
 
@@ -588,7 +598,6 @@ class SecurityIntelligenceController extends Controller
 
             $zoneDeaths = $this->buildZoneImpact($selectedYear, $indicatorFilter);
 
-            // Top risk per zone — pre-load for selected year (avoids N+1 in map())
             $topRiskPerZoneYear = $this->getTopRiskPerZoneForYear($selectedYear, $indicatorFilter);
 
             $activeRegions = collect($zoneDeaths)

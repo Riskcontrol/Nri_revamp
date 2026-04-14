@@ -73,6 +73,7 @@
                     </div>
 
                 </article>
+                <x-insight-signature />
             </div>
 
             {{-- 3. RELATED INSIGHTS --}}
