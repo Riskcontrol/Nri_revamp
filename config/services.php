@@ -49,4 +49,15 @@ return [
         'key' => env('TINYMCE_API_KEY', ''),
     ],
 
+    // Inside the return [] array, add:
+    'gemini' => [
+        'key'   => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+    ],
+
+    'advisory' => [
+        // Set to 'gemini' to switch AI provider. Default: 'groq'
+        'provider' => env('ADVISORY_PROVIDER', 'groq'),
+    ],
+
 ];

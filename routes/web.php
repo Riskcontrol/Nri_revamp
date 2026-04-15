@@ -20,6 +20,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\IncidentMapController;
 use App\Http\Controllers\Admin\AdminReportController;
+use App\Http\Controllers\AdvisoryController;
 
 // ─── Auth routes ─────────────────────────────────────────────────────────────
 
@@ -102,6 +103,14 @@ Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm
 Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
     ->name('newsletter.unsubscribe');
 
+// Page render — returns the Blade shell instantly
+Route::get('/advisory/{state}', [AdvisoryController::class, 'show'])
+    ->name('advisory.show');
+
+// JSON data API — returns the full advisory for any logged-in user
+Route::get('/advisory/{state}/data', [AdvisoryController::class, 'getData'])
+    ->name('advisory.data');
+
 // ─── Admin routes — ALL require auth + admin middleware ───────────────────────
 
 Route::prefix('admin')
@@ -167,4 +176,8 @@ Route::prefix('admin')
             Route::post('/{report}/toggle-publish', [AdminReportController::class, 'togglePublish'])->name('toggle-publish');
             Route::delete('/{report}',              [AdminReportController::class, 'destroy'])->name('destroy');
         });
+
+        Route::post('/advisory/{state}/{year}/regenerate', [AdvisoryController::class, 'regenerate'])
+            ->name('advisory.regenerate')
+            ->middleware(['auth', 'admin']);
     });
